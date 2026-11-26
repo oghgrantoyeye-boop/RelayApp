@@ -46,7 +46,7 @@ create table field (
   key             text not null,
   label           text not null,
   type            text not null check (type in
-                    ('review_status', 'corrections', 'determination', 'text', 'money', 'person', 'date')),
+                    ('status', 'checklist', 'decision', 'text', 'money', 'person', 'date')),
   owner_unit_id   text not null references unit(id),
   unique (entity_type_id, key)
 );
@@ -66,7 +66,7 @@ create table interface (
   to_unit_id    text not null references unit(id),
   field_id      text not null references field(id),
   level         text not null check (level in ('full', 'summary', 'status', 'headline')),
-  trigger       text not null,  -- on_change | daily | on_request | on_approval | review_complete
+  trigger       text not null,  -- on_change | daily | on_request | on_approval | on_decision
   status        text not null default 'active'
                   check (status in ('active', 'requested', 'suggested', 'declined')),
   label         text,           -- "What" column on the Unit screen

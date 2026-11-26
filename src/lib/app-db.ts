@@ -1,5 +1,5 @@
 import { type Db, migrate, openDb } from "./db";
-import { seed } from "./seed/harborview";
+import { seed } from "./seed";
 
 let ready: Promise<Db> | undefined;
 

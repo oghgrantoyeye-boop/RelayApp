@@ -1,5 +1,5 @@
 import { type Db, memoryDb, migrate } from "../src/lib/db";
-import { seed } from "../src/lib/seed/harborview";
+import { seed } from "../src/lib/seed";
 
 export async function seededDb(): Promise<Db> {
   const db = await memoryDb();

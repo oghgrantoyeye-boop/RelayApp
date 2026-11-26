@@ -11,7 +11,9 @@ import {
 } from "./permissions";
 import { type Rendered, renderField } from "./render";
 
-export const PERMIT_TYPE = "permit_application";
+import { ENTITY_TYPE, EXTERNAL_OWNER_FIELD } from "./seed";
+
+export { ENTITY_TYPE };
 
 export class PermissionError extends Error {}
 
@@ -34,8 +36,8 @@ async function loadRaw(db: Db, ctx: PermissionContext, externalRef: string): Pro
     [id],
   );
   const values = new Map(vals.rows.map((r) => [r.field_id, r.value_json]));
-  const applicant = values.get(ctx.fieldsByKey.get("applicant")?.id ?? "") as { member_id?: string } | undefined;
-  return { ref: { id, applicant_member_id: applicant?.member_id ?? null }, external_ref: externalRef, revision, values };
+  const owner = values.get(ctx.fieldsByKey.get(EXTERNAL_OWNER_FIELD)?.id ?? "") as { member_id?: string } | undefined;
+  return { ref: { id, external_owner_id: owner?.member_id ?? null }, external_ref: externalRef, revision, values };
 }
 
 export interface ReadOptions {
@@ -88,14 +90,14 @@ export async function readEntity(
   opts: ReadOptions = {},
   ctx?: PermissionContext,
 ): Promise<EntityView> {
-  ctx ??= await loadPermissionContext(db, PERMIT_TYPE);
+  ctx ??= await loadPermissionContext(db, ENTITY_TYPE);
   const raw = await loadRaw(db, ctx, externalRef);
   const visible =
     raw && canSeeEntity(ctx, readerId, raw.ref) && (!opts.onBehalfOf || canSeeEntity(ctx, opts.onBehalfOf, raw.ref));
   if (!raw || !visible) {
     await audit(db, { actor: readerId, onBehalfOf: opts.onBehalfOf, action: "read_denied", target: externalRef });
     // Same error whether it doesn't exist or isn't yours, so nothing leaks.
-    throw new PermissionError(`No application ${externalRef}`);
+    throw new PermissionError(`Nothing found for ${externalRef}`);
   }
 
   const fields: Record<string, FieldView> = {};
@@ -137,7 +139,7 @@ export async function writeField(
   value: unknown,
   opts: WriteOptions = {},
 ): Promise<void> {
-  const ctx = await loadPermissionContext(db, PERMIT_TYPE);
+  const ctx = await loadPermissionContext(db, ENTITY_TYPE);
   const field = ctx.fieldsByKey.get(key);
   const writer = ctx.members.get(writerId);
   const fail = async (reason: string) => {
@@ -155,7 +157,7 @@ export async function writeField(
   const e = await db.query<{ id: string }>("update entity set revision = revision + 1 where external_ref = $1 returning id", [
     externalRef,
   ]);
-  if (!e.rows[0]) return fail(`No application ${externalRef}`);
+  if (!e.rows[0]) return fail(`Nothing found for ${externalRef}`);
   await db.query(
     `insert into field_value (entity_id, field_id, value_json, updated_by, updated_at) values ($1, $2, $3, $4, now())
      on conflict (entity_id, field_id) do update set value_json = excluded.value_json, updated_by = excluded.updated_by, updated_at = now()`,

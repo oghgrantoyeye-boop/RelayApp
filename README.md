@@ -1,8 +1,10 @@
 # Relay
 
-Relay routes information between teams so they don't need handoff meetings. v0 is a staff-facing
-permit-review app for the fictional City of Harborview. `SPEC.md` is the brief; `HANDOFF.md` has the
-decisions so far.
+Relay routes information between teams so they don't need handoff meetings. Each team publishes what it
+shares, with whom, at what level of detail and when, and Relay pushes that slice to the right people.
+The v0 demo is Larkspur Outdoor Co., a fictional gear company whose six teams and retail partners
+work on cross-team initiatives. `SPEC.md` is the original brief (written for a city-permitting demo);
+`HANDOFF.md` has the decisions since, including the switch to the company demo.
 
 ## Run it
 
@@ -10,7 +12,7 @@ decisions so far.
 npm i
 npm run dev        # http://localhost:3000, embedded Postgres (PGlite) in .data/, seeded on first run
 npm test           # the brief's 9 permission tests, plus seed and summary checks
-npm run db:reset   # wipe .data/ and reseed Harborview
+npm run db:reset   # wipe .data/ and reseed the demo pack
 ```
 
 Set `DATABASE_URL` to use any Postgres instead of PGlite.
@@ -25,7 +27,7 @@ Set `DATABASE_URL` to use any Postgres instead of PGlite.
 | `src/lib/entities.ts` | `readEntity` and `writeField`: every read and write goes through the permission check and the audit log |
 | `src/lib/derive.ts` | AI summaries built only from what the reader can see; they carry their inputs' markings |
 | `src/lib/llm/` | The one LLM adapter, with template and fake implementations |
-| `src/lib/seed/harborview.ts` | Deterministic demo seed: 186 open applications, BP-2027-0418 is the demo story |
+| `src/lib/seed/` | Demo packs. `larkspur.ts` is active: 64 open initiatives, LK-014 (Trailhead e-bike launch) is the demo story |
 | `tests/` | vitest |
-| `design/` | Polished mocks and the Python that generated them (tokens, seed copy) |
+| `design/` | Polished mocks and the Python that generated them (tokens and components; the copy is from the permit demo) |
 | `docs/research/` | Background research, not needed for v0 |

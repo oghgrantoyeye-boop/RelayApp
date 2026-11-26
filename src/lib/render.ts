@@ -14,9 +14,9 @@ export interface Rendered {
   detail?: unknown;
 }
 
-export interface ReviewStatus {
-  unit: string; // unit display name, e.g. "Fire prevention"
-  state: "not_started" | "in_review" | "changes_requested" | "waiting" | "approved" | "complete";
+export interface Status {
+  unit: string; // unit display name, e.g. "Compliance"
+  state: "not_started" | "in_progress" | "changes_requested" | "waiting" | "approved" | "done";
   day?: number;
   of?: number;
   since?: string; // ISO date
@@ -24,13 +24,13 @@ export interface ReviewStatus {
   waiting_on_name?: string;
   note?: string;
 }
-export interface Correction {
+export interface ChecklistItem {
   n: number;
-  title: string; // reviewer wording
-  code?: string; // e.g. "Fire code 1006.3.4"
-  plain: string; // applicant-facing wording
+  title: string; // the owning team's wording
+  ref?: string; // a citation, e.g. "UN 38.3"
+  plain: string; // plain wording for other teams and outside parties
 }
-export interface Determination {
+export interface Decision {
   subject: string;
   state: "pending" | "decided";
   proposed?: string;
@@ -44,13 +44,13 @@ export interface Person {
   role: string;
 }
 
-const STATE_LABEL: Record<ReviewStatus["state"], string> = {
+const STATE_LABEL: Record<Status["state"], string> = {
   not_started: "Not started",
-  in_review: "In review",
+  in_progress: "In progress",
   changes_requested: "Changes requested",
   waiting: "Waiting",
   approved: "Approved",
-  complete: "Complete",
+  done: "Done",
 };
 
 export const fmtDate = (iso: string) =>
@@ -65,7 +65,7 @@ const firstSentence = (s: string) => {
   return (m ? m[0] : s).trim();
 };
 
-function reviewStatus(v: ReviewStatus, level: Level): Pick<Rendered, "text" | "detail"> {
+function status(v: Status, level: Level): Pick<Rendered, "text" | "detail"> {
   const label = v.state === "waiting" && v.waiting_on_name ? `Waiting on ${v.waiting_on_name}` : STATE_LABEL[v.state];
   const clock = v.day && v.of ? `day ${v.day} of ${v.of}` : null;
   switch (level) {
@@ -79,25 +79,25 @@ function reviewStatus(v: ReviewStatus, level: Level): Pick<Rendered, "text" | "d
     case "status":
       return { text: [label, clock].filter(Boolean).join(", ") };
     default:
-      return { text: `${v.unit} review: ${label.toLowerCase()}` };
+      return { text: `${v.unit}: ${label.toLowerCase()}` };
   }
 }
 
-function corrections(v: Correction[], level: Level): Pick<Rendered, "text" | "detail"> {
+function checklist(v: ChecklistItem[], level: Level): Pick<Rendered, "text" | "detail"> {
   const n = v.length;
   switch (level) {
     case "full":
-      return { text: v.map((c) => `${c.n}. ${c.title}${c.code ? ` (${c.code})` : ""}`).join("\n"), detail: v };
+      return { text: v.map((c) => `${c.n}. ${c.title}${c.ref ? ` (${c.ref})` : ""}`).join("\n"), detail: v };
     case "summary":
       return { text: v.map((c) => `${c.n}. ${c.plain}`).join("\n"), detail: v.map(({ n, plain }) => ({ n, plain })) };
     case "status":
-      return { text: n === 0 ? "No open corrections" : `${n} open correction${n === 1 ? "" : "s"}` };
+      return { text: n === 0 ? "Nothing open" : `${n} open item${n === 1 ? "" : "s"}` };
     default:
-      return { text: n === 0 ? "No corrections" : "Corrections requested" };
+      return { text: n === 0 ? "Nothing open" : "Changes requested" };
   }
 }
 
-function determination(v: Determination, level: Level): Pick<Rendered, "text" | "detail"> {
+function decision(v: Decision, level: Level): Pick<Rendered, "text" | "detail"> {
   const state = v.state === "pending" ? "Pending" : "Decided";
   switch (level) {
     case "full":
@@ -122,7 +122,7 @@ function money(v: number, level: Level): Pick<Rendered, "text"> {
     case "full":
       return { text: `$${v.toLocaleString("en-US")}` };
     case "summary":
-      return { text: v >= 1e6 ? `$${(v / 1e6).toFixed(1)}M` : `$${Math.round(v / 1e3)}K` };
+      return { text: v >= 1e6 ? `$${(v / 1e6).toFixed(1)}M` : v >= 1e4 ? `$${Math.round(v / 1e3)}K` : `$${Math.round(v).toLocaleString("en-US")}` };
     default:
       return { text: "Recorded" };
   }
@@ -160,12 +160,12 @@ export function renderField(type: string, value: unknown, level: Level): Rendere
   if (level === "none") return { level, locked: true, text: null };
   if (value === null || value === undefined) return { level, locked: false, text: null };
   const r =
-    type === "review_status"
-      ? reviewStatus(value as ReviewStatus, level)
-      : type === "corrections"
-        ? corrections(value as Correction[], level)
-        : type === "determination"
-          ? determination(value as Determination, level)
+    type === "status"
+      ? status(value as Status, level)
+      : type === "checklist"
+        ? checklist(value as ChecklistItem[], level)
+        : type === "decision"
+          ? decision(value as Decision, level)
           : type === "money"
             ? money(value as number, level)
             : type === "person"

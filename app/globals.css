@@ -13,8 +13,9 @@
   --blue-bg: #eff6ff;  --blue-line: #bfdbfe;  --blue-ink: #1e40af;
   --violet-bg: #f5f3ff; --violet-line: #ddd6fe; --violet-ink: #5b21b6;
 
-  --unit-permit: #6d28d9; --unit-fire: #c2410c; --unit-building: #1d4ed8; --unit-zoning: #a16207;
-  --unit-utilities: #0e7490; --unit-applicant: #0f766e; --unit-agent: #64748b;
+  /* Team colors; each pack assigns them to its units (unit.color) */
+  --team-1: #6d28d9; --team-2: #c2410c; --team-3: #1d4ed8; --team-4: #a16207;
+  --team-5: #0e7490; --team-external: #0f766e; --team-agent: #64748b;
 }
 * { box-sizing: border-box; }
 html, body { margin: 0; background: #fff; color: var(--ink); font: 13px/1.5 var(--font); }

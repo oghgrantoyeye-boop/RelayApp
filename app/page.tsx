@@ -11,11 +11,11 @@ export default async function Home() {
     group by u.name order by n desc`);
   return (
     <main>
-      <h1>Relay · City of Harborview</h1>
-      <p>Data model, seed and permission function are in. The Queue and Application screens come next.</p>
+      <h1>Relay · Larkspur Outdoor Co.</h1>
+      <p>Data model, seed and permission function are in. Team screens come next.</p>
       <table>
         <thead>
-          <tr><th>Unit</th><th>Applications held</th></tr>
+          <tr><th>Unit</th><th>Initiatives held</th></tr>
         </thead>
         <tbody>
           {counts.rows.map((r) => (

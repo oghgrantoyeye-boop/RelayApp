@@ -44,8 +44,8 @@ export interface Marking {
 /** What the check needs to know about an entity. */
 export interface EntityRef {
   id: string;
-  /** The public-unit member who owns this application, if any. */
-  applicant_member_id: string | null;
+  /** The public-unit member this entity belongs to, if any (e.g. a retail partner). */
+  external_owner_id: string | null;
 }
 
 /** Everything the check reads, loaded once per request. */
@@ -98,7 +98,7 @@ export function canSeeEntity(ctx: PermissionContext, readerId: string, entity: E
   const reader = ctx.members.get(readerId);
   if (!reader) return false;
   const unit = ctx.units.get(reader.unit_id);
-  if (unit?.kind === "public") return entity.applicant_member_id === reader.id;
+  if (unit?.kind === "public") return entity.external_owner_id === reader.id;
   return true;
 }
 
@@ -106,7 +106,7 @@ function levelForMember(ctx: PermissionContext, reader: Member, entity: EntityRe
   // 1. The owning unit gets full detail.
   if (reader.unit_id === field.owner_unit_id) return "full";
 
-  // 2. The public unit sees only its own applications.
+  // 2. The public unit sees only entities that belong to it.
   if (!canSeeEntity(ctx, reader.id, entity)) return "none";
 
   // 3. Otherwise, the most detailed level any active interface grants.
