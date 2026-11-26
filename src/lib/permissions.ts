@@ -116,10 +116,13 @@ function levelForMember(ctx: PermissionContext, reader: Member, entity: EntityRe
   }
 
   // 4. Markings cap the result for every unit outside their allowed list.
+  return capByMarkings(ctx, reader.unit_id, entity, field, level);
+}
+
+/** Applies every marking on the field to a level, for a unit that doesn't own it. */
+export function capByMarkings(ctx: PermissionContext, unitId: string, entity: EntityRef, field: Field, level: Level): Level {
   for (const m of markingsFor(ctx, entity, field)) {
-    if (!(m.rule.allowed_units ?? []).includes(reader.unit_id)) {
-      level = lessDetailed(level, m.rule.max_level_others ?? "none");
-    }
+    if (!(m.rule.allowed_units ?? []).includes(unitId)) level = lessDetailed(level, m.rule.max_level_others ?? "none");
   }
   return level;
 }

@@ -17,6 +17,18 @@ npm run db:reset   # wipe .data/ and reseed the demo pack
 
 Set `DATABASE_URL` to use any Postgres instead of PGlite.
 
+## Try the demo
+
+There's no login. Pick who you are from **Viewing Relay as** at the bottom of the sidebar; the server
+enforces every permission as that person.
+
+1. As **Maya Chen (Product)**, open **Waiting on**: the morning summary names Compliance as the
+   bottleneck, and every blocked handoff shows who holds it and when it should land.
+2. Open **Trailhead e-bike spring launch** and use the role switch (Product lead, Compliance analyst,
+   Retail partner). The same initiative renders differently; locked fields stay locked.
+3. As **Omar Haddad (Compliance)**, open **Your team** and approve the suggested interface. Switch to
+   **Lena Ortiz (Supply chain)**: the certification decision is now in Supply chain's feed.
+
 ## Where things are
 
 | Path | What |

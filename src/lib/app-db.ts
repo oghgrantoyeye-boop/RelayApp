@@ -1,5 +1,5 @@
-import { type Db, migrate, openDb } from "./db";
-import { seed } from "./seed";
+import { setup } from "./bootstrap";
+import { type Db, openDb } from "./db";
 
 let ready: Promise<Db> | undefined;
 
@@ -7,8 +7,7 @@ let ready: Promise<Db> | undefined;
 export function appDb(): Promise<Db> {
   ready ??= (async () => {
     const db = await openDb();
-    await migrate(db);
-    await seed(db);
+    await setup(db);
     return db;
   })();
   return ready;

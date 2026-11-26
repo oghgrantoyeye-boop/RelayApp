@@ -1,9 +1,8 @@
-import { type Db, memoryDb, migrate } from "../src/lib/db";
-import { seed } from "../src/lib/seed";
+import { setup } from "../src/lib/bootstrap";
+import { type Db, memoryDb } from "../src/lib/db";
 
 export async function seededDb(): Promise<Db> {
   const db = await memoryDb();
-  await migrate(db);
-  await seed(db);
+  await setup(db);
   return db;
 }

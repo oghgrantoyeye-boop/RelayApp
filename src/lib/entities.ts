@@ -2,6 +2,7 @@ import type { Db } from "./db";
 import type { Level } from "./levels";
 import {
   type EntityRef,
+  type Field,
   type PermissionContext,
   canSeeEntity,
   canWrite,
@@ -17,14 +18,20 @@ export { ENTITY_TYPE };
 
 export class PermissionError extends Error {}
 
-interface RawEntity {
+/**
+ * The demo is set on a fixed date in 2027, so new events are stamped just after
+ * the latest one instead of with the real clock, which keeps feeds in order.
+ */
+const DEMO_CLOCK = "(select coalesce(max(at), now()) + interval '1 minute' from audit_event)";
+
+export interface RawEntity {
   ref: EntityRef;
   external_ref: string;
   revision: number;
   values: Map<string, unknown>; // field id -> raw value; never returned to callers
 }
 
-async function loadRaw(db: Db, ctx: PermissionContext, externalRef: string): Promise<RawEntity | null> {
+export async function loadRaw(db: Db, ctx: PermissionContext, externalRef: string): Promise<RawEntity | null> {
   const e = await db.query<{ id: string; revision: number }>(
     "select id, revision from entity where external_ref = $1",
     [externalRef],
@@ -38,6 +45,90 @@ async function loadRaw(db: Db, ctx: PermissionContext, externalRef: string): Pro
   const values = new Map(vals.rows.map((r) => [r.field_id, r.value_json]));
   const owner = values.get(ctx.fieldsByKey.get(EXTERNAL_OWNER_FIELD)?.id ?? "") as { member_id?: string } | undefined;
   return { ref: { id, external_owner_id: owner?.member_id ?? null }, external_ref: externalRef, revision, values };
+}
+
+/** Every entity's raw values, for server-side aggregation. Callers must check levels before using a value. */
+export async function loadAllRaw(db: Db, ctx: PermissionContext): Promise<RawEntity[]> {
+  const ents = await db.query<{ id: string; external_ref: string; revision: number }>(
+    "select id, external_ref, revision from entity order by external_ref",
+  );
+  const vals = await db.query<{ entity_id: string; field_id: string; value_json: unknown }>(
+    "select entity_id, field_id, value_json from field_value",
+  );
+  const byEntity = new Map<string, Map<string, unknown>>();
+  for (const v of vals.rows) {
+    if (!byEntity.has(v.entity_id)) byEntity.set(v.entity_id, new Map());
+    byEntity.get(v.entity_id)!.set(v.field_id, v.value_json);
+  }
+  const ownerField = ctx.fieldsByKey.get(EXTERNAL_OWNER_FIELD)?.id ?? "";
+  return ents.rows.map((e) => {
+    const values = byEntity.get(e.id) ?? new Map();
+    const owner = values.get(ownerField) as { member_id?: string } | undefined;
+    return { ref: { id: e.id, external_owner_id: owner?.member_id ?? null }, external_ref: e.external_ref, revision: e.revision, values };
+  });
+}
+
+/** The level a whole unit receives a field at (public units: only for the entity's own partner). */
+export function unitLevel(ctx: PermissionContext, unitId: string, entity: EntityRef, field: Field): { level: Level; memberId: string | null } {
+  const unit = ctx.units.get(unitId);
+  const member =
+    unit?.kind === "public"
+      ? entity.external_owner_id
+      : ([...ctx.members.values()].find((m) => m.unit_id === unitId && m.kind === "person")?.id ?? null);
+  if (!member) return { level: "none", memberId: null };
+  return { level: visibleLevel(ctx, member, entity, field), memberId: unit?.kind === "public" ? member : null };
+}
+
+/**
+ * Push, not pull: when a field changes, every active interface on it whose
+ * trigger matches writes a share event to the receiving unit's feed. The
+ * event holds only the text rendered at the level that unit is allowed.
+ */
+export async function shareOnTrigger(
+  db: Db,
+  ctx: PermissionContext,
+  raw: RawEntity,
+  field: Field,
+  trigger: string,
+  actor: string | null,
+  at?: string,
+): Promise<number> {
+  const ifaces = await db.query<{ id: string; to_unit_id: string; trigger: string }>(
+    "select id, to_unit_id, trigger from interface where field_id = $1 and status = 'active'",
+    [field.id],
+  );
+  const name = renderField("text", raw.values.get(ctx.fieldsByKey.get("name")?.id ?? ""), "full").text ?? raw.external_ref;
+  let n = 0;
+  for (const i of ifaces.rows) {
+    if (!i.trigger.split("+").includes(trigger)) continue;
+    const { level, memberId } = unitLevel(ctx, i.to_unit_id, raw.ref, field);
+    if (level === "none") continue;
+    const r = renderField(field.type, raw.values.get(field.id), level);
+    if (!r.text) continue;
+    await db.query(
+      `insert into audit_event (actor_member_id, action, target, to_unit_id, detail, at)
+       values ($1, 'share', $2, $3, $4, coalesce($5::timestamptz, ${DEMO_CLOCK}))`,
+      [
+        actor,
+        raw.external_ref,
+        i.to_unit_id,
+        JSON.stringify({
+          interface: i.id,
+          entity_name: name,
+          field: field.key,
+          field_label: field.label,
+          from_unit: field.owner_unit_id,
+          level,
+          text: r.text,
+          markings: markingsFor(ctx, raw.ref, field).map((m) => m.label),
+          ...(memberId ? { member: memberId } : {}),
+        }),
+        at ?? null,
+      ],
+    );
+    n++;
+  }
+  return n;
 }
 
 export interface ReadOptions {
@@ -73,8 +164,8 @@ export async function audit(
   },
 ) {
   await db.query(
-    `insert into audit_event (actor_member_id, on_behalf_of_member_id, action, target, to_unit_id, detail)
-     values ($1, $2, $3, $4, $5, $6)`,
+    `insert into audit_event (actor_member_id, on_behalf_of_member_id, action, target, to_unit_id, detail, at)
+     values ($1, $2, $3, $4, $5, $6, ${DEMO_CLOCK})`,
     [e.actor, e.onBehalfOf ?? null, e.action, e.target, e.toUnit ?? null, JSON.stringify(e.detail ?? {})],
   );
 }
@@ -169,4 +260,6 @@ export async function writeField(
     target: externalRef,
     detail: { field: key, ...(opts.approvedBy ? { approved_by: opts.approvedBy } : {}) },
   });
+  const raw = await loadRaw(db, ctx, externalRef);
+  if (raw) await shareOnTrigger(db, ctx, raw, field, "on_change", writerId);
 }

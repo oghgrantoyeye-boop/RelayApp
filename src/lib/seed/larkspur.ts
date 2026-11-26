@@ -126,7 +126,6 @@ function interfaces(): Iface[] {
   for (const key of ["name", "summary", "partner", "target_date", "holder", "kickoff"]) {
     out.push({ from: "product", to: "partners", key, level: key === "summary" ? "summary" : "full", trigger: "on_change" });
   }
-  out.push({ from: "product", to: "partners", key: "price", level: "full", trigger: "on_change" });
 
   // Each team reports a summary to Product, its status to the other teams, and a headline to the partner.
   const statusKeys: [UnitId, string][] = [
@@ -249,13 +248,13 @@ const ROUNDS: [number, number][] = [
   [4, 2],
 ];
 
-const NAMES = [
-  "Trail shoe midsole update", "Bike light recall follow-up", "Pannier bag v2", "Store fixture refresh",
-  "Spring catalog", "Tent fabric supplier switch", "Packaging plastic removal", "Kickstand redesign",
-  "Warranty process update", "Canada launch for Pip", "Water bottle line extension", "E-bike charger v2",
-  "Retail staff training kit", "Frame paint supplier audit", "Saddle comfort study", "Holiday bundle",
-  "Repair parts program", "Size chart update", "Bike rack accessory", "Hydration pack redesign",
+const LINES = ["Cascade tent", "Drift kayak", "Ember stove", "Pip balance bike", "Ridgeline bike", "Summit pack", "Trail shoe"];
+const CHANGES = [
+  "colorway refresh", "packaging update", "supplier switch", "price change",
+  "EU labeling", "store display", "warranty update", "spare parts kit",
 ];
+/** 56 distinct names: every product line crossed with every kind of change. */
+const NAMES = CHANGES.flatMap((c) => LINES.map((l) => `${l} ${c}`));
 const SUMMARIES = [
   "Needs sign-off from several teams before it ships.",
   "Changes a part that other products also use.",
@@ -451,7 +450,7 @@ export function buildInitiatives(): { ref: string; values: Values }[] {
     ...NAMED.slice(1),
     ...holders.map((holder, k) => ({
       ref: nextRef(),
-      name: NAMES[k % NAMES.length] + (k >= NAMES.length ? ` (${Math.floor(k / NAMES.length) + 1})` : ""),
+      name: NAMES[k % NAMES.length],
       summary: SUMMARIES[k % SUMMARIES.length],
       holder,
       partner: k % 3 === 0 ? PARTNERS[1 + (k % (PARTNERS.length - 1))].id : null, // Summit only on its own named launches
