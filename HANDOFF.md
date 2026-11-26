@@ -29,10 +29,14 @@ v0 of Relay is a staff-facing permit-review web app for the fictional City of Ha
 - Each field type (review status, corrections list, determination, text, money, person) renders itself at Full detail, Summary, Status only or Headline. Only these rendered values leave the server.
 
 ## Status
-Nothing has been built yet. The repo `RelayApp` (branch `claude/dazzling-archimedes-x7233q`) is empty, and the zip was only unpacked in a temporary folder.
+- Stack confirmed by Ovo on Nov 26: Next.js 16 + TypeScript, PGlite locally (Postgres via `DATABASE_URL`), plain SQL migrations, vitest, plain CSS tokens.
+- **Step 1 done:** schema (`db/migrations/001_init.sql`), Harborview seed, `visibleLevel`, field rendering, audited `readEntity`/`writeField`, summaries that carry markings, and the LLM adapter (template + fake; the Claude adapter comes with step 4). The brief's 9 permission tests pass, plus seed-metric and summary checks.
+- Design bundle is in `design/` and `docs/research/`; the brief is `SPEC.md`.
+- Interpretation: Building plan review has **no** sprinkler interface until Fire approves the seeded suggestion (Building is "waiting on Fire's sprinkler determination", and the suggestion only makes sense if the interface doesn't exist yet). Permission test 2 therefore approves the suggestion first. The seeded Building interface shares Fire's corrections at Full detail.
+- The home page is a placeholder that reads the database directly; it goes away with the Queue screen.
 
 ## Next steps (brief's build order)
-1. Schema, Harborview seed (186 open applications; BP-2027-0418 is the demo story) and the permission function, with the brief's 9 permission tests written first.
+1. ~~Schema, Harborview seed (186 open applications; BP-2027-0418 is the demo story) and the permission function, with the brief's 9 permission tests written first.~~
 2. Queue and Application screens with the role switch, reading through the permission function.
 3. Interfaces: create and edit them on the Unit screen. Triggers write to the receiving unit's feed. Seed the sprinkler suggestion (Approve / Approve as summary / Decline).
 4. Role-based AI summaries and the morning digest. Inputs are only what the reader can see. Cache per reader, entity and revision. Summaries inherit markings.

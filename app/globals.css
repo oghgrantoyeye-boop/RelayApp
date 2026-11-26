@@ -1,0 +1,26 @@
+/* Design tokens from design/source/gen2.py */
+:root {
+  --font: "Geist", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --ink: #18181b;
+  --muted: #5f5f6b;
+  --line: #e6e6ea;
+  --soft: #f6f6f7;
+  --accent: #1d4ed8;
+
+  --green-bg: #f0fdf4; --green-line: #bbf7d0; --green-ink: #166534;
+  --amber-bg: #fffbeb; --amber-line: #fde68a; --amber-ink: #92400e;
+  --red-bg: #fef2f2;   --red-line: #fecaca;   --red-ink: #991b1b;
+  --blue-bg: #eff6ff;  --blue-line: #bfdbfe;  --blue-ink: #1e40af;
+  --violet-bg: #f5f3ff; --violet-line: #ddd6fe; --violet-ink: #5b21b6;
+
+  --unit-permit: #6d28d9; --unit-fire: #c2410c; --unit-building: #1d4ed8; --unit-zoning: #a16207;
+  --unit-utilities: #0e7490; --unit-applicant: #0f766e; --unit-agent: #64748b;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; background: #fff; color: var(--ink); font: 13px/1.5 var(--font); }
+main { max-width: 720px; margin: 64px auto; padding: 0 16px; }
+h1 { font-size: 20px; margin: 0 0 4px; }
+p { color: var(--muted); margin: 0 0 16px; }
+table { border-collapse: collapse; width: 100%; }
+td, th { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--line); }
+th { color: var(--muted); font-weight: 500; }
