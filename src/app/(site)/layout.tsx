@@ -6,10 +6,7 @@ import { GeistSerif } from "geist/font/serif";
 import "./site.css";
 import { Logo } from "@/components/site/Brand";
 import { NavShell } from "@/components/site/Interactive";
-
-const siteUrl =
-  process.env.NEXT_PUBLIC_SITE_URL ||
-  (process.env.VERCEL_PROJECT_PRODUCTION_URL ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}` : "http://localhost:3000");
+import { siteUrl } from "@/lib/site-url";
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
