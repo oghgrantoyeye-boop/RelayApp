@@ -7,7 +7,7 @@ import { sendDigest } from "@/app/actions";
 
 export default async function DigestPage({ searchParams }: { searchParams: Promise<{ msg?: string }> }) {
   const { msg } = await searchParams;
-  const { db, viewer } = await currentViewer();
+  const { db, viewer, demo } = await currentViewer();
   const d = await buildDigest(db, viewer.reader);
   const isLeadership = viewer.reader.unitIds.includes("leadership");
   return (
@@ -33,7 +33,7 @@ export default async function DigestPage({ searchParams }: { searchParams: Promi
         )}
         <section className="card" style={{ marginBottom: 20 }}>
           <div className="row">
-            <span className="ai-head"><Icon name="spark" size={14} />This week across Northwind</span>
+            <span className="ai-head"><Icon name="spark" size={14} />This week across {demo.org.short}</span>
             <span className="small muted" style={{ marginLeft: "auto" }}>Written by {d.by}</span>
           </div>
           <ul className="list" style={{ marginTop: 8 }}>

@@ -11,10 +11,12 @@ import { analyzeUpdate, publishDraft, type PublishForm } from "@/lib/updates";
 import { confirmCommitment, markDone, rejectCommitment } from "@/lib/commitments";
 import { answerCluster, askTeam, declineCluster, sendBatch, submitRequest } from "@/lib/agent";
 import { sendLeadershipDigest } from "@/lib/digest";
-import { ingestCodingSession, ingestPullRequest, samplePullRequest, SAMPLE_SESSIONS } from "@/lib/sources";
+import { ingestCodingSession, ingestPullRequest, samplePullRequest } from "@/lib/sources";
 import { isLevel } from "@/lib/permissions";
 import { now } from "@/lib/clock";
 import { seed } from "@/lib/seed";
+import { getDemo } from "@/lib/demos";
+import type { Db } from "@/lib/db";
 
 const str = (f: FormData, k: string) => String(f.get(k) ?? "").trim();
 const safePath = (p: string) => (p.startsWith("/") && !p.startsWith("//") ? p : "/feed");
@@ -40,13 +42,27 @@ export async function setPersona(form: FormData) {
   redirect(safePath(str(form, "path")));
 }
 
-export async function resetDemo(form: FormData) {
-  const { db } = await currentViewer();
+async function loadDemo(db: Db, demoId: string) {
   const tables = await db.query<{ tablename: string }>(`select tablename from pg_tables where schemaname = 'public' and tablename <> '_migrations'`);
   await db.exec(`truncate ${tables.map((t) => `"${t.tablename}"`).join(", ")} restart identity cascade`);
-  await seed(db);
+  await seed(db, demoId);
+}
+
+export async function resetDemo(form: FormData) {
+  const { db, demo } = await currentViewer();
+  await loadDemo(db, demo.id);
   revalidatePath("/", "layout");
   redirect(withMsg(safePath(str(form, "path")), "Demo data reset to the Dec 6 story."));
+}
+
+/** Load another demo organization. Everything in the current one is reset. */
+export async function switchDemo(form: FormData) {
+  const pack = getDemo(str(form, "demo"));
+  const { db } = await currentViewer();
+  await loadDemo(db, pack.id);
+  (await cookies()).set(PERSONA_COOKIE, pack.defaultPersona, { path: "/", sameSite: "lax", httpOnly: true });
+  revalidatePath("/", "layout");
+  redirect(withMsg("/guide", `Loaded the ${pack.org.name} demo.`));
 }
 
 export async function askAgent(form: FormData) {
@@ -211,13 +227,15 @@ export async function simulate(form: FormData) {
   return run("/connect", async () => {
     const { db, viewer } = await currentViewer();
     if (str(form, "kind") === "pr") {
-      const r = await ingestPullRequest(db, samplePullRequest(viewer));
+      const { demo } = await currentViewer();
+      const r = await ingestPullRequest(db, samplePullRequest(viewer, demo));
       if ("skipped" in r) throw new Error(r.skipped);
       return `/write?draft=${r.updateId}`;
     }
-    const sample = SAMPLE_SESSIONS[viewer.team.id] ?? {
-      ...SAMPLE_SESSIONS.payments,
-      repo: `northwind/${viewer.team.id}`,
+    const { demo } = await currentViewer();
+    const sample = demo.ui.sampleSessions[viewer.team.id] ?? {
+      repo: `${demo.org.domain}/${viewer.team.id}`,
+      diffstat: "2 files changed, 18 insertions(+), 6 deletions(-)",
       branch: "main",
       prompts: [`Tidy up the ${viewer.team.name} onboarding checklist and fix the broken links`],
       notes: ["Checklist updated; two links still point at the old wiki."],

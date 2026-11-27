@@ -1,5 +1,6 @@
 // Draft sources: coding-agent sessions and merged pull requests become draft updates for their
 // author. Nothing is shared until the author reviews and publishes it in Write update.
+import type { DemoPack } from "./demos";
 import { createHmac, timingSafeEqual } from "node:crypto";
 import type { Db, Row } from "./db";
 import { now, today } from "./clock";
@@ -84,36 +85,19 @@ export async function ingestPullRequest(db: Db, event: Row): Promise<{ updateId:
   return { updateId: id };
 }
 
-/** Demo buttons on the Connect page: the same code paths, with canned input for the person's team. */
-export const SAMPLE_SESSIONS: Record<string, Partial<SessionInput>> = {
-  payments: {
-    repo: "northwind/payments-api",
-    branch: "feat/webhook-retries",
-    prompts: ["Add exponential backoff to webhook retries with 5 attempts over 24 hours", "Make retries respect the per-merchant burst limit once Platform ships it"],
-    notes: ["Backoff and the retry queue are done and tested.", "Still blocked on Platform's per-merchant burst limits before we can turn retries on."],
-    commits: ["a1b2c3d Add retry scheduler with exponential backoff", "d4e5f6a Respect per-merchant limits when present"],
-    diffstat: "14 files changed, 612 insertions(+), 88 deletions(-)",
-  },
-  platform: {
-    repo: "northwind/platform",
-    branch: "fix/limiter-leak",
-    prompts: ["Find the memory leak in the per-merchant limiter under load"],
-    notes: ["Fixed the leak: buckets for idle merchants were never evicted. Load test is stable for 2 hours."],
-    commits: ["9f8e7d6 Evict idle merchant buckets from the limiter"],
-    diffstat: "3 files changed, 74 insertions(+), 12 deletions(-)",
-  },
-};
-
-export function samplePullRequest(viewer: Viewer) {
-  const repo = viewer.team.id === "platform" ? "northwind/platform" : "northwind/payments-api";
+/** The Connect page's "Simulate a merged pull request": the same code path, with canned input for the person's team. */
+export function samplePullRequest(viewer: Viewer, demo: DemoPack) {
+  const session = demo.ui.sampleSessions[viewer.team.id] ?? Object.values(demo.ui.sampleSessions)[0];
+  const repo = session?.repo ?? `${demo.org.domain}/${viewer.team.id}`;
+  const title = session?.commits[0]?.replace(/^\w+\s+/, "") ?? `Update the ${viewer.team.name} onboarding checklist`;
   return {
     action: "closed",
     repository: { full_name: repo },
     pull_request: {
       number: 1842,
       merged: true,
-      title: viewer.team.id === "platform" ? "Evict idle merchant buckets from the per-merchant limiter" : "Add retry scheduler for webhook deliveries",
-      body: viewer.team.id === "platform" ? "Fixes the memory leak found in load testing. Unblocks per-merchant burst limits." : "Retries use exponential backoff over 24 hours.",
+      title,
+      body: session?.notes[0] ?? "Fixes two links that still pointed at the old wiki.",
       user: { login: viewer.user.github_login },
     },
   };

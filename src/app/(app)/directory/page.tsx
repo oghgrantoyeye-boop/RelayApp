@@ -23,21 +23,21 @@ function Tree({ nodes }: { nodes: (Row & { children: Row[] })[] }) {
 
 export default async function DirectoryPage({ searchParams }: { searchParams: Promise<{ q?: string }> }) {
   const { q = "" } = await searchParams;
-  const { db } = await currentViewer();
+  const { db, demo } = await currentViewer();
   const results = q ? await search(db, q) : null;
   const chart = await orgChart(db);
   return (
     <>
-      <Topbar crumbs={["Northwind Labs", "Directory"]} />
+      <Topbar crumbs={[demo.org.name, "Directory"]} />
       <div className="content">
         <div className="page-head">
           <div>
             <h1>Directory</h1>
-            <p>Who does what at Northwind Labs: teams, what they own, and how to work with them.</p>
+            <p>Who does what at {demo.org.name}: teams, what they own, and how to work with them.</p>
           </div>
         </div>
         <form className="row" style={{ marginBottom: 20 }} role="search">
-          <input type="search" name="q" defaultValue={q} placeholder='Try "rate limits", "webhooks" or a name' aria-label="Search" style={{ maxWidth: 420 }} />
+          <input type="search" name="q" defaultValue={q} placeholder={demo.ui.searchHint} aria-label="Search" style={{ maxWidth: 420 }} />
           <button className="b bp" type="submit">Search</button>
         </form>
         {results && (

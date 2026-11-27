@@ -7,7 +7,7 @@ import { fmt, fmtDateTime } from "@/lib/clock";
 
 export default async function ConnectPage({ searchParams }: { searchParams: Promise<{ msg?: string }> }) {
   const { msg } = await searchParams;
-  const { db, viewer } = await currentViewer();
+  const { db, viewer, demo } = await currentViewer();
   const tools = await teamConnectors(db, viewer.team.id);
   const items = await recentSourceItems(db, viewer, viewer.team.id, 10);
   const available = CATALOG.filter((k) => !tools.some((t) => t.kind === k));
@@ -38,7 +38,7 @@ export default async function ConnectPage({ searchParams }: { searchParams: Prom
             </p>
           </div>
         </div>
-        <div className="notice warn" style={{ marginBottom: 16 }}>Demo: these connections hold Northwind Labs&apos; fictional data. Claude Code and GitHub below are real integrations.</div>
+        <div className="notice warn" style={{ marginBottom: 16 }}>Demo: these connections hold {demo.org.name}&apos;s fictional data. Claude Code and GitHub below are real integrations.</div>
         <div className="two" style={{ marginBottom: 28 }}>
           <section className="primary">
             <div>

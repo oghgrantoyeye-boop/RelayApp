@@ -14,7 +14,8 @@ Relay pivoted from city permitting to knowledge sharing for tech companies of 20
 - **Integrations, meetings and agent work.** Teams connect (fictional) tools, and their content feeds the agent at each reader's level. Meetings are summarized and routed into draft updates and commitments. Agents run research (Claude with web search, needs a key) and draft updates as background tasks the team can steer, within a monthly budget.
 - **Team map** of commitments, asks and sharing between teams.
 - **Beacon launch site** at `/`, with early-access signups and the campaign in `marketing/`.
-- **Tests.** 45 tests cover every permission test in the brief, the agent and request routing, and the five demo steps.
+- **Tests.** 85 tests cover every permission test in the brief, the agent and request routing, and the key walkthrough steps for each demo.
+- **Four customer demos** (`/demos`): Northwind Labs (software company), City of Harborview (city hall), Halden & Moss Architects (architecture firm) and Maison Verel (fashion house). Each is one file in `src/lib/demos/`, with a guide page at `/guide`.
 
 ## Decisions made
 
