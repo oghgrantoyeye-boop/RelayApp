@@ -1,6 +1,6 @@
 # Beacon
 
-**A signal across every team.** Beacon is the orchestration and execution layer for modern organizations: it connects people, context and work across teams, and turns strategic intent into coordinated action.
+**A signal across every team.** Beacon is the platform where people and AI agents work side by side. Every team gets an agent that answers for it, does the legwork and routes the rest to the right person, while people make the decisions. It connects people, context and work across teams, and turns strategic intent into coordinated action.
 
 This repository holds two things, deployed together:
 

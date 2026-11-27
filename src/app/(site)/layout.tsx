@@ -12,10 +12,10 @@ export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
   title: "Beacon: a signal across every team",
   description:
-    "Beacon is the orchestration and execution layer for modern organizations. Connect people, context and work across every team, and turn strategic intent into coordinated action.",
+    "Beacon is the platform where people and AI agents work side by side. Every team gets an agent that answers for it, does the legwork and routes the rest to the right person, while people make the decisions.",
   openGraph: {
     title: "Beacon: a signal across every team",
-    description: "The orchestration and execution layer for modern organizations.",
+    description: "The platform where people and AI agents work side by side.",
     images: ["/og.png"],
     type: "website",
   },
@@ -33,6 +33,7 @@ export default function SiteLayout({ children }: { children: React.ReactNode }) 
             <Logo />
             <nav className="nav-links" aria-label="Primary">
               <a href="/#product">Product</a>
+              <a href="/#agents">Agents</a>
               <a href="/#integrations">Integrations</a>
               <a href="/#how-it-works">How it works</a>
               <a href="/#use-cases">Use cases</a>
@@ -51,6 +52,7 @@ export default function SiteLayout({ children }: { children: React.ReactNode }) 
             <span className="muted" style={{ fontSize: 14 }}>A signal across every team.</span>
             <nav aria-label="Footer">
               <a href="/#product">Product</a>
+              <a href="/#agents">Agents</a>
               <a href="/#integrations">Integrations</a>
               <a href="/#use-cases">Use cases</a>
               <a href="/#how-it-works">How it works</a>

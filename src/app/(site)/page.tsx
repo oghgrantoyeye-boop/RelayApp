@@ -6,6 +6,7 @@ import { DependencyGraph } from "@/components/site/DependencyGraph";
 import { AskBeacon } from "@/components/site/AskBeacon";
 import { Integrations } from "@/components/site/Integrations";
 import { Wordmark } from "@/components/site/Logos";
+import { SideBySide } from "@/components/site/SideBySide";
 
 // The "Built by" section. Add your name and a link (LinkedIn, X, personal site) to show them.
 const FOUNDER = { name: "", link: "" };
@@ -109,14 +110,14 @@ export default function Home() {
         <Topography />
         <div className="wrap">
           <div className="hero-copy">
-            <span className="eyebrow">The orchestration and execution layer for modern organizations</span>
+            <span className="eyebrow">Where people and AI agents work side by side</span>
             <h1 className="h1">
               Your organization is working.
               <span className="second">Is it working together?</span>
             </h1>
             <p className="lede">
-              Beacon connects people, context and work across every team, helping organizations understand what&apos;s happening, resolve
-              dependencies and turn strategic intent into coordinated execution.
+              Beacon is the platform where people and AI agents work side by side. Every team gets an agent that answers for it, does the
+              legwork and routes the rest to the right person, so people spend their time on decisions instead of chasing status.
             </p>
             <div className="hero-ctas">
               <Link className="btn btn-primary" href="/early-access">Request early access <Arrow /></Link>
@@ -174,7 +175,7 @@ export default function Home() {
         </div>
       </section>
 
-      <div className="wrap"><div className="divider" /></div>
+      <SideBySide />
 
       <Integrations />
 
