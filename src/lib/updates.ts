@@ -21,7 +21,7 @@ export async function teamInfos(db: Db): Promise<TeamInfo[]> {
 export async function analyzeUpdate(
   db: Db,
   viewer: Viewer,
-  input: { unitId: string; text: string; source?: "manual" | "meeting" | "coding_agent" | "github" },
+  input: { unitId: string; text: string; source?: "manual" | "meeting" | "coding_agent" | "github" | "agent" },
 ): Promise<{ updateId: string; by: string }> {
   assertWrite(viewer.reader, input.unitId, "write this team's updates", { draft: true });
   if (!input.text.trim()) throw new Error("Write or paste an update first.");
@@ -74,8 +74,9 @@ export async function getDraft(db: Db, viewer: Viewer, updateId: string) {
   if (update.author_id !== viewer.user.id) throw new PermissionError("Only the author can see a draft.");
   const items = await db.query(`select * from update_item where update_id = $1 order by created_at, id`, [updateId]);
   const commitments = await db.query(
-    `select c.*, o.due_date as revises_due, o.title as revises_title, w.name as waiting_name
+    `select c.*, o.due_date as revises_due, o.title as revises_title, w.name as waiting_name, oa.name as owner_name, om.user_id as owner_user_id
      from commitment c left join commitment o on o.id = c.revises_id left join unit w on w.id = c.waiting_unit_id
+     left join member om on om.id = c.owner_member_id left join app_user oa on oa.id = om.user_id
      where c.update_id = $1 order by c.created_at`,
     [updateId],
   );
@@ -121,8 +122,8 @@ export async function publishDraft(db: Db, viewer: Viewer, updateId: string, for
   for (const c of form.commitments) {
     const row = draft.commitments.find((x) => x.id === c.id);
     if (!row) continue;
+    if (row.owner_member_id && !viewer.units.some((u) => u.member_id === row.owner_member_id) && !row.revises_id) continue; // stays a draft for its owner
     if (c.confirm) {
-      if (row.owner_member_id && !viewer.units.some((u) => u.member_id === row.owner_member_id) && !row.revises_id) continue; // stays a draft for its owner
       const r = await confirmCommitment(db, viewer, c.id, { title: c.title, due_date: c.due_date });
       commitmentResults.push({ id: c.id, ...r });
     } else {

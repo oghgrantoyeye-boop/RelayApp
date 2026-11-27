@@ -306,4 +306,11 @@ create table lead (
 );
 `,
   },
+  {
+    id: "004_agent_drafts",
+    sql: `
+alter table team_update drop constraint team_update_source_check;
+alter table team_update add constraint team_update_source_check check (source in ('manual', 'meeting', 'coding_agent', 'github', 'agent'));
+`,
+  },
 ];

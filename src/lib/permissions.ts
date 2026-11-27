@@ -64,6 +64,9 @@ export interface ItemRef {
   capLevel?: Level;
   /** People who took part (meeting attendees): they read it in full, like the owning team. */
   participantIds?: string[];
+  /** What non-followers see when no interface applies. Defaults to the org default (Headline);
+   * a team's raw tool content defaults to Not shared. */
+  defaultLevel?: Level;
 }
 
 export interface Decision {
@@ -91,8 +94,8 @@ export function visibleLevel(policy: Policy, reader: Reader, item: ItemRef): Dec
     level = "full";
     reason = "participant";
   } else {
-    level = policy.orgDefaultLevel;
-    reason = "org_default";
+    level = item.defaultLevel ?? policy.orgDefaultLevel;
+    reason = item.defaultLevel ? "not_shared_by_default" : "org_default";
     for (const rule of policy.interfaces) {
       if (
         (item.publisherUnitIds ?? item.ownerUnitIds).includes(rule.fromUnitId) &&

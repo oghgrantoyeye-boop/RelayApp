@@ -3,11 +3,12 @@
 // person who owns that area. People get one batch of asks instead of separate messages.
 import type { Db, Row } from "./db";
 import { addDays, fmt, fmtDateTime, nextBatchAt, now, today } from "./clock";
-import { agentReader, audit, loadPolicy, markingIdsOf, newId, refCommitment, refRequest, refUpdateItem, type Viewer } from "./data";
+import { agentReader, audit, loadPolicy, markingIdsOf, newId, refCommitment, refMeeting, refRequest, refSource, refUpdateItem, type Viewer } from "./data";
+import { CONNECTOR_LABEL } from "./integrations";
 import { deliver } from "./deliver";
 import { COMMITMENT_SELECT } from "./data";
 import { canSeeDerived, deriveMarkings, PermissionError, visibleLevel, type Level } from "./permissions";
-import { showCommitment, showRequest, showUpdateItem, KIND_LABEL } from "./render";
+import { showCommitment, showRequest, showSource, showUpdateItem, KIND_LABEL } from "./render";
 import { answerFromPublished, routeQuestion, writeLevels } from "./ai/tasks";
 import { jaccard, overlap, tokens, type Doc } from "./ai/offline";
 import { notifyCommitmentChange } from "./commitments";
@@ -47,6 +48,31 @@ async function publishedSources(db: Db, unitId: string, reader: Parameters<typeo
   const owns = await db.query(`select o.*, a.name as owner_name from ownership_item o left join member m on m.id = o.owner_member_id left join app_user a on a.id = m.user_id where o.unit_id = $1`, [unitId]);
   for (const o of owns) {
     out.push({ ref: `ownership:${o.id}`, text: `${o.title}: ${o.description}. Owner: ${o.owner_name}.`, markingIds: [], level: "headline", label: "Owns" });
+  }
+  // Connected tools: raw chat stays inside the team; tickets and docs reach others only if an interface shares them.
+  const docs = await db.query(
+    `select d.*, c.kind as connector_kind, c.name as connector_name from source_doc d join connector c on c.id = d.connector_id where d.unit_id = $1 and d.occurred_at >= $2 order by d.occurred_at desc`,
+    [unitId, addDays(today(), -60)],
+  );
+  for (const d of docs) {
+    const { level } = visibleLevel(policy, reader, refSource(d));
+    const shown = showSource(d, level);
+    if (!shown) continue;
+    out.push({
+      ref: `source:${d.id}`,
+      text: `${shown.title}${shown.status ? ` (${shown.status})` : ""}${shown.text ? `: ${shown.text}` : ""}`,
+      markingIds: markingIdsOf(d),
+      level,
+      label: `${CONNECTOR_LABEL[d.connector_kind] ?? d.connector_kind}, ${fmt(d.occurred_at)}`,
+    });
+  }
+  // Meeting summaries: only for the host team and the people who attended.
+  const meetings = await db.query(`select * from meeting where unit_id = $1 and summary is not null`, [unitId]);
+  for (const m of meetings) {
+    const { level } = visibleLevel(policy, reader, refMeeting(m));
+    if (level !== "full") continue;
+    const s = m.summary as { summary: string; decisions: string[] };
+    out.push({ ref: `meeting:${m.id}`, text: `${m.title}: ${s.summary} ${(s.decisions ?? []).join(" ")}`, markingIds: markingIdsOf(m), level, label: `Meeting, ${fmt(m.starts_at)}` });
   }
   return out;
 }

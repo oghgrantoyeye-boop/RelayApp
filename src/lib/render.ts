@@ -90,6 +90,8 @@ export interface ShownSource {
 export function showSource(row: Row, level: Level): ShownSource | null {
   const ref = row.external_ref ? `${row.external_ref} ` : "";
   if (level === "none") return null;
+  // Tool content has no redacted versions, so a marked item shows nothing below full detail.
+  if (row.marking_id && level !== "full") return null;
   switch (row.kind) {
     case "message":
       return level === "full" ? { level, title: row.title, text: row.body } : null;

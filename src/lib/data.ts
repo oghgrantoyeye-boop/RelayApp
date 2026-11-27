@@ -106,7 +106,7 @@ export function refCommitment(row: Row): ItemRef {
 }
 
 export function refSource(row: Row): ItemRef {
-  return { type: "source", kind: `source:${row.kind}`, ownerUnitIds: [row.unit_id], markingIds: markingIdsOf(row) };
+  return { type: "source", kind: `source:${row.kind}`, ownerUnitIds: [row.unit_id], markingIds: markingIdsOf(row), defaultLevel: "none" };
 }
 
 /** A meeting: the host team and everyone who attended read it in full. */
