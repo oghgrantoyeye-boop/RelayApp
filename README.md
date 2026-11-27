@@ -5,7 +5,7 @@
 This repository holds two things, deployed together:
 
 - **The marketing site** at `/`, with an early-access form at `/early-access`. Launch images and captions are in [`marketing/`](marketing/launch-campaign.md).
-- **The working prototype** at `/feed` and the pages around it, running inside a fictional 300-person company, Northwind Labs. It's the v1 product described in [`SPEC.md`](SPEC.md). (The code still uses the working name "Relay" internally.) The earlier city-permitting brief is in [`docs/permitting-brief.md`](docs/permitting-brief.md).
+- **The working prototype** at `/feed` and the pages around it, running inside one of four fictional customer organizations (see "Customer demos" below). The default is a 300-person software company, Northwind Labs. It's the v1 product described in [`SPEC.md`](SPEC.md). (The code still uses the working name "Relay" internally.) The earlier city-permitting brief is in [`docs/permitting-brief.md`](docs/permitting-brief.md).
 
 ## Early-access signups
 
@@ -31,9 +31,22 @@ Open http://localhost:3000 for the site, or http://localhost:3000/feed for the p
 
 - **AI:** with no API key, Beacon uses its built-in offline writer, so the demo always works. To use Claude, put `ANTHROPIC_API_KEY=...` in `.env.local` (see `.env.example`).
 - **Reset:** the "Reset demo data" button in the sidebar, or `npm run db:reset`.
-- **Tests:** `npm test` (45 tests, including every permission test in the brief). Tests use a fake model and never call a real one.
+- **Tests:** `npm test` (85 tests, including every permission test in the brief and the walkthrough for each demo). Tests use a fake model and never call a real one.
 
-## The five-minute demo
+## Customer demos
+
+Open **Choose a demo** (`/demos`, also at the bottom of the sidebar) to load one of four fictional organizations. Each runs the same product and the same walkthrough, with its own teams, people, tools, meetings and story, all set on Dec 6, 2026. Loading a demo resets the demo data. **Demo guide** (`/guide`) lists the steps for the loaded demo, and each step's Open button switches you to the right person and page.
+
+| Demo | Who it's for | The story |
+| --- | --- | --- |
+| Northwind Labs | Mid-size software company | Platform's rate-limit change slips, which blocks Payments API's webhook retries, which puts Growth's Dec 15 launch at risk. Confidential: the Halcyon Bank deal. |
+| City of Harborview | City hall | The Elm Street water main misses Dec 5 (damaged valves), which blocks Transportation's repaving, which puts the Winter Lights festival on Dec 18 at risk. Confidential: a flood-damage claim. |
+| Halden & Moss Architects | Architecture firm | The Riverside Library energy model misses Dec 5 after a facade change, which holds up the client design package on Dec 12 and the board renders on Dec 15. Confidential: an acquisition. |
+| Maison Verel | Mid-size fashion house | Recycled wool for the Spring '27 coats fails a dye test, which delays the samples for buyers on Dec 12 and the lookbook shoot on Dec 15. Confidential: an unannounced collaboration. |
+
+Each demo is one file in [`src/lib/demos/`](src/lib/demos/), in the format described in [`types.ts`](src/lib/demos/types.ts). [`tests/demos.test.ts`](tests/demos.test.ts) runs the key walkthrough steps against every demo, so a new demo is checked the moment it's added to `DEMOS` in [`index.ts`](src/lib/demos/index.ts). To start a server on a demo other than Northwind, set `RELAY_DEMO` to its id (`software`, `cityhall`, `architecture` or `fashion`).
+
+## The five-minute demo (Northwind Labs)
 
 The story is set on **Dec 6, 2026**. Pick who you are with **Viewing as** at the bottom of the sidebar. There's no login; the server enforces every permission as that person.
 
