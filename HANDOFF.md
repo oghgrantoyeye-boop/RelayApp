@@ -16,7 +16,7 @@ Relay pivoted from city permitting to knowledge sharing for tech companies of 20
 ## Decisions made
 
 - **AI provider:** Claude (`claude-opus-5-5`) behind one adapter, with an offline writer when no key is set. Tests use a fake model.
-- **Sign-in:** a persona switcher with no login; the server enforces permissions as the chosen person.
+- **Sign-in:** none, by design. Relay is demoed inside the fictional Northwind Labs; a persona switcher stands in for login, and the server enforces permissions as the chosen person.
 - **Stack:** Next.js 16 + TypeScript, embedded Postgres (PGlite) locally, any Postgres via `DATABASE_URL`.
 - **Agents in scope for v1,** but communication only: answer, route and batch, never do a team's work.
 
@@ -24,7 +24,6 @@ Relay pivoted from city permitting to knowledge sharing for tech companies of 20
 
 - Slack first or Microsoft Teams first, depending on design partners.
 - Hosting region, if customers require data to stay in Canada or the US.
-- When to add real sign-in (Google and Microsoft SSO).
 
 ## Next steps
 

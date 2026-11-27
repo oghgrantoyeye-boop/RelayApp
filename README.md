@@ -57,19 +57,18 @@ Then show the team agents and asks:
 
 **Keeping data:** set `DATABASE_URL` to any Postgres (Neon, Supabase, RDS). The first request migrates and seeds it, and a database lock makes sure only one server does that.
 
-The demo tokens (`rly_demo_*`) and the persona switcher are for demos only. Replace them with real sign-in before a pilot.
+There's no login by design: Relay is demoed inside the fictional Northwind Labs, and the persona switcher and demo tokens (`rly_demo_*`) are part of that.
 
 ## Decisions made for this demo
 
 - **AI provider:** Claude behind one adapter, with the offline writer as a fallback. Answered Nov 26.
-- **Sign-in:** a persona switcher with no login for the demo; real SSO (Google, Microsoft) for a pilot. Answered Nov 26.
+- **Sign-in:** none. The product is demoed inside a fictional company, so a persona switcher stands in for login. Decided Nov 27.
 - **Team page visibility:** org-wide at Headline, as the brief's disclosure defaults describe.
 - **Slack vs. Teams:** delivery goes to the in-app inbox, plus a Slack incoming webhook if `SLACK_WEBHOOK_URL` is set. Teams is not built.
 - **Hosting region:** not decided. The embedded database keeps demo data on the machine running it.
 
 ## Not built yet
 
-- Real sign-in.
 - Email sending (the digest "sends" to the inbox).
 - A Slack slash command.
 - Editing interfaces in the UI (following a team creates one at Summary).
