@@ -1,5 +1,5 @@
-// Logos for the marketing site. Marks come from Simple Icons (see marks.ts). Slack, Microsoft Teams,
-// Toast and Amazon aren't in that set because those companies restrict use of their logos, so they're
+// Logos for the marketing site. Marks come from Simple Icons (see marks.ts). Slack, Microsoft Teams and
+// Toast aren't in that set because those companies restrict use of their logos, so they're
 // set as plain type. If you have the right to use an official logo, save it as public/logos/<id>.svg
 // and it replaces the typeset version everywhere on the site.
 import fs from "node:fs";
@@ -22,7 +22,6 @@ export const NAMES: Record<string, string> = {
   zendesk: "Zendesk",
   figma: "Figma",
   toast: "Toast",
-  amazon: "Amazon",
 };
 
 /** Path of an official logo file in public/logos, if one was added. Read at build time. */

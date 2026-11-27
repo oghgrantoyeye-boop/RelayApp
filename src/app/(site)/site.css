@@ -332,10 +332,11 @@ h1, h2, h3 { margin: 0; font-weight: 600; letter-spacing: -0.03em; color: var(--
 .built { padding-top: 24px; }
 .built-inner { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 28px 48px; align-items: center; background: var(--paper); border: 1px solid var(--line); border-radius: 18px; padding: 44px; }
 .built-logos { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.built-logos.one { grid-template-columns: minmax(0, 320px); justify-content: end; }
 .built-card { display: flex; flex-direction: column; justify-content: space-between; gap: 14px; min-height: 150px; padding: 20px; border: 1px solid var(--line-2); border-radius: 14px; background: var(--bg); }
 .built-when { font-family: var(--mono); font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--slate); }
 .built-role { font-size: 13.5px; color: var(--slate); }
 .wordmark { font-weight: 700; letter-spacing: -0.045em; line-height: 1; color: var(--ink-2); }
 .built-note { grid-column: 1 / -1; margin: 0; padding-top: 18px; border-top: 1px solid var(--line-2); font-size: 13px; color: var(--slate); }
-@media (max-width: 900px) { .built-inner { grid-template-columns: 1fr; padding: 28px 20px; } }
+@media (max-width: 900px) { .built-inner { grid-template-columns: 1fr; padding: 28px 20px; } .built-logos.one { justify-content: start; } }
 @media (max-width: 420px) { .built-logos { grid-template-columns: 1fr; } .built-card { min-height: 0; } }

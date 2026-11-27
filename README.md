@@ -14,7 +14,7 @@ Set **`EARLY_ACCESS_WEBHOOK_URL`** in Vercel before you send people to the site.
 ## Editing the launch site
 
 - **Your name on "Built by":** set `FOUNDER` at the top of [`src/app/(site)/page.tsx`](src/app/(site)/page.tsx) (name, plus an optional LinkedIn or personal link).
-- **Logos:** tool marks come from Simple Icons ([`src/components/site/marks.ts`](src/components/site/marks.ts)). Slack, Microsoft Teams, Toast and Amazon restrict use of their logos, so they're set as plain type. If you have the right to use an official logo, save it as `public/logos/<id>.svg` (`slack`, `teams`, `toast`, `amazon`) and it replaces the typeset version.
+- **Logos:** tool marks come from Simple Icons ([`src/components/site/marks.ts`](src/components/site/marks.ts)). Slack, Microsoft Teams and Toast restrict use of their logos, so they're set as plain type. If you have the right to use an official logo, save it as `public/logos/<id>.svg` (`slack`, `teams`, `toast`) and it replaces the typeset version.
 - **Integration status:** [`src/components/site/Integrations.tsx`](src/components/site/Integrations.tsx). Only GitHub, Claude Code and Slack channel notifications are marked Available; move a tool to `live` when it really works.
 
 ## Run it
