@@ -11,14 +11,18 @@ Relay pivoted from city permitting to knowledge sharing for tech companies of 20
 - Directory, team pages, My feed, Commitments, Write update, the leadership digest, Inbox, the audit log and Connect tools.
 - **Team agents.** Each team's agent answers from what the team has published, at the asker's level. It routes the rest to the person who owns that area, merges duplicate questions and batches asks per person. The person answers once, for everyone who asked, and can publish the answer so the agent answers it next time.
 - **Draft sources.** A Claude Code `SessionEnd` hook and a GitHub webhook turn sessions and merged pull requests into drafts only their author sees.
-- **Tests.** 33 tests cover every permission test in the brief, the agent and request routing, and the five demo steps.
+- **Integrations, meetings and agent work.** Teams connect (fictional) tools, and their content feeds the agent at each reader's level. Meetings are summarized and routed into draft updates and commitments. Agents run research (Claude with web search, needs a key) and draft updates as background tasks the team can steer, within a monthly budget.
+- **Team map** of commitments, asks and sharing between teams.
+- **Beacon launch site** at `/`, with early-access signups and the campaign in `marketing/`.
+- **Tests.** 45 tests cover every permission test in the brief, the agent and request routing, and the five demo steps.
 
 ## Decisions made
 
 - **AI provider:** Claude (`claude-opus-5-5`) behind one adapter, with an offline writer when no key is set. Tests use a fake model.
 - **Sign-in:** none, by design. Relay is demoed inside the fictional Northwind Labs; a persona switcher stands in for login, and the server enforces permissions as the chosen person.
 - **Stack:** Next.js 16 + TypeScript, embedded Postgres (PGlite) locally, any Postgres via `DATABASE_URL`.
-- **Agents in scope for v1,** but communication only: answer, route and batch, never do a team's work.
+- **Agents** answer, route and batch, and can do work the team asks for (research, draft updates). They only ever write drafts, and never read more than the person they act for.
+- **Name:** the product is Beacon. The code keeps the working name Relay.
 
 ## Open questions
 
@@ -29,4 +33,5 @@ Relay pivoted from city permitting to knowledge sharing for tech companies of 20
 
 - Deploy with a hosted Postgres for design-partner demos.
 - Add a Slack app (delivery and a slash command), then email.
-- Add meeting transcripts from Zoom, Meet or Teams, and commitment status from Jira and Linear.
+- Replace the fictional tool data with real Zoom/Meet transcripts and Jira/Linear status.
+- Set `EARLY_ACCESS_WEBHOOK_URL` and `ANTHROPIC_API_KEY` in Vercel.
