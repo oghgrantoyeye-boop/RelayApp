@@ -113,15 +113,31 @@ const holder: Holder = ((globalThis as unknown as { __relayDb?: Holder }).__rela
 export function getDb(): Promise<Db> {
   if (!holder.promise) {
     holder.promise = (async () => {
-      const url = process.env.DATABASE_URL || undefined;
-      const dataDir = process.env.RELAY_DB_DIR || path.join(process.cwd(), ".data", "pglite");
-      const db = await openDb({ url, dataDir });
-      await migrate(db);
-      const org = await db.one(`select id from org limit 1`);
-      if (!org) {
-        const { seed } = await import("./seed");
-        await seed(db);
+      // Vercel's Neon integration sets DATABASE_URL; some Postgres integrations set POSTGRES_URL.
+      const url = process.env.DATABASE_URL || process.env.POSTGRES_URL || undefined;
+      // With no database configured, Relay runs on an embedded Postgres. Locally it's stored in
+      // .data/. On Vercel (read-only disk, short-lived servers) the demo data lives in memory and is
+      // reseeded whenever a new server starts. That's fine for a demo; set DATABASE_URL to keep data.
+      const dataDir = process.env.RELAY_DB_DIR || (process.env.VERCEL ? "memory" : path.join(process.cwd(), ".data", "pglite"));
+      let db: Db;
+      try {
+        db = await openDb({ url, dataDir });
+      } catch (e) {
+        if (url || dataDir === "memory") throw e;
+        console.warn(`[relay] Can't store data in ${dataDir} (${(e as Error).message}). Keeping demo data in memory.`);
+        db = await openDb({ dataDir: "memory" });
       }
+      // On serverless hosts several instances can start at once: the lock makes exactly one of
+      // them migrate and seed, and the others wait for it.
+      await db.tx(async (t) => {
+        await t.query(`select pg_advisory_xact_lock(727274)`);
+        await migrate(t);
+        const org = await t.one(`select id from org limit 1`);
+        if (!org) {
+          const { seed } = await import("./seed");
+          await seed(t);
+        }
+      });
       return db;
     })().catch((e) => {
       holder.promise = undefined;

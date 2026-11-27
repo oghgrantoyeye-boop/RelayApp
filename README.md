@@ -53,7 +53,11 @@ Then show the team agents and asks:
 
 ## Hosting
 
-Set `DATABASE_URL` to any Postgres (Neon, Supabase, RDS) and deploy as a normal Next.js app. On serverless hosts, always use `DATABASE_URL`: the embedded database lives on local disk, so it only suits a single long-running server. The demo tokens (`rly_demo_*`) and the persona switcher are for demos only; replace them with real sign-in before a pilot.
+**Vercel, demo mode (no setup):** import the repo in Vercel and deploy. No database or environment variables are needed. On Vercel, Relay keeps the Northwind demo data in memory, so each new server starts from the Dec 6 story. Changes you make during a demo (publishing, answering asks) last as long as that server stays warm, usually the length of a demo. Add `ANTHROPIC_API_KEY` in the project's environment variables to use Claude.
+
+**Keeping data:** set `DATABASE_URL` to any Postgres (Neon, Supabase, RDS). The first request migrates and seeds it, and a database lock makes sure only one server does that.
+
+The demo tokens (`rly_demo_*`) and the persona switcher are for demos only. Replace them with real sign-in before a pilot.
 
 ## Decisions made for this demo
 
