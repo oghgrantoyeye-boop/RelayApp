@@ -179,12 +179,12 @@ export default function Home() {
       <Integrations />
 
       {/* Product showcase */}
-      <section className="section showcase on-dark" id="showcase" aria-labelledby="show-title">
+      <section className="section showcase" id="showcase" aria-labelledby="show-title">
         <div className="wrap">
           <Reveal className="section-head">
             <span className="eyebrow">Product</span>
             <h2 id="show-title" className="h2">See the whole organization, then ask it anything.</h2>
-            <p className="lede" style={{ color: "#c9d1dc" }}>
+            <p className="lede">
               Initiatives, owners, dependencies and decisions in one operating picture, with answers drawn only from what each person is allowed to see.
             </p>
           </Reveal>
@@ -297,7 +297,7 @@ export default function Home() {
       </section>
 
       {/* Final CTA */}
-      <section className="final on-dark" aria-labelledby="final-title">
+      <section className="final" aria-labelledby="final-title">
         <SignalField />
         <div className="wrap" style={{ position: "relative" }}>
           <span className="eyebrow">Early access</span>
