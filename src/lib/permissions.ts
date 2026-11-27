@@ -57,6 +57,8 @@ export interface ItemRef {
   markingIds: string[];
   /** For drafts: the only people who can see it until it's confirmed or published. */
   draftVisibleTo?: string[];
+  /** A cap the publisher chose for readers outside the owning teams. */
+  capLevel?: Level;
 }
 
 export interface Decision {
@@ -93,6 +95,10 @@ export function visibleLevel(policy: Policy, reader: Reader, item: ItemRef): Dec
         level = rule.level;
         reason = `interface:${rule.id}`;
       }
+    }
+    if (item.capLevel && rank(item.capLevel) < rank(level)) {
+      level = item.capLevel;
+      reason = "publisher_cap";
     }
   }
 

@@ -87,6 +87,8 @@ create table update_item (
   headline_text text not null,
   affected_unit_ids text[] not null default '{}',
   marking_id text references marking(id),
+  -- Optional cap on what other teams see, chosen by the person who published it (answers).
+  max_level text check (max_level in ('full', 'summary', 'status', 'headline')),
   status text not null default 'published' check (status in ('draft', 'published', 'discarded')),
   source_kind text not null default 'manual',
   source_ref text,
@@ -168,6 +170,9 @@ create table commitment (
   done_at timestamptz,
   slip_reason text,
   blocked_by_id text references commitment(id),
+  -- A draft that proposes a new due date for an existing commitment.
+  revises_id text references commitment(id),
+  update_id text references team_update(id) on delete cascade,
   marking_id text references marking(id),
   created_at timestamptz not null
 );

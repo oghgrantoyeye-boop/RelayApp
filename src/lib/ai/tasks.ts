@@ -1,0 +1,341 @@
+// Every AI job in Relay. Each one asks the model first and falls back to the offline writer.
+// Inputs are only what the reader (or author) may see. Nothing here decides or does a team's work.
+import { getLLM } from "./llm";
+import * as off from "./offline";
+
+export const ITEM_KIND_ENUM = ["progress", "decision", "risk", "ask"] as const;
+type Kind = (typeof ITEM_KIND_ENUM)[number];
+
+export interface TeamInfo {
+  id: string;
+  name: string;
+  /** Ownership titles and keywords, used to suggest affected teams. */
+  owns: string[];
+}
+
+export interface SplitItem {
+  kind: Kind;
+  text: string;
+  summary: string;
+  headline: string;
+  affected_unit_ids: string[];
+}
+
+export interface SuggestedCommitment {
+  title: string;
+  due_date: string;
+  waiting_unit_id: string | null;
+  revises_commitment_id: string | null;
+  item_index: number;
+}
+
+export interface SplitInput {
+  text: string;
+  unitId: string;
+  unitName: string;
+  today: string;
+  teams: TeamInfo[];
+  openCommitments: { id: string; title: string; due_date: string; waiting_unit_id: string | null }[];
+}
+
+const SPLIT_SCHEMA = {
+  type: "object",
+  additionalProperties: false,
+  required: ["items", "commitments"],
+  properties: {
+    items: {
+      type: "array",
+      items: {
+        type: "object",
+        additionalProperties: false,
+        required: ["kind", "text", "summary", "headline", "affected_unit_ids"],
+        properties: {
+          kind: { type: "string", enum: [...ITEM_KIND_ENUM] },
+          text: { type: "string" },
+          summary: { type: "string" },
+          headline: { type: "string" },
+          affected_unit_ids: { type: "array", items: { type: "string" } },
+        },
+      },
+    },
+    commitments: {
+      type: "array",
+      items: {
+        type: "object",
+        additionalProperties: false,
+        required: ["title", "due_date", "waiting_unit_id", "revises_commitment_id", "item_index"],
+        properties: {
+          title: { type: "string" },
+          due_date: { type: "string", description: "YYYY-MM-DD" },
+          waiting_unit_id: { type: "string", description: "Team id, or empty string" },
+          revises_commitment_id: { type: "string", description: "Existing commitment id, or empty string" },
+          item_index: { type: "integer" },
+        },
+      },
+    },
+  },
+};
+
+export async function splitUpdate(input: SplitInput): Promise<{ items: SplitItem[]; commitments: SuggestedCommitment[]; by: string }> {
+  const llm = getLLM();
+  const others = input.teams.filter((t) => t.id !== input.unitId);
+  const out = await llm.json<{ items: SplitItem[]; commitments: (Omit<SuggestedCommitment, "waiting_unit_id" | "revises_commitment_id"> & { waiting_unit_id: string; revises_commitment_id: string })[] }>("split_update", {
+    system:
+      "You turn a team's written update or meeting notes into update items for Relay, a tool that routes information between teams. " +
+      "Only use what the text says. Never invent facts, dates or owners. Each item is one piece of news: progress, decision, risk or ask. " +
+      "Write `text` as a clear sentence or two in the team's voice. `summary` is one sentence for teams that follow this one. " +
+      "`headline` is under 10 words for the rest of the company and must not contain details the summary leaves out. " +
+      "Tag `affected_unit_ids` only with ids from the team list whose work the item touches. " +
+      "List a commitment only for an explicit promise with a date. If it changes one of the open commitments, set revises_commitment_id.",
+    prompt:
+      `Today is ${input.today}. Author's team: ${input.unitName} (${input.unitId}).\n\n` +
+      `Other teams (id: name, owns):\n${others.map((t) => `- ${t.id}: ${t.name}; owns ${t.owns.slice(0, 8).join(", ")}`).join("\n")}\n\n` +
+      `Open commitments of this team:\n${input.openCommitments.map((c) => `- ${c.id}: "${c.title}", due ${c.due_date}, waiting team ${c.waiting_unit_id ?? "none"}`).join("\n") || "none"}\n\n` +
+      `Update text:\n"""\n${input.text}\n"""`,
+    schema: SPLIT_SCHEMA,
+  });
+  const ids = new Set(others.map((t) => t.id));
+  const cids = new Set(input.openCommitments.map((c) => c.id));
+  if (out && Array.isArray(out.items) && out.items.length > 0) {
+    const items = out.items
+      .filter((i) => ITEM_KIND_ENUM.includes(i.kind) && i.text)
+      .map((i) => ({ ...i, affected_unit_ids: (i.affected_unit_ids ?? []).filter((id) => ids.has(id)) }));
+    const commitments = (out.commitments ?? [])
+      .filter((c) => /^\d{4}-\d{2}-\d{2}$/.test(c.due_date) && c.title)
+      .map((c) => ({
+        ...c,
+        waiting_unit_id: ids.has(c.waiting_unit_id) ? c.waiting_unit_id : null,
+        revises_commitment_id: cids.has(c.revises_commitment_id) ? c.revises_commitment_id : null,
+        item_index: Math.min(Math.max(0, c.item_index | 0), items.length - 1),
+      }));
+    if (items.length > 0) return { items, commitments, by: llm.name };
+  }
+  return { ...offlineSplit(input), by: "Offline writer" };
+}
+
+export function offlineSplit(input: SplitInput): { items: SplitItem[]; commitments: SuggestedCommitment[] } {
+  const others = input.teams.filter((t) => t.id !== input.unitId);
+  const items: SplitItem[] = [];
+  const commitments: SuggestedCommitment[] = [];
+  for (const s of off.sentences(input.text)) {
+    const words = off.tokens(s);
+    const affected = others
+      .filter((t) => off.overlap(words, off.tokens(t.name)) >= Math.min(2, off.tokens(t.name).length) || t.owns.some((o) => {
+        const ow = off.tokens(o);
+        return ow.length > 0 && off.overlap(words, ow) >= Math.min(2, ow.length);
+      }))
+      .map((t) => t.id);
+    const promise = off.findPromise(s, input.today);
+    let kind = off.classify(s);
+    let revises: (typeof input.openCommitments)[number] | undefined;
+    if (promise) {
+      revises = input.openCommitments
+        .map((c) => ({ c, score: off.overlap(off.tokens(promise.title), off.tokens(c.title)) }))
+        .filter((x) => x.score >= 2)
+        .sort((a, b) => b.score - a.score)[0]?.c;
+      if (kind === "progress") kind = "decision";
+      const waiting = revises?.waiting_unit_id ?? affected[0] ?? null;
+      if (waiting && !affected.includes(waiting)) affected.push(waiting);
+      commitments.push({
+        title: revises ? revises.title : promise.title,
+        due_date: promise.due,
+        waiting_unit_id: waiting,
+        revises_commitment_id: revises?.id ?? null,
+        item_index: items.length,
+      });
+    }
+    const { summary, headline } = off.levelTexts(s);
+    items.push({ kind, text: s, summary, headline, affected_unit_ids: affected });
+  }
+  return { items, commitments };
+}
+
+export interface AnswerInput {
+  question: string;
+  teamName: string;
+  today: string;
+  sources: off.Doc[];
+}
+
+export interface AnswerOutput {
+  answered: boolean;
+  answer: string;
+  source_refs: string[];
+  /** Closest published context when the agent couldn't fully answer. */
+  partial?: off.Doc;
+  by: string;
+}
+
+const ANSWER_SCHEMA = {
+  type: "object",
+  additionalProperties: false,
+  required: ["answered", "answer", "source_refs"],
+  properties: {
+    answered: { type: "boolean" },
+    answer: { type: "string" },
+    source_refs: { type: "array", items: { type: "string" } },
+  },
+};
+
+export async function answerFromPublished(input: AnswerInput): Promise<AnswerOutput> {
+  const ranked = off.rank(input.question, input.sources).slice(0, 12);
+  const llm = getLLM();
+  if (ranked.length > 0) {
+    const out = await llm.json<{ answered: boolean; answer: string; source_refs: string[] }>("answer_question", {
+      system:
+        `You are the ${input.teamName} team's agent in Relay. You answer colleagues from other teams using ONLY the published sources given, ` +
+        "which are already limited to what this person may see. Never guess, never add facts, never promise anything for the team. " +
+        "If the sources don't fully answer the question (for example it asks for a date and none is given), set answered to false. " +
+        "Keep answers to 1-3 sentences and cite the refs you used.",
+      prompt:
+        `Today is ${input.today}.\nQuestion: ${input.question}\n\nSources:\n` +
+        ranked.map((r) => `[${r.doc.ref}] ${r.doc.text}`).join("\n"),
+      schema: ANSWER_SCHEMA,
+      maxTokens: 1500,
+    });
+    if (out && typeof out.answered === "boolean") {
+      const refs = (out.source_refs ?? []).filter((r) => ranked.some((x) => x.doc.ref === r));
+      if (!out.answered || refs.length === 0)
+        return { answered: false, answer: "", source_refs: [], partial: ranked[0]?.doc, by: llm.name };
+      return { answered: true, answer: out.answer, source_refs: refs, by: llm.name };
+    }
+  }
+  return { ...offlineAnswer(input, ranked), by: "Offline writer" };
+}
+
+function offlineAnswer(input: AnswerInput, ranked: { doc: off.Doc; score: number }[]): Omit<AnswerOutput, "by"> {
+  const qn = off.tokens(input.question).length;
+  const threshold = Math.min(2, Math.max(1, qn - 1));
+  const relevant = ranked.filter((r) => r.score >= threshold);
+  const top = relevant[0];
+  if (!top) return { answered: false, answer: "", source_refs: [], partial: ranked[0]?.doc };
+  if (off.asksForDate(input.question)) {
+    // A "when" question needs a source that gives an upcoming date.
+    const dated = relevant.find((r) => {
+      const d = off.findDate(r.doc.text, input.today);
+      return !!d && d >= input.today;
+    });
+    if (!dated) return { answered: false, answer: "", source_refs: [], partial: top.doc };
+    return { answered: true, answer: dated.doc.text, source_refs: [dated.doc.ref] };
+  }
+  const used = relevant.filter((r) => r.score >= top.score - 1).slice(0, 2);
+  return {
+    answered: true,
+    answer: used.map((u) => u.doc.text).join(" "),
+    source_refs: used.map((u) => u.doc.ref),
+  };
+}
+
+export interface OwnershipInfo {
+  id: string;
+  title: string;
+  description: string;
+  keywords: string[];
+}
+
+/** Which ownership item a question is about, so it reaches the right person. */
+export function routeQuestion(question: string, ownership: OwnershipInfo[]): string | null {
+  const q = off.tokens(question);
+  let best: { id: string; score: number } | null = null;
+  for (const o of ownership) {
+    const score = 2 * off.overlap(q, o.keywords.flatMap(off.tokens)) + off.overlap(q, off.tokens(`${o.title} ${o.description}`));
+    if (score > 0 && (!best || score > best.score)) best = { id: o.id, score };
+  }
+  return best?.id ?? null;
+}
+
+const LEVELS_SCHEMA = {
+  type: "object",
+  additionalProperties: false,
+  required: ["summary", "headline"],
+  properties: { summary: { type: "string" }, headline: { type: "string" } },
+};
+
+/** Summary and Headline versions of one item, written only from its own text. */
+export async function writeLevels(text: string, context: string, opts: { answer?: string } = {}): Promise<{ summary: string; headline: string }> {
+  const out = await getLLM().json<{ summary: string; headline: string }>("write_levels", {
+    system:
+      "Write two shorter versions of a team's update item for Relay. `summary`: one sentence for teams that follow this team. " +
+      "`headline`: under 10 words for the rest of the company. Use only the text given; drop names of customers, people and numbers the headline doesn't need.",
+    prompt: `${context}\n\nItem:\n${text}`,
+    schema: LEVELS_SCHEMA,
+    maxTokens: 800,
+  });
+  if (out?.summary && out?.headline) return out;
+  return opts.answer ? off.answerLevels(opts.answer) : off.levelTexts(text);
+}
+
+const PARA_SCHEMA = {
+  type: "object",
+  additionalProperties: false,
+  required: ["paragraph"],
+  properties: { paragraph: { type: "string" } },
+};
+
+/** The leadership digest's one paragraph for a team, from the items leadership may see. */
+export async function teamHeadline(teamName: string, items: { kind: string; text: string }[]): Promise<{ text: string; by: string }> {
+  if (items.length === 0) return { text: `${teamName} published nothing new this week.`, by: "Offline writer" };
+  const llm = getLLM();
+  const out = await llm.json<{ paragraph: string }>("team_headline", {
+    system:
+      "Write one paragraph (2-3 sentences, under 70 words) for a weekly leadership digest about one team. " +
+      "Lead with decisions and risks, then progress. Use only the items given. No preamble.",
+    prompt: `Team: ${teamName}\nItems:\n${items.map((i) => `- (${i.kind}) ${i.text}`).join("\n")}`,
+    schema: PARA_SCHEMA,
+    maxTokens: 800,
+  });
+  if (out?.paragraph) return { text: out.paragraph, by: llm.name };
+  const order = ["decision", "risk", "ask", "progress", "answer"];
+  const picked = [...items].sort((a, b) => order.indexOf(a.kind) - order.indexOf(b.kind)).slice(0, 3);
+  return { text: picked.map((i) => off.firstSentence(i.text).replace(/([^.!?])$/, "$1.")).join(" "), by: "Offline writer" };
+}
+
+export interface SessionInput {
+  repo: string;
+  branch: string;
+  prompts: string[];
+  notes: string[];
+  commits: string[];
+  diffstat: string;
+}
+
+const SESSION_SCHEMA = {
+  type: "object",
+  additionalProperties: false,
+  required: ["items"],
+  properties: {
+    items: {
+      type: "array",
+      items: {
+        type: "object",
+        additionalProperties: false,
+        required: ["kind", "text"],
+        properties: { kind: { type: "string", enum: [...ITEM_KIND_ENUM] }, text: { type: "string" } },
+      },
+    },
+  },
+};
+
+/** Draft update items from a coding-agent session. The author reviews them before anything is shared. */
+export async function draftFromSession(s: SessionInput): Promise<{ items: { kind: Kind; text: string }[]; by: string }> {
+  const llm = getLLM();
+  const out = await llm.json<{ items: { kind: Kind; text: string }[] }>("draft_session", {
+    system:
+      "Write 1-3 short update items about what a person worked on in a coding session, for their teammates and dependent teams. " +
+      "Describe outcomes in plain language (what changed, what's blocked, what they need). Never include code, file contents, secrets, " +
+      "tokens, URLs with credentials or customer data.",
+    prompt:
+      `Repo ${s.repo}, branch ${s.branch}.\nWhat they asked their coding agent:\n${s.prompts.map((p) => `- ${p}`).join("\n")}\n` +
+      `Agent's closing notes:\n${s.notes.map((n) => `- ${n}`).join("\n")}\nCommits:\n${s.commits.join("\n")}\nDiff stat: ${s.diffstat}`,
+    schema: SESSION_SCHEMA,
+    maxTokens: 1500,
+  });
+  if (out?.items?.length) return { items: out.items.filter((i) => ITEM_KIND_ENUM.includes(i.kind)).slice(0, 3), by: llm.name };
+  const what = s.commits[0]?.replace(/^[0-9a-f]{7,}\s+/, "") || s.prompts[0] || "work in progress";
+  const items: { kind: Kind; text: string }[] = [
+    { kind: "progress", text: `Worked on ${off.shorten(what, 120).replace(/[.]$/, "")} (${s.repo}, ${s.branch}${s.diffstat ? `; ${s.diffstat}` : ""}).` },
+  ];
+  const blocked = [...s.notes, ...s.prompts].find((t) => off.classify(t) === "risk");
+  if (blocked) items.push({ kind: "risk", text: off.shorten(blocked, 200) });
+  return { items, by: "Offline writer" };
+}
