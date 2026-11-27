@@ -147,4 +147,17 @@ export interface DemoPack {
     sampleSessions: Record<string, SampleSession>;
   };
   guide: GuideStep[];
+  /** What the story must show, checked by tests/demos.test.ts for every demo. */
+  checks: {
+    search: { q: string; team: string; owns: string };
+    feed: { as: string; decision: string; atRisk: string };
+    slipped: { as: string; team: string; commitment: string; reason: string };
+    /** The upstream lead's example notes (ui.writeExamples[team]) revise this commitment. */
+    revise: { as: string; team: string; commitment: string; due: string; notify: string[] };
+    digest: { allowed: string; denied: string; marking: string; slipped: string[] };
+    route: { as: string; team: string; question: string; owner: string; cluster: string; askers: number };
+    answer: { as: string; team: string; question: string; contains: string; source: string };
+    /** Someone outside the marking asks about the confidential subject; this word must not leak. */
+    leak: { as: string; team: string; question: string; secret: string };
+  };
 }

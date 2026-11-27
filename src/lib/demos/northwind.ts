@@ -491,4 +491,14 @@ export const northwind: DemoPack = {
     { title: "See how teams depend on each other", as: "elena", href: "/map", text: "Who owes whom, who is asking whom, and what each team shares, all at your level of access." },
     { title: "Check the audit log", as: "elena", href: "/audit", text: "Every read, agent read (with the person it acted for), share, answer and digest send." },
   ],
+  checks: {
+    search: { q: "rate limits", team: "platform", owns: "Rate limits" },
+    feed: { as: "jordan", decision: "ui_retries_decision", atRisk: "cm_launch" },
+    slipped: { as: "priya", team: "payments", commitment: "cm_limits", reason: "memory leak" },
+    revise: { as: "marcus", team: "platform", commitment: "cm_limits", due: "2026-12-09", notify: ["priya", "jordan"] },
+    digest: { allowed: "elena", denied: "jordan", marking: "mk_conf", slipped: ["cm_limits", "cm_budget"] },
+    route: { as: "ravi", team: "platform", question: "When will the rate-limit change land?", owner: "aisha", cluster: "ck_limits_date", askers: 4 },
+    answer: { as: "grace", team: "payments", question: "Do webhook retries cover payout events?", contains: "January", source: "update_item:ui_answer_payouts" },
+    leak: { as: "ben", team: "payments", question: "Is Payments API giving Halcyon Bank custom rate limits?", secret: "Halcyon" },
+  },
 };
