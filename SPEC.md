@@ -1,307 +1,209 @@
-# Relay build brief for Claude Code
+# Relay v1 build brief: team pages and updates
 
 Nov 26, 2026 · @Ovo
 
-> Exported from the claude.ai doc "Relay build brief for Claude Code" (rev 12): https://claude.ai/artifact/1eGQPLRLWv6PhWm9VnAi4n
+> Exported from the claude.ai doc "Relay v1 build brief: team pages and updates" (rev 8): https://claude.ai/artifact/72jJUjVxZsWiAqXrJFbVMS. The earlier city permitting brief is kept in `docs/permitting-brief.md`.
+
+Build Relay v1: a knowledge-sharing platform where every team has a page, and its updates, asks and commitments reach the right teams automatically. Work features come later.
 
 ## How to use this brief
 
-Build v0 of Relay: an internal permit-review tool for one city, on a data model that can grow into the full platform. Export this doc as Markdown and save it in the repo as `SPEC.md`.
+This brief replaces the [city permitting build brief](https://claude.ai/artifact/1eGQPLRLWv6PhWm9VnAi4n) as the current spec. Export it as Markdown and save it as `SPEC.md`. Keep the old brief as `docs/permitting-brief.md` for later.
+
+What changed and why:
+
+- **The first market changed.** v1 targets tech companies of roughly 200 to 2,000 employees, not cities. The founder has Amazon experience and network access there, and sales cycles are shorter.
+- **Knowledge sharing comes first, and work later.** v1 moves information between teams. It does not do anyone's work. Narrow agents come in later versions.
+- **The core model stays.** Units, interfaces, disclosure levels, markings and the audit log carry over unchanged. Permitting becomes a later industry pack on the same core.
 
 Instructions for Claude Code:
 
-- Build only what the MVP scope section lists. Everything else is context so the data model doesn't box us in later.
-- Keep the core to the six primitives. If a feature needs a new primitive, stop and propose it instead of adding it.
-- Seed realistic demo data for a fictional city (City of Harborview) so the app can be demoed without a real customer.
-- Ask before choosing anything this brief marks as an open question.
+- Build only what the v1 sections list. The roadmap is there so the data model doesn't block it.
+- Enforce permissions on the server through one function, and write the permission tests before the features.
+- Seed a fictional company (Northwind Labs, about 300 people) so the product can be demoed without a customer.
+- Ask before deciding anything listed under open questions.
 
-## Artifacts from this session
+## Product
 
-Claude Code can't open claude.ai links, which are private to you. Put the files from the attached bundle in the repo as shown, and keep the links for your own reference.
+Relay v1 is "Phonetool for teams": every team has a page saying what it owns, what it shares, how to ask it for something, and what it has committed to. Updates written on that page reach the teams that depend on it automatically, at their level of detail.
 
-| Artifact | What it is | Use for Claude Code | Repo path |
-| --- | --- | --- | --- |
-| [Relay platform: units, interfaces and entities in three domains](https://claude.ai/artifact/VwWK7tzXxBBhsJPSUMHPmo) | Design canvas. The "Polished screens" page has Queue, Application, Unit and Athlete. "First draft" has sports, corporate and city boards | **Primary visual reference.** Match the polished city screens | `design/mocks/` |
-| Mock generator scripts (`gen2.py`, `screens2*.py`) | Python that produced the polished mocks, including the colors, pills, AI cards and role switch | Lift design tokens and seed copy directly | `design/source/` |
-| [Athletic department agent: UI mocks](https://claude.ai/artifact/NRULDan3tXdZQSYyjecax8) | Earlier sports-only mocks, from before the pivot to a horizontal platform | Background only. Superseded | not needed |
-| [Pitch: An AI Research Department for Sports](https://claude.ai/artifact/VHm9YGkghFoh7B8nTtNgB9) | The original idea: an AI research scientist for a sports organization | Where "agents as members" came from. Background only | not needed |
-| [Autonomous AI Research Platform: Assessment of Open Questions](https://claude.ai/artifact/McUKJAMsdj9GZgsH6zThwt) | Analysis of the original idea's risks and open questions | Background only | not needed |
-| [Sports recruiting intelligence: market sizing by buyer tier](https://claude.ai/artifact/99pfiqEVynNU7WqSjDQpMz) | Market sizing sheet for the sports version | Not for v0. Relevant to a later athletics pack | not needed |
-| Sports operations friction research (report) | Research on front-office pain points in sports organizations | Context for the athletics pack later | `docs/research/` |
+**The problem.** Much of the workday goes to status meetings, catch-ups and messages asking other teams what they decided or when they'll deliver. Directories such as Amazon's Phonetool say who someone is, but not what their team does or what it owes you.
 
-## Product summary
+**Thesis:** information first, meetings second.
 
-Relay routes information between teams so they don't need handoff meetings. The thesis is "information first, meetings second." Most day-to-day work is passing information along chains of command. Relay keeps the chain but lets each team decide what it shares with every other team, at what level of detail, and when.
+**Core user:** the person waiting on another team.
 
-- **Units** are teams. Each unit publishes an interface: what it shares, with whom, at what detail, and on what trigger.
-- **Entities** are the things work is about (a permit application, a player, an initiative). They're first-class and tracked across units. Each field is owned by one unit.
-- **Agents** are members of a unit, like people. Each is one continuous colleague with its own memory, compute and budget.
-- **The public is a unit too.** An applicant gets the same kind of interface as an internal department.
+**First customer:** tech companies of 200 to 2,000 employees. The buyer is a chief of staff, head of operations or engineering director. Success is measured by status meetings removed and asks that slipped without warning.
 
-Positioning: Relay is the routing layer above meeting note-takers and enterprise search (Glean, Copilot, Slackbot). Those tools find information when you ask. Relay pushes the right slice of it to the right people. It's a horizontal platform sold through vertical packs, starting with city permitting. Sports organizations and corporate planning are later packs.
+**Positioning:**
 
-## How the idea developed
+| Tool | What it does | How Relay differs |
+| --- | --- | --- |
+| Notion, Confluence | Store updates and docs | Relay delivers updates to the right teams, with boundaries |
+| Glean, Copilot, Slack AI | Answer questions when asked | Relay pushes information without anyone asking |
+| Jira, Linear | Track work inside one tool | Relay tracks commitments between teams, across tools |
+| Meeting note-takers | Summarize for attendees | Relay routes decisions to people who weren't there |
 
-Relay started as an AI research scientist for sports teams and became a general platform for how teams share information, with city permitting as the first market. Knowing this path explains why the data model is general but the first product is narrow.
+One-line pitch: "Phonetool tells you who someone is. Relay tells you what their team does, how to work with them, and what they owe you."
 
-1. **AI research department for sports.** The original idea was agents that analyze player data for a sports organization. These were shared by staff, with one memory anyone could talk to. See the pitch and assessment docs.
-2. **Exploring sports problems.** We looked at front-office software, handoffs between players and agents, NIL, and medical, legal and financial services for athletes. Conclusion: sports buying runs on relationships, contracts and skepticism, NIL is saturated, and outsiders are at a disadvantage. Sports stays as a later vertical pack, not the starting point.
-3. **The core insight, from Amazon.** Much of the workday goes to handoff meetings, knowledge transfer and waiting on other teams. Amazon's writing culture showed that information first, meetings second works, but no tool supports it across teams. The goal became keeping the chain of command while democratizing information across it.
-4. **Not another search tool.** Glean, Copilot and Slackbot answer questions when you ask. They lack domain connectors such as medical or sports analytics, and they don't push information or respect team boundaries. Relay became the routing layer above them.
-5. **The model takes shape.** Teams become units that define how they work with other units and what they share automatically. Unit admins add their own connectors. Domain entities, like a player tracked across departments, are first-class. That produced the six primitives.
-6. **Three domains, one platform.** The first mocks applied the same model to athletics, corporate planning and a city. They showed the primitives generalize without custom code.
-7. **City permitting as the first customer.** YC's "AI for City Hall" request matched well. One permit crosses up to six departments, and the applicant can't see who's holding it. Decisions: the public is a unit; build a staff tool before a public portal; generate the portal from the schema rather than building an app builder.
-8. **Security.** Thinking about military buyers added mandatory markings, aggregation risk (combining harmless facts reveals sensitive ones) and inherited markings on derived outputs. These shaped the permission model even for cities.
-9. **Agents return as members.** The original analysis agents came back as unit members with identity, compute, a budget and a manager, acting with the requester's access. That added complexity, so the plan is to build v0 only but design the data model for v3.
-10. **Go-to-market.** Pilots funded through grants, delivery through Outlook and Teams first because cities use Microsoft, and the Collison installation approach: set it up for the customer in person, using their data exports.
-11. **Refinements today.** "What is my dependency working on, and when will it deliver?" confirmed the person waiting on a request as the core user. Architects' code compliance was judged a different product and filed as a future connector (UpCodes, CivCheck). YC's Multiplayer AI request led to the agent model: one continuous colleague, shared inside its unit and bounded everywhere else.
+## Data model and permissions
 
-Decided against:
+v1 uses the same core as the platform design, with teams as units. Keep these names in code so later industry packs fit without a rewrite.
 
-| Option | Why not |
+| Object | What it is |
 | --- | --- |
-| Starting in sports | Relationship-driven buying, saturated NIL market, outsider disadvantage |
-| Starting in Africa | Considered early. Not pursued for the first market |
-| Hardware | Explored briefly. Not pursued |
-| A code-compliance checker | UpCodes and others own it. It checks the work rather than routing information about it |
-| A general app builder for public portals | Too broad. Generate the portal from the schema instead |
-| Competing on dependency tracking in software companies | Atlassian and Linear will add features faster. It's one Relay feature, not the pitch |
+| Org | One customer company |
+| Unit (team) | A team, with a parent team for the org chart |
+| Member | A person in a team, with a role (lead, member, admin) |
+| Team page | A team's published interface: owns, shares, how to ask, commitments |
+| Ownership item | Something the team owns (a service, process or decision area) |
+| Update | A team's periodic post (weekly by default) |
+| Update item | One piece of an update: progress, decision, risk or ask, tagged with the teams it affects |
+| Interface | A rule from one team to another: which item types, at what level, how often |
+| Request | An ask from one team to another through its "how to ask us" form |
+| Commitment | An accepted request or a promise found in an update, with an owner, a waiting team and a due date |
+| Marking | A restriction, such as "confidential: leadership only," that overrides interfaces |
+| Audit event | Who saw, shared or changed what, and when |
 
-## First customer: city permitting
-
-The first customer is a city building department. One permit application crosses up to six departments, and applicants can't see who is holding it. This matches YC's "AI for City Hall" request.
-
-The permit process Relay models:
-
-1. **Pre-application:** the applicant asks what's needed. This is optional.
-2. **Submission:** forms, drawings and fees.
-3. **Intake:** a clerk checks that the submission is complete.
-4. **Multi-department review:** building, zoning, fire, engineering, planning and utilities review, often in parallel.
-5. **Corrections:** reviewers send comments, and the applicant resubmits. Steps 4 and 5 repeat, often two or three times.
-6. **Issuance:** the permit is issued.
-7. **Inspections:** during construction.
-8. **Occupancy:** the final sign-off.
-
-The product grows in three layers. Build only the first for v0.
-
-| Layer | What it is | Users |
-| --- | --- | --- |
-| v0: Staff tool | Internal queue, application view, department reviews, role-based summaries | City staff |
-| v1: Outbound updates | Automatic status and comment updates to applicants by email | Staff and applicants (read only) |
-| v2: Public front door | Submit, track and respond to corrections. Generated from the entity schema, not hand-built | Applicants, architects, contractors |
-
-The public front door is not a general app builder. It is generated from the permit entity's schema and the public unit's interface.
-
-## Core primitives and data model
-
-Everything in Relay is built from six primitives. Vertical packs (permitting, athletics, corporate) are configuration: entity types, units and interfaces. They are not new code paths.
-
-| Primitive | What it is | Permitting example |
-| --- | --- | --- |
-| Unit | A team with members, connectors and an interface | Fire prevention |
-| Member | A person or an agent in a unit, with a role | Reviewer Leo Grant; Plan pre-check agent |
-| Entity and Field | A tracked thing with typed fields. Each field is owned by exactly one unit | Application BP-2027-0418; `fire_review_status` owned by Fire |
-| Interface | A unit's published rule: which fields, at what disclosure level, to which units, on what trigger | Fire shares review status as a summary with Zoning on each change |
-| Marking | A mandatory restriction on a field or derived output that overrides interfaces | "Contains applicant financial data" |
-| Audit log | An append-only record of every read, share, agent action and override | Agent read the drawings at 09:14 for reviewer Grant |
-
-Disclosure levels, from most to least detail: **Full detail**, **Summary**, **Status only**, **Headline**, **Not shared**.
+Disclosure levels: **Full detail**, **Summary**, **Status only**, **Headline**, **Not shared**. The default is Summary for teams that follow you, and Headline for everyone else in the org.
 
 Starting schema (adjust names, keep the shape):
 
 ```
-unit(id, org_id, name, kind)                 -- kind: internal | public
-member(id, unit_id, kind, name, role, manager_id)  -- kind: person | agent
-entity_type(id, org_id, name, schema_json)   -- e.g. permit_application
-entity(id, entity_type_id, external_ref, created_at)
-field(id, entity_type_id, key, type, owner_unit_id)
-field_value(entity_id, field_id, value_json, updated_by, updated_at)
-interface(id, from_unit_id, to_unit_id, field_id, level, trigger)  -- trigger: on_change | daily | on_request
-marking(id, target_kind, target_id, label, rule)
-audit_event(id, actor_member_id, on_behalf_of_member_id, action, target, at)
+org(id, name)
+unit(id, org_id, name, parent_unit_id, description)
+member(id, unit_id, user_id, role)
+ownership_item(id, unit_id, title, description)
+update(id, unit_id, author_id, period_start, body_md, published_at)
+update_item(id, update_id, kind, text, affected_unit_ids, marking_id)  -- kind: progress | decision | risk | ask
+interface(id, from_unit_id, to_unit_id, kinds, level, cadence)  -- cadence: immediate | daily | weekly
+follow(unit_id, follower_unit_id)  -- creates a default interface
+request(id, from_unit_id, to_unit_id, requester_id, title, details, needed_by, status)
+commitment(id, owner_unit_id, owner_member_id, waiting_unit_id, source_kind, source_id, title, due_date, status, confirmed_at)
+marking(id, label, allowed_unit_ids)
+audit_event(id, actor_id, action, target_kind, target_id, at)
 ```
 
 Rules the code must enforce:
 
-- Only the owning unit can write a field.
-- A reader sees each field at the most detailed level any applicable interface grants, unless a marking restricts it further.
-- Derived outputs (summaries, digests, agent answers) inherit the strictest marking of their inputs.
-- Push, not pull: interface triggers generate updates to the receiving unit's feed. No one has to go looking.
+- One function, `visible_level(reader, item)`, decides what anyone sees. Every API route, feed, digest and AI call goes through it.
+- A reader sees an item at the most detailed level any applicable interface grants, unless a marking restricts it further.
+- AI-written summaries and digests inherit the strictest marking of their inputs.
+- Only a team's members can write its page, updates and commitments.
+- A commitment found by AI is a draft until its owner confirms it.
 
-## Agents
+## Features and screens
 
-An agent is one continuous member of a unit. It's like a colleague everyone talks to, not a chat window each person opens. The trainer, the coach and the GM all talk to the same sports science agent, which has one memory. In v0, the only agent is the Plan pre-check agent in the Fire prevention unit.
-
-Agent profile fields: identity, unit, role, manager (a person), compute sandbox inside the unit's boundary, memory, inbox, triggers, monthly budget (for example $84 of $150 used), approval rules, and an offboarding state.
-
-How agents behave:
-
-- **Multiplayer inside the unit.** Every conversation and task run is visible to the unit's members by default. Any member can open it, watch it, redirect it or take it over.
-- **Bounded across units.** People outside the unit get their own thread. The agent answers them at their disclosure level, never at its own.
-- **Acts with the requester's access.** When the agent works for someone, it can only read what that person can read. This prevents it from leaking information on someone else's behalf.
-- **Memory keeps its source.** Every memory records which conversation, person and unit it came from, along with its marking. The agent can explain how it knows something.
-- **Approval before acting.** Anything that leaves the unit or changes an entity needs approval from a member until the manager loosens the rules.
-
-Three patterns, in build order:
-
-1. Agents working within one unit's data (v0).
-2. Agents answering cross-unit questions with the requester's access (v1).
-3. Clean-room analysis across units, where the agent sees raw data from several units but only returns outputs that pass every unit's interface (later).
-
-## Security and disclosure
-
-Permissions are the product, so they are enforced on the server for every read, including the agent's. They are never just hidden in the UI.
-
-- **One permission check.** A single function decides `visible_level(reader, entity, field)`. Every API route, digest and agent tool call goes through it.
-- **Markings override interfaces.** If a marking says applicant financial data is restricted to Finance, no interface can share it more widely.
-- **Aggregation risk.** Combining harmless facts can reveal something sensitive, as Strava's 2018 heatmap did with military bases. Treat cross-unit summaries and agent answers as derived outputs: they inherit the strictest marking, and they're logged.
-- **Everything is audited.** The audit log records who read what, on whose behalf, and what the agent did. An agent acting for someone logs both itself and that person.
-- **The public unit sees only its interface.** Applicants see their own applications, at the levels the city publishes. Internal fields appear as locked.
-- **Model-agnostic.** Keep the LLM behind one interface so a city or a later defense customer can choose their own provider or run on-premises.
-
-Later markets (secure and air-gapped environments) will need classification markings and accredited hosting. Don't build either now, but don't hard-code anything that prevents them.
-
-## MVP scope
-
-v0 is a staff-facing web app for one fictional city that can be demoed end to end in five minutes. Match the screens and visual style of the [polished mocks](https://claude.ai/artifact/VwWK7tzXxBBhsJPSUMHPmo): Geist at a 13px base, ink #18181b, muted #5f5f6b, lines #e6e6ea, accent blue #1d4ed8, in the style of Linear and Attio.
-
-Screens:
+v1 has five screens. Reuse the visual style of the [polished mocks](https://claude.ai/artifact/VwWK7tzXxBBhsJPSUMHPmo) (tokens in `design/source/gen2.py`): Geist at a 13px base, ink #18181b, muted #5f5f6b, lines #e6e6ea, accent blue #1d4ed8, in the style of Linear and Attio.
 
 | Screen | What it shows |
 | --- | --- |
-| Queue | Metrics strip, a morning AI summary, filter chips, table of applications with status pills and the department currently holding each one |
-| Application | Department track, a role switch (manager, fire reviewer, applicant), and a summary, open items, activity and properties panel for each role |
-| Unit | The unit's published interfaces with previews, incoming requests, a suggested interface, members including agents, connectors |
-| Agent | The agent's profile, budget, memory with sources, and shared task runs that unit members can open and redirect |
+| Directory | Search people and teams, plus an org chart. People link to their team. Teams show owner, what they own, and whether you follow them |
+| Team page | Owns, latest update, "how to ask us" form with expected turnaround, open commitments (who's waiting, due, status), members, followers |
+| My feed | Update items from teams you follow, filtered to what affects your team, at your level. Grouped as asks for you, decisions that affect you, risks, and progress |
+| Commitments | What your team owes others, and what others owe you, with due dates, status and slips highlighted |
+| Write update | Write or paste an update. AI splits it into items, tags affected teams and suggests commitments. The author reviews it before publishing |
 
-Suggested stack (Claude Code may propose another): TypeScript, Next.js, Postgres, a single permission module, and an LLM provider behind one adapter. Deliver digests by email first, since cities run on Outlook and Teams. A Teams integration comes after v0.
+Also build a **leadership digest**: a weekly one-paragraph headline per team, plus a list of slipped commitments across the org, sent by email.
 
-Build order:
+## AI behavior
 
-- [ ] Schema, seed data for City of Harborview, and the permission function with tests
-- [ ] Queue and Application screens with the role switch, reading through the permission function
-- [ ] Interfaces: create and edit them on the Unit screen, with triggers generating feed updates
-- [ ] Role-based AI summaries and the morning digest, which inherit markings
-- [ ] Plan pre-check agent: runs on new submissions, posts findings for a reviewer to approve, shared task runs
-- [ ] Audit log view
+AI in v1 only handles communication. It never does a team's work and never makes decisions.
 
-Out of scope for v0: the public applicant portal, payments, a code-compliance engine (connect UpCodes or CivCheck later instead), a general app builder, the sports and corporate packs, clean-room agents, on-premises deployment, and mobile.
+- **Splitting updates:** turn a written update into update items (progress, decision, risk, ask). Suggest affected teams by matching ownership items and past routing. The author accepts or edits every tag before publishing.
+- **Writing for each level:** produce the Summary and Headline versions of each item. A reader only ever gets text built from what they're allowed to see. Never build from full data and then filter.
+- **Finding commitments:** detect promises ("we'll ship the API by Dec 12") and create draft commitments. The owner gets a one-click confirm, edit or reject.
+- **Spotting slips:** when a due date passes, or a later update signals delay, notify the waiting team with the reason, if one is known.
+- **Leadership headline:** one paragraph per team per week, inheriting the strictest marking.
+- In tests, use a fake model that returns fixed text, so tests never call a real model. Keep the model provider behind one adapter.
 
-## Implementation details
+## Team agents and requests
 
-This section gives Claude Code the exact data, behavior and acceptance criteria. The values come from the polished mocks.
+Every team has an agent that acts as its front door. Like the rest of v1's AI, it only handles communication: it answers, routes and batches, and never does the team's work.
 
-### Seed data: City of Harborview (demo)
+1. **Ask the team's agent.** Anyone can ask a team's agent a question from its team page. The agent answers only from what the team has published, at the asker's level, and cites its sources.
+2. **Route what it can't answer.** If the published material doesn't answer the question, the agent files a request with the person who owns that area, using the team's ownership items. If no one owns it, the request goes to the team lead.
+3. **Batch asks for each person.** Each person gets one list of what people want from them, on their own schedule (daily by default), instead of separate emails and messages. The agent merges duplicates, for example "4 people asked when the rate-limit change lands."
+4. **Answer once.** The reply goes to everyone who asked. The person who answered can publish it to the team page at a level they choose, so the agent can answer it next time.
 
-Units and people:
+Rules:
 
-| Unit | Kind | Members |
+- An ask marked as blocking, or needed before the next batch, is delivered right away. Everything else waits for the batch.
+- An answer stays private to the people who asked until the person who answered publishes it.
+- Each ownership item has an owner person, with the team lead as the fallback.
+- The agent reads with the asker's access. Every agent read and answer writes an audit event naming both the agent and the asker.
+- Success measures: the share of asks the agent answers itself, and time to answer for routed asks.
+
+Screen: **Asks**, a person's batched requests with duplicates merged and urgent asks first.
+
+## Integrations in v1
+
+- **Slack:** post feed items and commitment alerts to a team's channel, and let people write an update with a slash command. Slack is the main delivery surface for tech companies.
+- **Email:** digests and alerts.
+- **Paste-in:** meeting notes or docs pasted into the Write update screen.
+- **Coding agents:** a hook for Claude Code and similar tools sends a summary when a session ends. It becomes a draft update for its author to review.
+- **GitHub:** merged pull requests become draft progress items for the author's team.
+
+Later: Teams, Zoom and Google Meet transcripts, Jira and Linear status for commitments, and Google Docs or Notion as update sources.
+
+## Seed data: Northwind Labs (demo)
+
+Northwind Labs is a fictional company of about 300 people that sells a payments API. Seed about 40 people across these teams:
+
+| Team | Parent | Owns |
 | --- | --- | --- |
-| Permit center | internal | Dana Brooks, permit center manager (lead) |
-| Zoning | internal | EP, zoning reviewer |
-| Fire prevention | internal | Leo Grant, deputy fire marshal and unit admin; Marcus Hill and Rosa Kim, fire plans examiners; Plan pre-check agent |
-| Building plan review | internal | JT, building reviewer |
-| Utilities | internal | one reviewer |
-| Inspections | internal | one inspector |
-| Public portal | public | applicant accounts, such as Northline Homes (demo) |
+| Payments API | Engineering | Public API, webhooks |
+| Platform | Engineering | Auth, infrastructure, rate limits |
+| Mobile | Engineering | iOS and Android apps |
+| Product design | Product | Design system, research |
+| Growth marketing | Marketing | Launches, website, pricing page |
+| Sales | Revenue | Enterprise deals |
+| Customer success | Revenue | Onboarding, renewals |
+| Finance | Operations | Budgets, billing operations |
+| Leadership | (none) | Company priorities |
 
-Applications for the queue:
+The demo story:
 
-| ID | Project | Address |
-| --- | --- | --- |
-| BP-2027-0418 | 12-unit apartment building | 1840 Alder St |
-| BP-2027-0369 | Warehouse addition | 1200 Industrial Way |
-| BP-2027-0381 | Restaurant fit-out | 88 Front St |
-| BP-2027-0402 | Tenant improvement, suite 300 | 220 Harbor Ave |
-| BP-2027-0397 | Single-family home | 77 Cedar Ln |
-| BP-2027-0390 | 4-storey mixed use | 510 Quay St |
-| BP-2027-0375 | Duplex | 302 Spruce Ave |
-| BP-2027-0388 | Detached garage | 19 Birch Pl |
+- Payments API's weekly update says it will ship webhook retries by Dec 12 and is blocked on Platform's rate-limit change.
+- Platform committed to the rate-limit change by Dec 5 in an accepted request. It's now Dec 6 and the work isn't done, so it shows as slipped.
+- Growth marketing has a launch planned for Dec 15 that depends on webhook retries.
+- Sales has an open request to Payments API about an enterprise customer's custom limits. It's marked "confidential: leadership and Sales only," because it names the customer.
 
-Generate about 186 open applications in total so the queue metrics are real: 186 open, a median of 38 days to permit (target 30), 1.9 review cycles per application (down from 2.8), and 14 blocked between units, 6 of them waiting on Fire prevention.
+Seed about eight weeks of updates so the feed, commitments and digest look real.
 
-The demo story is BP-2027-0418, submitted Jan 6 with a $4.2M valuation and fees paid:
+## Permission tests (write these first)
 
-- Intake completed Jan 6. Zoning approved Jan 10, after 4 days. Utilities approved Jan 12.
-- Fire prevention requested corrections on Jan 15 (day 6 of 10). Correction 1 requires a second exit stairway for floors 3 and 4 (fire code 1006.3.4). Correction 2 covers the alarm panel location (local amendment 907.6).
-- Building review has been waiting on Fire's sprinkler determination since Jan 14 (NFPA 13R proposed), because egress width depends on it.
-- The applicant must resubmit by Jan 19. The Plan pre-check agent flagged the exit count on Jan 7, before review started.
-- Fire properties: fire flow 1,750 gal/min, hydrant at 48 m (within limit), occupancy R-2, 4 storeys, fire code 2024 plus local amendments.
+- [ ] Growth marketing follows Payments API and sees its decisions at Summary, not full detail.
+- [ ] A team that doesn't follow Payments API sees only its Headline.
+- [ ] Only Leadership and Sales can see the enterprise customer's name. Payments API sees the request with the customer name redacted.
+- [ ] A leadership digest built from the confidential request is itself marked confidential.
+- [ ] Only Platform members can edit Platform's page, updates and commitments.
+- [ ] An AI-found commitment stays a draft, and appears to no one but its owner, until the owner confirms it.
+- [ ] Every feed read and digest send writes an audit event.
 
-### Fire prevention interfaces (seed)
+## Definition of done: the demo
 
-| To unit | What | Level | Example | Trigger |
-| --- | --- | --- | --- | --- |
-| Applicant | Corrections to pass fire review | Summary | Show a second exit stairway for floors 3 and 4 on your plans | Review complete |
-| Building plan review | Items that overlap the building code | Full detail | Sprinkler system NFPA 13R; egress width per comment 4 | On change |
-| Permit center | Status and days in queue | Status only | In review, day 6 of 10 | On change, plus daily digest |
-| Inspections | Fire conditions to verify on site | Full detail | Verify alarm panel location at rough-in | On approval |
-| Public portal | Fire review status | Headline | Fire review: changes requested | On change |
+1. Search "rate limits" in the directory and land on Platform's team page, which shows what it owns and its open commitments.
+2. Open My feed as a Growth marketing member. It shows the webhook-retries decision and flags that the Dec 15 launch is at risk.
+3. Open Commitments as Payments API. Platform's Dec 5 commitment is highlighted as slipped, with the latest reason.
+4. Paste meeting notes into Write update as Platform: "we'll land the rate-limit change by Dec 9." Relay suggests the items and a revised commitment. The lead confirms, and Payments API and Growth marketing are notified.
+5. Open the leadership digest. It gives one paragraph per team and lists slipped commitments. The confidential request appears only for Leadership.
 
-### Role views on the Application screen
+## Roadmap after v1
 
-The same application must render three different views from the same data, with each role seeing only what the permission function allows:
+1. **Meeting sources:** pull decisions and commitments from Teams, Zoom and Google Meet transcripts or AI summaries, and route them like update items.
+2. **Commitment status from work tools:** read Jira and Linear to update commitment status automatically.
+3. **Narrow agents:** one defined job each, writing drafts a person approves. The first candidate is an agent that drafts a team's weekly update from its Jira, Linear and Slack activity.
+4. **Industry packs:** city permitting first, using the earlier brief, then others where customers pull Relay in.
 
-- **Permit manager:** the whole picture and the deadline. "If the applicant resubmits by Jan 19, both reviews can close in the same cycle and the permit stays inside the 30-day target."
-- **Fire examiner:** their decisions and code detail. It shows the pending sprinkler decision, both corrections with code citations, fire flow and hydrant data.
-- **Applicant:** plain language and only what to do next. Internal notes and reviewer names show as locked, with an upload button for revised plans.
+## Out of scope for v1
 
-### Permission tests (write these first)
+General AI agents or "AI employees," doing any team's work, entities beyond teams and commitments (like permits or athletes), outside parties such as clients or applicants, connectors beyond Slack and email, mobile apps, on-premises deployment and a public API.
 
-- [ ] Zoning reads a Fire-owned field that has no interface to Zoning, and gets "Not shared."
-- [ ] Building plan review reads the sprinkler determination at Full detail.
-- [ ] Permit center reads Fire's review at Status only, not the correction text.
-- [ ] The applicant sees their own application's corrections as a summary, and can't see another applicant's application at all.
-- [ ] A marking on a field overrides an interface that grants more detail.
-- [ ] An AI summary built from a marked field carries that marking.
-- [ ] The agent, acting for Marcus Hill, can't read anything Marcus can't.
-- [ ] Only Fire prevention members can write Fire-owned fields.
-- [ ] Every read made through the API and the agent writes an audit event, including on\_behalf\_of.
+## Open questions for the founder
 
-### AI summaries and digests
-
-- Input: only the field values the reader can see, at their level. Never build a summary from full data and then filter the result.
-- Output: two to four sentences with bold key numbers and source tags naming the units the facts came from, as in the mocks.
-- Cache per reader role, entity and data revision. Regenerate when an input changes.
-- The morning digest for the Permit center leads with the bottleneck: which unit is holding the most applications, how many are past target, and what came back overnight.
-- In tests, use a fake LLM that returns deterministic text so the tests don't call a real model.
-
-### Plan pre-check agent
-
-- Trigger: a new submission or resubmission.
-- Checks: exit count, sprinkler need and hydrant distance. Use simple seeded rules and the LLM for wording. Do not build a real code engine.
-- Output: draft findings in Fire's unit feed. Nothing reaches the applicant until an examiner approves it.
-- Every run is a shared task run that Fire members can open, comment on, redirect or take over.
-- Track cost against the monthly budget (seed $84 used of $150) and stop when it runs out.
-
-### Suggested interfaces
-
-In v0, seed one suggestion: "Building plan review asks about sprinkler requirements on 40% of mid-rise applications. Send them the sprinkler determination at full detail as soon as you make it?" Approve creates the interface, "Approve as summary" creates it at Summary level, and Decline dismisses it. Detecting suggestions from real message traffic comes later.
-
-### Definition of done: the demo
-
-1. Open the Queue as Dana Brooks and see the metrics and the morning summary naming Fire prevention as the bottleneck.
-2. Open BP-2027-0418, then switch roles between manager, fire examiner and applicant. The content changes and locked fields stay locked.
-3. Open the Fire prevention unit, approve the suggested interface, and see Building plan review's feed update.
-4. Submit a revised plan as the applicant. The pre-check agent runs, an examiner approves its findings, and the applicant's view updates.
-5. Open the audit log and see every step, including the agent acting for the examiner.
-
-## Context and open questions
-
-This is background for product decisions. Claude Code doesn't need to build anything from it.
-
-| Area | Who's there | How Relay differs |
-| --- | --- | --- |
-| Permitting software | CivCheck (Clariti), Govstream.ai | They check plans or digitize forms. Relay coordinates the departments and the applicant |
-| Code compliance | UpCodes, Kestrel Labs, Spacial, CodeComply.ai | They answer whether a drawing complies. Relay plugs them in as connectors |
-| Dependency tracking | Jira Plans and Rovo, Linear, Aha!, Planview | Built for software teams who all use one tracker. Relay serves the person waiting on a request, across any kind of work |
-| Enterprise search and AI | Glean, Copilot, Slackbot | They pull information on request. Relay pushes it, with boundaries |
-
-YC Requests for Startups fit: **AI for City Hall** is the direct match (the first customer). **Multiplayer AI** matches the larger vision of agents shared within a team, with boundaries everywhere else. **AI for the Air-Gapped Economy** is a later market for the permission model.
-
-Open questions:
-
-- [ ] Which city will be the first pilot, and which departments does it route permits through?
-- [ ] Which permit system does that city use today, and can we get a data export?
-- [x] Which LLM provider for v0, given that cities may require data to stay in Canada or the US? **Decided Nov 26: Claude behind one adapter, with an offline fallback; a city can switch providers later.**
-- [x] Authentication: Microsoft Entra single sign-on from day one, or email login for the demo? **Decided Nov 26: a persona switcher with no login for the demo; real auth for a pilot.**
+- [ ] Sign-in: Google and Microsoft single sign-on from day one, or email login for the demo?
+- [ ] Which AI model provider for v1?
+- [ ] Should team pages be visible org-wide by default, or only to followers?
+- [ ] Slack first, or Microsoft Teams first? This depends on the first design partners.
+- [ ] Hosting region, if early customers require data to stay in Canada or the US.
