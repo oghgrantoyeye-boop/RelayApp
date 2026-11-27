@@ -113,18 +113,27 @@ export async function splitUpdate(input: SplitInput): Promise<{ items: SplitItem
   return { ...offlineSplit(input), by: "Offline writer" };
 }
 
+/** Teams an item touches: it names them, or mentions something they own. */
+export function suggestAffected(text: string, unitId: string, teams: TeamInfo[]): string[] {
+  const words = off.tokens(text);
+  return teams
+    .filter((t) => t.id !== unitId)
+    .filter(
+      (t) =>
+        off.overlap(words, off.tokens(t.name)) >= Math.min(2, off.tokens(t.name).length) ||
+        t.owns.some((o) => {
+          const ow = off.tokens(o);
+          return ow.length > 0 && off.overlap(words, ow) >= Math.min(2, ow.length);
+        }),
+    )
+    .map((t) => t.id);
+}
+
 export function offlineSplit(input: SplitInput): { items: SplitItem[]; commitments: SuggestedCommitment[] } {
-  const others = input.teams.filter((t) => t.id !== input.unitId);
   const items: SplitItem[] = [];
   const commitments: SuggestedCommitment[] = [];
   for (const s of off.sentences(input.text)) {
-    const words = off.tokens(s);
-    const affected = others
-      .filter((t) => off.overlap(words, off.tokens(t.name)) >= Math.min(2, off.tokens(t.name).length) || t.owns.some((o) => {
-        const ow = off.tokens(o);
-        return ow.length > 0 && off.overlap(words, ow) >= Math.min(2, ow.length);
-      }))
-      .map((t) => t.id);
+    const affected = suggestAffected(s, input.unitId, input.teams);
     const promise = off.findPromise(s, input.today);
     let kind = off.classify(s);
     let revises: (typeof input.openCommitments)[number] | undefined;
@@ -218,7 +227,7 @@ function offlineAnswer(input: AnswerInput, ranked: { doc: off.Doc; score: number
     if (!dated) return { answered: false, answer: "", source_refs: [], partial: top.doc };
     return { answered: true, answer: dated.doc.text, source_refs: [dated.doc.ref] };
   }
-  const used = relevant.filter((r) => r.score >= top.score - 1).slice(0, 2);
+  const used = [top, ...relevant.filter((r) => r !== top && r.score === top.score && !r.doc.ref.startsWith("ownership:"))].slice(0, 2);
   return {
     answered: true,
     answer: used.map((u) => u.doc.text).join(" "),
@@ -331,10 +340,12 @@ export async function draftFromSession(s: SessionInput): Promise<{ items: { kind
     maxTokens: 1500,
   });
   if (out?.items?.length) return { items: out.items.filter((i) => ITEM_KIND_ENUM.includes(i.kind)).slice(0, 3), by: llm.name };
-  const what = s.commits[0]?.replace(/^[0-9a-f]{7,}\s+/, "") || s.prompts[0] || "work in progress";
-  const items: { kind: Kind; text: string }[] = [
-    { kind: "progress", text: `Worked on ${off.shorten(what, 120).replace(/[.]$/, "")} (${s.repo}, ${s.branch}${s.diffstat ? `; ${s.diffstat}` : ""}).` },
-  ];
+  const subjects = s.commits.map((c) => c.replace(/^[0-9a-f]{7,}\s+/, "")).filter(Boolean);
+  const what = subjects.length
+    ? subjects.slice(0, 2).map((c, i) => (i === 0 ? c : c.charAt(0).toLowerCase() + c.slice(1))).join(", and ")
+    : off.capitalize(off.shorten(s.prompts[0] ?? "Work in progress", 120));
+  const repo = s.repo.split("/").pop();
+  const items: { kind: Kind; text: string }[] = [{ kind: "progress", text: `${what.replace(/[.]$/, "")} (${repo}, ${s.branch}).` }];
   const blocked = [...s.notes, ...s.prompts].find((t) => off.classify(t) === "risk");
   if (blocked) items.push({ kind: "risk", text: off.shorten(blocked, 200) });
   return { items, by: "Offline writer" };

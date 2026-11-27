@@ -107,3 +107,12 @@ describe("canWrite", () => {
     expect(canWrite(agent, "platform", { draft: true })).toBe(true);
   });
 });
+
+describe("commitments are shared by the team that owes them", () => {
+  it("doesn't let the waiting team's followers see another team's commitment in detail", () => {
+    const p: Policy = { ...policy, interfaces: [...policy.interfaces, { id: "i-pay-growth-c", fromUnitId: "payments", toUnitId: "growth", kinds: ["commitment"], level: "summary" }] };
+    const platformOwesPayments: ItemRef = { type: "commitment", kind: "commitment", ownerUnitIds: ["platform", "payments"], publisherUnitIds: ["platform"], markingIds: [] };
+    expect(visibleLevel(p, r("pay", "payments"), platformOwesPayments).level).toBe("full");
+    expect(visibleLevel(p, r("g", "growth"), platformOwesPayments).level).toBe("headline");
+  });
+});

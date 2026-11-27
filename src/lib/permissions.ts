@@ -54,6 +54,9 @@ export interface ItemRef {
   kind: string;
   /** Teams that read the item in full: its author team; both sides of a request; owner and waiting team of a commitment. */
   ownerUnitIds: string[];
+  /** Teams whose interfaces can share the item. Defaults to ownerUnitIds. A commitment is shared by
+   * the team that owes it, never by the team waiting on it. */
+  publisherUnitIds?: string[];
   markingIds: string[];
   /** For drafts: the only people who can see it until it's confirmed or published. */
   draftVisibleTo?: string[];
@@ -87,7 +90,7 @@ export function visibleLevel(policy: Policy, reader: Reader, item: ItemRef): Dec
     reason = "org_default";
     for (const rule of policy.interfaces) {
       if (
-        item.ownerUnitIds.includes(rule.fromUnitId) &&
+        (item.publisherUnitIds ?? item.ownerUnitIds).includes(rule.fromUnitId) &&
         reader.unitIds.includes(rule.toUnitId) &&
         rule.kinds.includes(item.kind) &&
         rank(rule.level) > rank(level)

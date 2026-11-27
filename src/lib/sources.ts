@@ -4,11 +4,13 @@ import { createHmac, timingSafeEqual } from "node:crypto";
 import type { Db, Row } from "./db";
 import { now, today } from "./clock";
 import { audit, loadViewer, newId, type Viewer } from "./data";
-import { draftFromSession, type SessionInput } from "./ai/tasks";
+import { draftFromSession, suggestAffected, type SessionInput } from "./ai/tasks";
+import { teamInfos } from "./updates";
 import { levelTexts, shorten } from "./ai/offline";
 
 async function createDraft(db: Db, viewer: Viewer, source: "coding_agent" | "github", body: string, items: { kind: string; text: string }[], ref: string) {
   const unitId = viewer.team.id;
+  const teams = await teamInfos(db);
   const updateId = newId("up");
   await db.query(
     `insert into team_update (id, unit_id, author_id, period_start, body_md, source, status, created_at) values ($1, $2, $3, $4, $5, $6, 'draft', $7)`,
@@ -18,8 +20,8 @@ async function createDraft(db: Db, viewer: Viewer, source: "coding_agent" | "git
     const { summary, headline } = levelTexts(item.text);
     await db.query(
       `insert into update_item (id, update_id, unit_id, author_id, kind, text, summary_text, headline_text, affected_unit_ids, status, source_kind, source_ref, created_at)
-       values ($1, $2, $3, $4, $5, $6, $7, $8, '{}', 'draft', $9, $10, $11)`,
-      [newId("ui"), updateId, unitId, viewer.user.id, item.kind, item.text, summary, headline, source, ref, now()],
+       values ($1, $2, $3, $4, $5, $6, $7, $8, $9, 'draft', $10, $11, $12)`,
+      [newId("ui"), updateId, unitId, viewer.user.id, item.kind, item.text, summary, headline, suggestAffected(item.text, unitId, teams), source, ref, now()],
     );
   }
   return updateId;

@@ -40,12 +40,16 @@ export function sentences(text: string): string[] {
     .replace(/\r/g, "")
     .split(/\n+|(?<=[.!?])\s+(?=[A-Z0-9"“])/)
     .map((s) => s.replace(/^\s*(?:[-*•]|\d+[.)])\s*/, "").trim())
-    .filter((s) => s.length >= 12 && /[a-z]/i.test(s) && !/^(hi|hello|hey|thanks|notes|attendees|agenda)\b/i.test(s));
+    .filter((s) => s.length >= 12 && /[a-z]/i.test(s) && !/^(hi|hello|hey|thanks|notes|attendees|agenda)\b/i.test(s))
+    // Drop title lines such as "Platform sync, Dec 6": short and without closing punctuation.
+    .filter((s) => /[.!?]$/.test(s) || s.split(/\s+/).length > 6);
 }
 
 export function classify(s: string): "progress" | "decision" | "risk" | "ask" {
   const t = s.toLowerCase();
   if (/\b(can you|could you|we need|need (?:a|an|the|from)|please|asking|ask:|requesting|would like)\b/.test(t)) return "ask";
+  if (/^(can|could|would|will|is|are|does|do)\b.*\?$/.test(t.trim())) return "ask";
+  if (/\b(fixed|fix is merged|merged|resolved|shipped|stable|is live|done|completed|on track)\b/.test(t) && !/\b(blocked|will miss|at risk)\b/.test(t)) return /\b(we'll|we will)\b/.test(t) ? "decision" : "progress";
   if (/\b(blocked|blocker|at risk|risk|delay|delayed|slip|slipp|miss|behind|depends on|waiting on|leak|outage|concern)\b/.test(t)) return "risk";
   if (/\b(decided|decision|we will|we'll|agreed|going with|chose|choose|plan to|planned|switch(?:ing)? to|default)\b/.test(t)) return "decision";
   return "progress";

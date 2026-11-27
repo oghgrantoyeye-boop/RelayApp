@@ -84,7 +84,13 @@ export function refUpdateItem(row: Row): ItemRef {
 }
 
 export function refRequest(row: Row): ItemRef {
-  return { type: "request", kind: "request", ownerUnitIds: [row.from_unit_id, row.to_unit_id], markingIds: markingIdsOf(row) };
+  return {
+    type: "request",
+    kind: "request",
+    ownerUnitIds: [row.from_unit_id, row.to_unit_id],
+    publisherUnitIds: [row.from_unit_id],
+    markingIds: markingIdsOf(row),
+  };
 }
 
 /** Commitment rows must be selected with the owner's user id as owner_user_id. */
@@ -93,14 +99,15 @@ export function refCommitment(row: Row): ItemRef {
     type: "commitment",
     kind: "commitment",
     ownerUnitIds: [row.owner_unit_id, row.waiting_unit_id].filter(Boolean),
+    publisherUnitIds: [row.owner_unit_id],
     markingIds: markingIdsOf(row),
     draftVisibleTo: row.status === "draft" ? [row.owner_user_id].filter(Boolean) : undefined,
   };
 }
 
 export const COMMITMENT_SELECT = `
-  select c.*, om.user_id as owner_user_id, ou.name as owner_unit_name, ou.slug as owner_unit_slug,
-         wu.name as waiting_unit_name, wu.slug as waiting_unit_slug, oau.name as owner_name
+  select c.*, om.user_id as owner_user_id, ou.name as owner_unit_name, ou.slug as owner_unit_slug, ou.color as owner_unit_color,
+         wu.name as waiting_unit_name, wu.slug as waiting_unit_slug, wu.color as waiting_unit_color, oau.name as owner_name
   from commitment c
   join unit ou on ou.id = c.owner_unit_id
   left join unit wu on wu.id = c.waiting_unit_id

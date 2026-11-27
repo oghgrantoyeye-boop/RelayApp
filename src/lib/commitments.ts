@@ -15,8 +15,8 @@ export interface CommitmentView {
   daysLate: number;
   due: string;
   originalDue: string | null;
-  ownerUnit: { id: string; name: string; slug: string };
-  waitingUnit: { id: string; name: string; slug: string } | null;
+  ownerUnit: { id: string; name: string; slug: string; color: string };
+  waitingUnit: { id: string; name: string; slug: string; color: string } | null;
   ownerName: string | null;
   blockedBy: CommitmentView | null;
   row: Row;
@@ -67,8 +67,8 @@ function view(policy: Policy, reader: Reader, row: Row, rows: Map<string, Row>, 
     daysLate: row.status === "open" && row.due_date < today() ? daysBetween(row.due_date, today()) : 0,
     due: row.due_date,
     originalDue: row.original_due_date !== row.due_date ? row.original_due_date : null,
-    ownerUnit: { id: row.owner_unit_id, name: row.owner_unit_name, slug: row.owner_unit_slug },
-    waitingUnit: row.waiting_unit_id ? { id: row.waiting_unit_id, name: row.waiting_unit_name, slug: row.waiting_unit_slug } : null,
+    ownerUnit: { id: row.owner_unit_id, name: row.owner_unit_name, slug: row.owner_unit_slug, color: row.owner_unit_color },
+    waitingUnit: row.waiting_unit_id ? { id: row.waiting_unit_id, name: row.waiting_unit_name, slug: row.waiting_unit_slug, color: row.waiting_unit_color } : null,
     ownerName: rank(level) >= rank("summary") ? row.owner_name : null,
     blockedBy: blockedRow && depth < 4 ? view(policy, reader, blockedRow, rows, states, depth + 1) : null,
     row,
