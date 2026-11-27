@@ -5,26 +5,12 @@ import { fmt, fmtDateTime } from "@/lib/clock";
 import { Flash, Pill, Topbar } from "@/components/ui";
 import { analyze, discardDraft, publish } from "@/app/actions";
 
-const EXAMPLES: Record<string, string> = {
-  platform: `Platform sync, Dec 6
-- The limiter memory leak fix is merged and load tests have been stable for 2 hours.
-- We'll land the rate-limit change by Dec 9.
-- SSO for the mobile admin app is on track for Dec 18.
-- Can Payments API share expected retry volume per merchant so we can size the burst buckets?`,
-  payments: `Payments API weekly
-- Retry scheduler is done and tested behind a flag.
-- We still need Platform's per-merchant burst limits before we turn retries on.
-- We'll publish the retry docs for Customer success by Dec 10.`,
-  growth: `Growth marketing weekly
-- Launch page and webinar for the 'Reliable payments' launch are ready.
-- If webhook retries slip past Dec 12 we'll move the launch email, but keep the webinar.`,
-};
 
 const SOURCE_LABEL: Record<string, string> = { manual: "Written update", meeting: "Meeting notes", coding_agent: "Coding agent session", github: "GitHub pull request", agent: "Agent draft from your tools" };
 
 export default async function WritePage({ searchParams }: { searchParams: Promise<{ msg?: string; draft?: string; example?: string }> }) {
   const { msg, draft: draftId, example } = await searchParams;
-  const { db, viewer } = await currentViewer();
+  const { db, viewer, demo } = await currentViewer();
   const teams = viewer.units.filter((u) => Object.keys(u.how_to_ask ?? {}).length > 0 || u.role === "lead");
   const allTeams = await db.query(`select id, name from unit where how_to_ask <> '{}'::jsonb order by name`);
 
@@ -79,7 +65,7 @@ export default async function WritePage({ searchParams }: { searchParams: Promis
                     <label className="field"><span>Full detail (your team and anyone granted full)</span><textarea name={`text_${i.id}`} rows={2} defaultValue={i.text} /></label>
                     <div className="row" style={{ marginTop: 8, alignItems: "flex-start" }}>
                       <label className="field grow"><span>Summary (followers)</span><input type="text" name={`summary_${i.id}`} defaultValue={i.summary_text} /></label>
-                      <label className="field grow"><span>Headline (everyone at Northwind)</span><input type="text" name={`headline_${i.id}`} defaultValue={i.headline_text} /></label>
+                      <label className="field grow"><span>Headline (everyone at {demo.org.short})</span><input type="text" name={`headline_${i.id}`} defaultValue={i.headline_text} /></label>
                     </div>
                     <fieldset style={{ border: 0, padding: 0, margin: "10px 0 0" }}>
                       <legend className="small muted" style={{ marginBottom: 4 }}>Affects (suggested from ownership and routing; edit freely)</legend>
@@ -139,7 +125,7 @@ export default async function WritePage({ searchParams }: { searchParams: Promis
   }
 
   const drafts = await myDrafts(db, viewer);
-  const exampleText = example ? EXAMPLES[viewer.team.id] ?? EXAMPLES.payments : "";
+  const exampleText = example ? demo.ui.writeExamples[viewer.team.id] ?? Object.values(demo.ui.writeExamples)[0] : "";
   return (
     <>
       <Topbar crumbs={[viewer.team.name, "Write update"]} />
@@ -162,7 +148,7 @@ export default async function WritePage({ searchParams }: { searchParams: Promis
               </label>
               <Link href="/write?example=1" className="small" style={{ marginLeft: "auto", color: "var(--blue)" }}>Paste example notes for {viewer.team.name}</Link>
             </div>
-            <textarea name="text" rows={12} required defaultValue={exampleText} placeholder={"What happened this week, what you decided, what's at risk, and what you need from other teams.\n\nFor example: We'll land the rate-limit change by Dec 9."} aria-label="Update text" />
+            <textarea name="text" rows={12} required defaultValue={exampleText} placeholder={"What happened this week, what you decided, what's at risk, and what you need from other teams.\n\nFor example: We'll finish it by Dec 9."} aria-label="Update text" />
             <div className="row"><button className="b bp" type="submit">Split into items</button></div>
           </form>
           <aside>

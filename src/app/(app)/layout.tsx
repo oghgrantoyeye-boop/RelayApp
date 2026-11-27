@@ -9,7 +9,7 @@ import { BeaconMark } from "@/components/site/Brand";
 import { resetDemo, setPersona } from "@/app/actions";
 
 export const metadata: Metadata = {
-  title: "Beacon · Northwind Labs demo",
+  title: "Beacon demo",
   description: "Beacon's working prototype, with a fictional company. Every team has a page; its updates, asks and commitments reach the right teams automatically.",
   icons: { icon: "/icon.svg" },
 };
@@ -17,7 +17,7 @@ export const metadata: Metadata = {
 export const dynamic = "force-dynamic";
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
-  const { db, viewer } = await currentViewer();
+  const { db, viewer, demo } = await currentViewer();
   const [asks, inbox, drafts, people] = await Promise.all([
     db.one(`select count(*)::int as n from request r join member m on m.id = r.assignee_member_id where m.user_id = $1 and r.status = 'open'`, [viewer.user.id]),
     db.one(`select count(*)::int as n from delivery where recipient_id = $1 and read_at is null`, [viewer.user.id]),
@@ -46,12 +46,13 @@ export default async function RootLayout({ children }: { children: React.ReactNo
             <a href="/" className="brand" title="Beacon home" style={{ color: "var(--ink)" }}>
               <BeaconMark size={22} />
               <span>beacon</span>
-              <span className="muted small" style={{ fontWeight: 400 }}>Northwind Labs demo</span>
+              <span className="muted small" style={{ fontWeight: 400 }}>{demo.org.name} demo</span>
             </a>
             <form action="/directory" className="search" role="search">
               <Icon name="search" size={14} />
               <input type="search" name="q" placeholder="Search teams, people, what they own" aria-label="Search the directory" />
             </form>
+            <NavLink href="/guide"><Icon name="spark" />Demo guide</NavLink>
             <NavLink href="/feed"><Icon name="feed" />My feed</NavLink>
             <NavLink href="/asks">
               <Icon name="asks" />Asks for you{asks!.n > 0 && <span className="count hot">{asks!.n}</span>}
@@ -93,6 +94,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
                 <PathInput />
                 <button className="b sm" type="submit" style={{ width: "100%", justifyContent: "center" }}>Reset demo data</button>
               </form>
+              <a href="/demos" className="b sm" style={{ width: "100%", justifyContent: "center", marginTop: 6 }}>Choose a demo</a>
             </div>
           </nav>
           <main className="main">{children}</main>

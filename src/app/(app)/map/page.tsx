@@ -15,7 +15,7 @@ const POS: Record<string, [number, number]> = {
 };
 
 export default async function MapPage() {
-  const { db, viewer } = await currentViewer();
+  const { db, viewer, demo } = await currentViewer();
   const policy = await loadPolicy(db);
   const teams = await db.query(
     `select u.*, (select a.name from member m join app_user a on a.id = m.user_id where m.unit_id = u.id and m.role = 'lead' limit 1) as lead,
@@ -58,12 +58,12 @@ export default async function MapPage() {
 
   return (
     <>
-      <Topbar crumbs={["Northwind Labs", "Team map"]} />
+      <Topbar crumbs={[demo.org.name, "Team map"]} />
       <div className="content">
         <div className="page-head">
           <div>
             <h1>Team map</h1>
-            <p>How Northwind&apos;s teams depend on each other right now: who owes whom, who is asking whom, and what each team shares. Click a team to focus on it. Details appear at your level of access.</p>
+            <p>How {demo.org.short}&apos;s teams depend on each other right now: who owes whom, who is asking whom, and what each team shares. Click a team to focus on it. Details appear at your level of access.</p>
           </div>
         </div>
         <TeamMap nodes={nodes} edges={edges} viewerTeam={viewer.team.id} />

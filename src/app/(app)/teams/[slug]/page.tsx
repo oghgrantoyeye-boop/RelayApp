@@ -16,7 +16,7 @@ import { teamConnectors, CONNECTOR_LABEL } from "@/lib/integrations";
 export default async function TeamPage({ params, searchParams }: { params: Promise<{ slug: string }>; searchParams: Promise<{ msg?: string; q?: string }> }) {
   const { slug } = await params;
   const { msg, q } = await searchParams;
-  const { db, viewer } = await currentViewer();
+  const { db, viewer, demo } = await currentViewer();
   const team = await db.one(`select * from unit where slug = $1`, [slug]);
   if (!team) notFound();
   const policy = await loadPolicy(db);
@@ -104,7 +104,7 @@ export default async function TeamPage({ params, searchParams }: { params: Promi
                 <form action={askAgent} style={{ marginTop: 12, display: "flex", flexDirection: "column", gap: 8 }}>
                   <input type="hidden" name="unitId" value={team.id} />
                   <input type="hidden" name="slug" value={team.slug} />
-                  <textarea name="question" rows={2} required placeholder={`For example: ${team.id === "platform" ? "When will the rate-limit change land?" : team.id === "payments" ? "Do webhook retries cover payout events?" : "What did you decide about this?"}`} aria-label="Your question" />
+                  <textarea name="question" rows={2} required placeholder={`For example: ${demo.ui.askExamples[team.id] ?? "What did you decide about this?"}`} aria-label="Your question" />
                   <div className="row">
                     <label className="check small"><input type="checkbox" name="blocking" /> This is blocking me</label>
                     <label className="row small muted">Needed by <input type="date" name="neededBy" aria-label="Needed by" /></label>
@@ -217,7 +217,7 @@ export default async function TeamPage({ params, searchParams }: { params: Promi
                 <h2>Followers</h2>
                 {followers.length ? <div className="row">{followers.map((f) => <TeamChip key={f.id} team={f} />)}</div> : <p className="muted">No followers yet.</p>}
                 <p className="small muted" style={{ marginTop: 8 }}>
-                  Followers see updates at Summary. Everyone else at Northwind sees Headlines.
+                  Followers see updates at Summary. Everyone else at {demo.org.short} sees Headlines.
                   {iface && ` ${viewer.team.name} gets ${LEVEL_LABEL[iface.level as "full"]} ${iface.cadence === "immediate" ? "right away" : `in a ${iface.cadence} digest`}.`}
                 </p>
               </section>

@@ -17,7 +17,7 @@ export const maxDuration = 300;
 export default async function AgentPage({ params, searchParams }: { params: Promise<{ slug: string }>; searchParams: Promise<{ msg?: string }> }) {
   const { slug } = await params;
   const { msg } = await searchParams;
-  const { db, viewer } = await currentViewer();
+  const { db, viewer, demo } = await currentViewer();
   const team = await db.one(`select * from unit where slug = $1 and how_to_ask <> '{}'::jsonb`, [slug]);
   if (!team) notFound();
   const agent = await db.one(`select a.* from app_user a join member m on m.user_id = a.id where m.unit_id = $1 and a.kind = 'agent'`, [team.id]);
@@ -74,7 +74,7 @@ export default async function AgentPage({ params, searchParams }: { params: Prom
                     <label className="check"><input type="radio" name="kind" value="research" defaultChecked /> Research with me</label>
                     <label className="check"><input type="radio" name="kind" value="draft_update" /> Draft our weekly update from our tools</label>
                   </div>
-                  <textarea name="instructions" rows={3} placeholder="For research: what should it find out? For example: How do other payment APIs limit webhook retry traffic per merchant, and what do they tell customers?" aria-label="Instructions" />
+                  <textarea name="instructions" rows={3} placeholder={`For research: what should it find out? For example: ${demo.ui.researchHint}`} aria-label="Instructions" />
                   <div className="row">
                     {!hasModel && <span className="small" style={{ color: "#92400e" }}>Research needs ANTHROPIC_API_KEY. Drafting updates works without it.</span>}
                     <button className="b bp" type="submit" style={{ marginLeft: "auto" }}>Start</button>

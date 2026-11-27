@@ -2,6 +2,7 @@
 // update from its connected tools. Every run is shared with the whole team, which can comment,
 // redirect it or take it over. Runs are logged, cost is tracked against the agent's monthly budget,
 // and nothing the agent produces is shared outside the team until a person publishes it.
+import { activeDemo } from "./demo";
 import type { Db, Row } from "./db";
 import { addDays, fmt, now, today } from "./clock";
 import { audit, loadPolicy, loadViewer, newId, refTask, type Viewer } from "./data";
@@ -113,6 +114,7 @@ async function runResearch(db: Db, task: Row) {
   const agent = await db.one(`select * from app_user where id = $1`, [task.agent_id]);
   if (Number(agent!.spent_usd) >= Number(agent!.monthly_budget_usd ?? Infinity)) throw new Error("Monthly budget reached.");
   const unit = await db.one(`select * from unit where id = $1`, [task.unit_id]);
+  const demo = await activeDemo(db);
   // Internal context: the team's own tools, which the requester (a member) may read in full.
   const docs = await db.query(`select d.*, c.kind as connector_kind from source_doc d join connector c on c.id = d.connector_id where d.unit_id = $1 order by d.occurred_at desc limit 60`, [task.unit_id]);
   const q = tokens(task.instructions);
@@ -126,7 +128,7 @@ async function runResearch(db: Db, task: Row) {
   const result = await llm.research(
     {
       system:
-        `You are the ${unit!.name} team's agent at Northwind Labs, a fictional 300-person company that sells a payments API. ` +
+        `You are the ${unit!.name} team's agent at ${demo.org.name}, ${demo.org.about}. ` +
         "A teammate asked you to research something. Use web search for anything external and cite sources inline as markdown links. " +
         "Use the internal context only as background; never invent internal facts. Write a brief for the team: a one-paragraph answer first, " +
         "then findings as bullets, then what you'd recommend and what you couldn't confirm. Use markdown headings sparingly. Under 450 words.",
