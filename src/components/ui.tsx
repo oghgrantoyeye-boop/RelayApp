@@ -65,10 +65,16 @@ export function initials(name: string): string {
     .toUpperCase();
 }
 
-export function Avatar({ name, agent }: { name: string; agent?: boolean }) {
+/** An illustrated headshot for a person (see /api/avatar), or "AI" for an agent. */
+export function Avatar({ name, agent, size }: { name: string; agent?: boolean; size?: number }) {
+  const style = size ? { width: size, height: size } : undefined;
+  if (agent || / agent$/.test(name)) {
+    return <span className="av agent" title={name} aria-hidden="true" style={style}>AI</span>;
+  }
   return (
-    <span className={`av${agent ? " agent" : ""}`} title={name} aria-hidden="true">
-      {agent ? "AI" : initials(name)}
+    <span className="av photo" title={name} aria-hidden="true" style={style}>
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img src={`/api/avatar/${encodeURIComponent(name)}`} alt="" loading="lazy" />
     </span>
   );
 }

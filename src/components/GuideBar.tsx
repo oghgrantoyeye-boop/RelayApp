@@ -4,13 +4,15 @@ import Link from "next/link";
 import type { DemoPack } from "@/lib/demos";
 import { hideGuideBar, setPersona } from "@/app/actions";
 import { PathInput } from "@/components/Nav";
+import { Avatar } from "@/components/ui";
 
-export function GuideBar({ demo, step, firstName }: { demo: DemoPack; step: number; firstName: Record<string, string> }) {
+export function GuideBar({ demo, step, firstName, fullName }: { demo: DemoPack; step: number; firstName: Record<string, string>; fullName: Record<string, string> }) {
   const s = demo.guide[step];
   if (!s) return null;
   const next = demo.guide[step + 1];
   return (
     <div style={{ position: "sticky", top: 0, zIndex: 20, background: "#18181b", color: "#fff", padding: "10px 20px", display: "flex", gap: 16, alignItems: "center", flexWrap: "wrap" }}>
+      <Avatar name={fullName[s.as] ?? s.as} size={40} />
       <div style={{ flex: "1 1 420px", minWidth: 0 }}>
         <div style={{ fontSize: 12, opacity: 0.7 }}>Demo guide · step {step + 1} of {demo.guide.length} · you&apos;re {firstName[s.as] ?? s.as}</div>
         <div style={{ fontWeight: 600, marginTop: 2 }}>{s.title}</div>

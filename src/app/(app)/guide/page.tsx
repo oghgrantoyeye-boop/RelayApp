@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { currentViewer } from "@/lib/session";
 import { loadViewer } from "@/lib/data";
-import { Flash, Topbar, initials } from "@/components/ui";
+import { Avatar, Flash, Topbar } from "@/components/ui";
 import { setPersona } from "@/app/actions";
 import type { GuideStep } from "@/lib/demos/types";
 
@@ -44,6 +44,7 @@ export default async function GuidePage({ searchParams }: { searchParams: Promis
         )}
       </div>
       <div style={{ display: "flex", flexDirection: "column", gap: 6, alignItems: "flex-end", flex: "none" }}>
+        <Avatar name={people.get(step.as)?.name ?? step.as} size={32} />
         <OpenAs as={step.as} href={step.href} label={`Open as ${first(step.as)}`} primary={i !== null} step={i ?? "off"} />
         {step.compare && <OpenAs as={step.compare} href={step.href} label={`Open as ${first(step.compare)}`} step={i ?? "off"} />}
       </div>
@@ -76,7 +77,7 @@ export default async function GuidePage({ searchParams }: { searchParams: Promis
               const p = people.get(c.as);
               return (
                 <div key={c.as} className="card" style={{ display: "flex", gap: 10, alignItems: "flex-start" }}>
-                  <span className="av" style={{ width: 30, height: 30, flex: "none" }}>{initials(p?.name ?? c.as)}</span>
+                  <Avatar name={p?.name ?? c.as} size={44} />
                   <div>
                     <div style={{ fontWeight: 600 }}>{p?.name}</div>
                     <div className="small muted">{p?.title}, {p?.team}</div>

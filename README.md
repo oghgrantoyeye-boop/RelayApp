@@ -44,6 +44,8 @@ Open **Choose a demo** (`/demos`, also at the bottom of the sidebar) to load one
 | Halden & Moss Architects | Architecture firm | The Riverside Library energy model misses Dec 5 after a facade change, which holds up the client design package on Dec 12 and the board renders on Dec 15. Confidential: an acquisition. |
 | Maison Verel | Mid-size fashion house | Recycled wool for the Spring '27 coats fails a dye test, which delays the samples for buyers on Dec 12 and the lookbook shoot on Dec 15. Confidential: an unannounced collaboration. |
 
+People's headshots are illustrations drawn locally from each name by [`/api/avatar`](src/app/api/avatar/[seed]/route.ts), using DiceBear's Notionists style (CC0 1.0, a remix of work by Zoish). They aren't photos of real people, and no outside service is called.
+
 Each demo is one file in [`src/lib/demos/`](src/lib/demos/), in the format described in [`types.ts`](src/lib/demos/types.ts). [`tests/demos.test.ts`](tests/demos.test.ts) runs the key walkthrough steps against every demo, so a new demo is checked the moment it's added to `DEMOS` in [`index.ts`](src/lib/demos/index.ts). To start a server on a demo other than Northwind, set `RELAY_DEMO` to its id (`software`, `cityhall`, `architecture` or `fashion`).
 
 ## The five-minute demo (Northwind Labs)

@@ -137,6 +137,8 @@ tr:hover td { background: #fafafb; }
 .level { font-size: 11px; color: var(--muted); border: 1px dashed #d4d4d8; border-radius: 5px; padding: 0 5px; white-space: nowrap; }
 .av { display: inline-flex; align-items: center; justify-content: center; width: 22px; height: 22px; border-radius: 50%; background: #eef0f5; color: var(--ink-2); font-size: 10px; font-weight: 600; flex: none; border: 1px solid #fff; }
 .av.agent { background: #f5f3ff; color: #5b21b6; }
+.av.photo { padding: 0; overflow: hidden; background: #f4f4f5; }
+.av.photo img { width: 100%; height: 100%; display: block; }
 .avs { display: inline-flex; } .avs .av + .av { margin-left: -6px; }
 .lock { display: inline-flex; gap: 6px; align-items: center; color: var(--muted); }
 
