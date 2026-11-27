@@ -1,7 +1,6 @@
-// Logos for the marketing site. Marks come from Simple Icons (see marks.ts). Slack, Microsoft Teams and
-// Toast aren't in that set because those companies restrict use of their logos, so they're
-// set as plain type. If you have the right to use an official logo, save it as public/logos/<id>.svg
-// and it replaces the typeset version everywhere on the site.
+// Logos for the marketing site. Marks come from Simple Icons (see marks.ts). Slack and Microsoft Teams
+// aren't in that set, so they're set as plain type. An official logo saved as public/logos/<id>.svg
+// replaces the typeset version everywhere on the site (Toast's is there, from Toast's own website).
 import fs from "node:fs";
 import path from "node:path";
 import { MARKS } from "./marks";
@@ -71,12 +70,4 @@ export function SvgMark({ id, x, y, size }: { id: string; x: number; y: number; 
       <path d={m.path} />
     </svg>
   );
-}
-
-/** A company name set as a wordmark, or its official logo if one was added to public/logos. */
-export function Wordmark({ id, height = 34 }: { id: string; height?: number }) {
-  const file = logoFile(id);
-  // eslint-disable-next-line @next/next/no-img-element
-  if (file) return <img src={file} alt={NAMES[id] ?? id} height={height} style={{ height, width: "auto" }} />;
-  return <span className="wordmark" style={{ fontSize: height }}>{NAMES[id] ?? id}</span>;
 }

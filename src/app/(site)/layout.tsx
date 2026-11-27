@@ -57,13 +57,12 @@ export default function SiteLayout({ children }: { children: React.ReactNode }) 
               <a href="/#use-cases">Use cases</a>
               <a href="/#how-it-works">How it works</a>
               <a href="/#about">About</a>
-              <a href="/#built-by">Built by</a>
               <Link href="/feed">Interactive demo</Link>
               <Link href="/early-access">Early access</Link>
             </nav>
             <p className="small">
-              © 2026 Beacon. Product views on this site use illustrative data about a fictional company. Product names and logos belong to
-              their owners and are used only to name the tools Beacon works with; Beacon isn&apos;t affiliated with or endorsed by them.
+              © 2026 Beacon. Product views on this site use illustrative data about a fictional company. Company and product names and logos
+              belong to their owners and are used only to identify them; Beacon isn&apos;t affiliated with or endorsed by them.
             </p>
           </div>
         </footer>
