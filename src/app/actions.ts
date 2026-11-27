@@ -5,7 +5,7 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { after } from "next/server";
-import { currentViewer, PERSONA_COOKIE } from "@/lib/session";
+import { currentViewer, GUIDE_COOKIE, PERSONA_COOKIE } from "@/lib/session";
 import { ALL_KINDS, audit, loadViewer } from "@/lib/data";
 import { analyzeUpdate, publishDraft, type PublishForm } from "@/lib/updates";
 import { confirmCommitment, markDone, rejectCommitment } from "@/lib/commitments";
@@ -38,6 +38,16 @@ export async function setPersona(form: FormData) {
   const { db } = await currentViewer();
   const v = await loadViewer(db, id);
   if (v && v.user.kind === "human") (await cookies()).set(PERSONA_COOKIE, id, { path: "/", sameSite: "lax", httpOnly: true });
+  // Guide buttons carry their step number, so the guide bar can follow along on every page.
+  const step = str(form, "step");
+  if (step === "off") (await cookies()).delete(GUIDE_COOKIE);
+  else if (step) (await cookies()).set(GUIDE_COOKIE, step, { path: "/", sameSite: "lax", httpOnly: true });
+  revalidatePath("/", "layout");
+  redirect(safePath(str(form, "path")));
+}
+
+export async function hideGuideBar(form: FormData) {
+  (await cookies()).delete(GUIDE_COOKIE);
   revalidatePath("/", "layout");
   redirect(safePath(str(form, "path")));
 }
@@ -51,6 +61,7 @@ async function loadDemo(db: Db, demoId: string) {
 export async function resetDemo(form: FormData) {
   const { db, demo } = await currentViewer();
   await loadDemo(db, demo.id);
+  (await cookies()).delete(GUIDE_COOKIE);
   revalidatePath("/", "layout");
   redirect(withMsg(safePath(str(form, "path")), "Demo data reset to the Dec 6 story."));
 }
@@ -61,6 +72,7 @@ export async function switchDemo(form: FormData) {
   const { db } = await currentViewer();
   await loadDemo(db, pack.id);
   (await cookies()).set(PERSONA_COOKIE, pack.defaultPersona, { path: "/", sameSite: "lax", httpOnly: true });
+  (await cookies()).delete(GUIDE_COOKIE);
   revalidatePath("/", "layout");
   redirect(withMsg("/guide", `Loaded the ${pack.org.name} demo.`));
 }

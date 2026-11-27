@@ -47,6 +47,36 @@ export default async function WritePage({ searchParams }: { searchParams: Promis
           </div>
           <form action={publish} className="stack">
             <input type="hidden" name="updateId" value={update.id} />
+            {commitments.length > 0 && (
+              <section>
+                <h2>Commitments Beacon found</h2>
+                <p className="small muted" style={{ marginBottom: 8 }}>Promises with a date. When you publish, the waiting team and everyone downstream are told.</p>
+                <div className="stack" style={{ gap: 12 }}>
+                  {commitments.map((c) => (
+                    <div key={c.id} className="card" style={{ borderColor: "#ddd6fe" }}>
+                      <input type="hidden" name="c_ids" value={c.id} />
+                      <div className="row">
+                        {c.owner_user_id && c.owner_user_id !== viewer.user.id && !c.revises_id ? (
+                          <span className="small" style={{ fontWeight: 500 }}>Draft for {c.owner_name} to confirm</span>
+                        ) : (
+                          <label className="check"><input type="checkbox" name={`confirm_${c.id}`} defaultChecked /> Confirm</label>
+                        )}
+                        {c.revises_id ? (
+                          <Pill tone="amber">Moves an existing commitment from {fmt(c.revises_due)} to the date below</Pill>
+                        ) : (
+                          <Pill tone="violet">New commitment</Pill>
+                        )}
+                        {c.waiting_name && <span className="small muted">Waiting team: {c.waiting_name}</span>}
+                      </div>
+                      <div className="row" style={{ marginTop: 8 }}>
+                        <label className="field grow"><span>Commitment</span><input type="text" name={`ctitle_${c.id}`} defaultValue={c.revises_title ?? c.title} /></label>
+                        <label className="field"><span>Due</span><input type="date" name={`cdue_${c.id}`} defaultValue={c.due_date} /></label>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </section>
+            )}
             <section>
               <h2>Items ({items.length})</h2>
               <div className="stack" style={{ gap: 12 }}>
@@ -81,36 +111,6 @@ export default async function WritePage({ searchParams }: { searchParams: Promis
                 ))}
               </div>
             </section>
-            {commitments.length > 0 && (
-              <section>
-                <h2>Commitments Beacon found</h2>
-                <p className="small muted" style={{ marginBottom: 8 }}>Promises with a date. Confirm them to notify the waiting team and everyone downstream.</p>
-                <div className="stack" style={{ gap: 12 }}>
-                  {commitments.map((c) => (
-                    <div key={c.id} className="card" style={{ borderColor: "#ddd6fe" }}>
-                      <input type="hidden" name="c_ids" value={c.id} />
-                      <div className="row">
-                        {c.owner_user_id && c.owner_user_id !== viewer.user.id && !c.revises_id ? (
-                          <span className="small" style={{ fontWeight: 500 }}>Draft for {c.owner_name} to confirm</span>
-                        ) : (
-                          <label className="check"><input type="checkbox" name={`confirm_${c.id}`} defaultChecked /> Confirm</label>
-                        )}
-                        {c.revises_id ? (
-                          <Pill tone="amber">Moves an existing commitment from {fmt(c.revises_due)} to the date below</Pill>
-                        ) : (
-                          <Pill tone="violet">New commitment</Pill>
-                        )}
-                        {c.waiting_name && <span className="small muted">Waiting team: {c.waiting_name}</span>}
-                      </div>
-                      <div className="row" style={{ marginTop: 8 }}>
-                        <label className="field grow"><span>Commitment</span><input type="text" name={`ctitle_${c.id}`} defaultValue={c.revises_title ?? c.title} /></label>
-                        <label className="field"><span>Due</span><input type="date" name={`cdue_${c.id}`} defaultValue={c.due_date} /></label>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </section>
-            )}
             <div className="row">
               <button className="b bp" type="submit">Publish to {update.unit_name}&apos;s page</button>
             </div>

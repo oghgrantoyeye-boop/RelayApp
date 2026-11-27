@@ -2,7 +2,9 @@ import type { Metadata } from "next";
 import { GeistSans } from "geist/font/sans";
 import { GeistMono } from "geist/font/mono";
 import "../globals.css";
-import { currentViewer } from "@/lib/session";
+import { cookies } from "next/headers";
+import { currentViewer, GUIDE_COOKIE } from "@/lib/session";
+import { GuideBar } from "@/components/GuideBar";
 import { NavLink, PathInput, PersonaSwitcher } from "@/components/Nav";
 import { Icon, initials } from "@/components/ui";
 import { BeaconMark } from "@/components/site/Brand";
@@ -37,6 +39,8 @@ export default async function RootLayout({ children }: { children: React.ReactNo
     g.people.push({ id: p.id, name: p.name, title: p.title });
   }
   const isLeadership = viewer.reader.unitIds.includes("leadership");
+  const guideStep = Number((await cookies()).get(GUIDE_COOKIE)?.value ?? NaN);
+  const firstName = Object.fromEntries(people.map((p) => [p.id, String(p.name).split(" ")[0]]));
 
   return (
     <html lang="en" className={`${GeistSans.variable} ${GeistMono.variable}`}>
@@ -97,7 +101,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
               <a href="/demos" className="b sm" style={{ width: "100%", justifyContent: "center", marginTop: 6 }}>Choose a demo</a>
             </div>
           </nav>
-          <main className="main">{children}</main>
+          <main className="main">{Number.isInteger(guideStep) && <GuideBar demo={demo} step={guideStep} firstName={firstName} />}{children}</main>
         </div>
       </body>
     </html>

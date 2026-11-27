@@ -35,7 +35,7 @@ Open http://localhost:3000 for the site, or http://localhost:3000/feed for the p
 
 ## Customer demos
 
-Open **Choose a demo** (`/demos`, also at the bottom of the sidebar) to load one of four fictional organizations. Each runs the same product and the same walkthrough, with its own teams, people, tools, meetings and story, all set on Dec 6, 2026. Loading a demo resets the demo data. **Demo guide** (`/guide`) lists the steps for the loaded demo, and each step's Open button switches you to the right person and page.
+Open **Choose a demo** (`/demos`, also at the bottom of the sidebar) to load one of four fictional organizations. Each runs the same product and the same walkthrough, with its own teams, people, tools, meetings and story, all set on Dec 6, 2026. Loading a demo resets the demo data. **Demo guide** (`/guide`) opens with the problem in two sentences and the three people you'll play, then five steps, each with one line on why it matters. Each step's button switches you to the right person and page, and a bar at the top of every page shows the current step with a Next button.
 
 | Demo | Who it's for | The story |
 | --- | --- | --- |

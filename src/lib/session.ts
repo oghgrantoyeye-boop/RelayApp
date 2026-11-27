@@ -7,6 +7,8 @@ import { activeDemo } from "./demo";
 // v1 demo: no login. Visitors pick a seeded person, and the server enforces every permission as
 // that person. Swap this for real sign-in (Google, Microsoft) when a pilot starts.
 export const PERSONA_COOKIE = "relay_user";
+/** The demo guide step someone is on, set by the guide's buttons. */
+export const GUIDE_COOKIE = "relay_guide_step";
 
 export async function currentViewer() {
   const db = await getDb();

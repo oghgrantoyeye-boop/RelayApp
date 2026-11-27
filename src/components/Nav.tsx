@@ -29,7 +29,7 @@ export function PersonaSwitcher({
       <input type="hidden" name="path" value={path} />
       <label className="field">
         <span>Viewing as</span>
-        <select name="userId" defaultValue={current} onChange={(e) => e.currentTarget.form?.requestSubmit()} aria-label="Viewing as">
+        <select key={current} name="userId" defaultValue={current} onChange={(e) => e.currentTarget.form?.requestSubmit()} aria-label="Viewing as">
           {groups.map((g) => (
             <optgroup key={g.team} label={g.team}>
               {g.people.map((p) => (

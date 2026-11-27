@@ -37,7 +37,7 @@ export default async function DigestPage({ searchParams }: { searchParams: Promi
             <span className="small muted" style={{ marginLeft: "auto" }}>Written by {d.by}</span>
           </div>
           <ul className="list" style={{ marginTop: 8 }}>
-            {d.paragraphs.map((p) => (
+            {d.paragraphs.filter((p) => p.inputs > 0).map((p) => (
               <li key={p.team.id} style={{ paddingLeft: 0, paddingRight: 0 }}>
                 <span className="lead-col"><TeamChip team={p.team} /></span>
                 <div className="grow">
@@ -47,6 +47,11 @@ export default async function DigestPage({ searchParams }: { searchParams: Promi
               </li>
             ))}
           </ul>
+          {d.paragraphs.some((p) => p.inputs === 0) && (
+            <p className="small muted" style={{ marginTop: 8 }}>
+              Nothing new this week from {d.paragraphs.filter((p) => p.inputs === 0).map((p) => p.team.name).join(", ")}.
+            </p>
+          )}
           {d.hidden > 0 && (
             <p className="small muted" style={{ marginTop: 8 }}>
               {d.hidden} {d.hidden === 1 ? "paragraph is" : "paragraphs are"} hidden because {d.hidden === 1 ? "it was" : "they were"} built from items marked for other teams.

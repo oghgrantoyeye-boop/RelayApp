@@ -103,6 +103,37 @@ for (const pack of DEMOS) {
       expect(asks.clusters[0].askers).toHaveLength(c.route.askers);
     });
 
+    it("follows the guide: ask, get routed, the owner posts a date, ask again and get the answer", async () => {
+      const d = await v(c.route.as);
+      const first = (await getQuestion(db, d, (await askTeam(db, d, c.route.team, c.route.question)).questionId))!;
+      expect(first.question.outcome).toBe("routed");
+      expect(first.question.answer_text).toContain(`${c.route.askers - 1} other people`);
+      const owner = await v(c.revise.as);
+      const { updateId } = await analyzeUpdate(db, owner, { unitId: c.revise.team, text: pack.ui.writeExamples[c.revise.team] });
+      const draft = (await getDraft(db, owner, updateId))!;
+      expect(draft.commitments.some((x) => x.revises_id === c.revise.commitment)).toBe(true);
+      await publishDraft(db, owner, updateId, {
+        items: draft.items.map((i) => ({ id: i.id, include: true, kind: i.kind, text: i.text, summary: i.summary_text, headline: i.headline_text, affected: i.affected_unit_ids })),
+        commitments: draft.commitments.map((x) => ({ id: x.id, confirm: true, title: x.title, due_date: x.due_date })),
+      });
+      expect((await db.query(`select * from delivery where recipient_id = $1 and kind = 'commitment_alert'`, [d.user.id])).length).toBe(1);
+      const again = (await getQuestion(db, d, (await askTeam(db, d, c.route.team, c.route.question)).questionId))!;
+      expect(again.question.outcome).toBe("answered");
+      const day = Number(c.revise.due.slice(8));
+      expect(again.question.answer_text).toContain(`Dec ${day}`);
+    });
+
+    it("every guide and cast person exists, and steps are short", async () => {
+      for (const s of [...pack.guide, ...pack.explore]) {
+        await v(s.as);
+        if (s.compare) await v(s.compare);
+        expect(s.text.split(/\s+/).length, s.title).toBeLessThanOrEqual(45);
+      }
+      for (const c of pack.intro.cast) await v(c.as);
+      expect(pack.guide.length).toBeLessThanOrEqual(6);
+      expect(pack.intro.cast.length).toBeLessThanOrEqual(3);
+    });
+
     it("6b. the agent answers from what a team published", async () => {
       const asker = await v(c.answer.as);
       const { questionId } = await askTeam(db, asker, c.answer.team, c.answer.question);

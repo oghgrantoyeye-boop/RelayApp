@@ -181,7 +181,7 @@ describe("team agents and requests", () => {
     const aisha = await v("aisha");
     const r = await answerCluster(db, aisha, "ck_limits_date", { answer: "The leak fix merged. We'll land the change by Dec 9.", publish: true, publishLevel: "summary" });
     expect(r.recipients).toBe(3);
-    for (const who of ["hannah", "jordan", "grace"]) {
+    for (const who of ["hannah", "maya", "grace"]) {
       expect((await db.query(`select * from delivery where recipient_id = $1 and kind = 'answer'`, [who])).length).toBe(1);
     }
     const item = (await db.one(`select * from update_item where id = $1`, [r.publishedId]))!;

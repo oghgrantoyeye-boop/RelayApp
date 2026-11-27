@@ -75,7 +75,12 @@ export interface GuideStep {
   as: string;
   /** Where to go. */
   href: string;
+  /** What to do and what to look at, in about 30 words. */
   text: string;
+  /** One line on why this matters to the customer. */
+  why?: string;
+  /** Someone to open the same page as, to show what they can't see. */
+  compare?: string;
 }
 
 export interface SampleSession {
@@ -101,8 +106,13 @@ export interface DemoPack {
     /** One sentence for agent prompts: "a fictional 300-person company that sells a payments API". */
     about: string;
   };
-  /** Two or three sentences about the story, for the picker. */
+  /** One sentence about the problem, for the picker. */
   summary: string;
+  /** The guide's opening: the one problem, and the two or three people the viewer plays. */
+  intro: {
+    problem: string;
+    cast: { as: string; note: string }[];
+  };
   defaultPersona: string;
   teams: Team[];
   people: Person[];
@@ -146,7 +156,10 @@ export interface DemoPack {
     /** Coding-agent sessions for software teams; empty for orgs without them. */
     sampleSessions: Record<string, SampleSession>;
   };
+  /** About five steps, each showing one clear win. */
   guide: GuideStep[];
+  /** Optional extras after the main steps. */
+  explore: GuideStep[];
   /** What the story must show, checked by tests/demos.test.ts for every demo. */
   checks: {
     search: { q: string; team: string; owns: string };
