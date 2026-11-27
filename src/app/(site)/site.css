@@ -299,3 +299,43 @@ h1, h2, h3 { margin: 0; font-weight: 600; letter-spacing: -0.03em; color: var(--
 @keyframes glow { 0%, 100% { opacity: 0.55; } 50% { opacity: 1; } }
 .beam-anim { animation: glow 4s ease-in-out infinite; }
 @media (prefers-reduced-motion: reduce) { .beam-anim { animation: none; } }
+
+/* Integrations */
+.hub { background: var(--paper); border: 1px solid var(--line); border-radius: 16px; padding: 18px 18px 12px; margin: 8px 0 28px; }
+.hub-pulse { stroke-dasharray: 7 260; animation: hubpulse 3.2s linear infinite; }
+@keyframes hubpulse { from { stroke-dashoffset: 267; } to { stroke-dashoffset: 0; } }
+@media (prefers-reduced-motion: reduce) { .hub-pulse { animation: none; display: none; } }
+.hub-legend { display: flex; flex-wrap: wrap; gap: 8px 22px; justify-content: center; font-size: 13px; color: var(--slate); padding-top: 4px; }
+.hub-legend span { display: inline-flex; align-items: center; gap: 8px; }
+.hub-legend i { width: 22px; display: inline-block; }
+.hub-legend i.live { border-top: 2px solid var(--blue); }
+.hub-legend i.planned { border-top: 1.5px dashed #b9b3a7; }
+.int-groups { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 20px; }
+.int-group h3 { font-family: var(--mono); font-size: 12px; font-weight: 500; letter-spacing: 0.06em; text-transform: uppercase; color: var(--slate); margin: 0 0 10px; }
+.int-group ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+.int-tile { display: grid; grid-template-columns: 34px minmax(0, 1fr); gap: 12px; padding: 14px; background: var(--paper); border: 1px solid var(--line); border-radius: 12px; }
+.int-mark { width: 34px; height: 34px; border-radius: 9px; border: 1px solid var(--line-2); display: grid; place-items: center; background: #fff; }
+.int-tile .nm { font-weight: 600; font-size: 15px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; letter-spacing: -0.01em; }
+.int-tile p { margin: 4px 0 0; font-size: 13.5px; line-height: 1.45; color: var(--slate); }
+.status { font-family: var(--mono); font-size: 10.5px; font-weight: 500; letter-spacing: 0.04em; text-transform: uppercase; border-radius: 999px; padding: 1px 8px; border: 1px solid; white-space: nowrap; }
+.status.live { color: var(--ok); border-color: #bfe3cc; background: #eef8f1; }
+.status.planned { color: var(--slate); border-color: var(--line); background: #faf9f6; }
+.int-note { display: flex; flex-wrap: wrap; gap: 10px 28px; justify-content: space-between; margin: 26px 0 0; font-size: 14px; color: var(--slate); }
+.int-note > span:first-child { max-width: 680px; }
+.int-links { display: flex; gap: 20px; flex-wrap: wrap; }
+.int-links a { color: var(--blue); text-decoration: none; font-weight: 500; white-space: nowrap; }
+.int-links a:hover { text-decoration: underline; }
+@media (max-width: 1040px) { .int-groups { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 680px) { .int-groups { grid-template-columns: 1fr; } .hub { display: none; } }
+
+/* Built by */
+.built { padding-top: 24px; }
+.built-inner { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 28px 48px; align-items: center; background: var(--paper); border: 1px solid var(--line); border-radius: 18px; padding: 44px; }
+.built-logos { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.built-card { display: flex; flex-direction: column; justify-content: space-between; gap: 14px; min-height: 150px; padding: 20px; border: 1px solid var(--line-2); border-radius: 14px; background: var(--bg); }
+.built-when { font-family: var(--mono); font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--slate); }
+.built-role { font-size: 13.5px; color: var(--slate); }
+.wordmark { font-weight: 700; letter-spacing: -0.045em; line-height: 1; color: var(--ink-2); }
+.built-note { grid-column: 1 / -1; margin: 0; padding-top: 18px; border-top: 1px solid var(--line-2); font-size: 13px; color: var(--slate); }
+@media (max-width: 900px) { .built-inner { grid-template-columns: 1fr; padding: 28px 20px; } }
+@media (max-width: 420px) { .built-logos { grid-template-columns: 1fr; } .built-card { min-height: 0; } }

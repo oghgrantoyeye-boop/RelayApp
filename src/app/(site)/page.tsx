@@ -4,6 +4,11 @@ import { Reveal, StepBeam } from "@/components/site/Interactive";
 import { GapVisual, HeroProduct, PillarGlyph, SignalField } from "@/components/site/Mockups";
 import { DependencyGraph } from "@/components/site/DependencyGraph";
 import { AskBeacon } from "@/components/site/AskBeacon";
+import { Integrations } from "@/components/site/Integrations";
+import { Wordmark } from "@/components/site/Logos";
+
+// The "Built by" section. Add your name and a link (LinkedIn, X, personal site) to show them.
+const FOUNDER = { name: "", link: "" };
 
 const Arrow = () => <span className="arrow" aria-hidden="true">→</span>;
 
@@ -169,6 +174,10 @@ export default function Home() {
         </div>
       </section>
 
+      <div className="wrap"><div className="divider" /></div>
+
+      <Integrations />
+
       {/* Product showcase */}
       <section className="section showcase on-dark" id="showcase" aria-labelledby="show-title">
         <div className="wrap">
@@ -283,6 +292,40 @@ export default function Home() {
               <div><b>Not a project tracker.</b><span>It connects work across the tools teams already use.</span></div>
               <div><b>Not workflow automation.</b><span>It coordinates people and agents around decisions, not just triggers.</span></div>
             </div>
+          </Reveal>
+        </div>
+      </section>
+
+      {/* Built by */}
+      <section className="section built" id="built-by" aria-labelledby="built-title">
+        <div className="wrap">
+          <Reveal className="built-inner">
+            <div>
+              <span className="eyebrow">Built by</span>
+              <h2 id="built-title" className="h2" style={{ margin: "16px 0 18px" }}>Built by an engineer from Toast and Amazon.</h2>
+              <p className="lede">
+                {FOUNDER.name ? `${FOUNDER.name}, Beacon's founder, ` : "Beacon's founder "}
+                worked as a software engineer at Toast and works at Amazon today. Beacon is built for the problem every growing engineering
+                organization runs into: the work that happens between teams.
+              </p>
+              <div className="hero-ctas" style={{ marginTop: 22 }}>
+                <Link className="btn btn-ghost" href="/early-access">Talk to the founder <Arrow /></Link>
+                {FOUNDER.link && <a className="btn btn-ghost" href={FOUNDER.link} target="_blank" rel="noopener noreferrer">{FOUNDER.name || "Founder"} on the web</a>}
+              </div>
+            </div>
+            <div className="built-logos">
+              <div className="built-card">
+                <span className="built-when">Previously</span>
+                <Wordmark id="toast" />
+                <span className="built-role">Software engineer</span>
+              </div>
+              <div className="built-card">
+                <span className="built-when">Currently</span>
+                <Wordmark id="amazon" />
+                <span className="built-role">Software engineer</span>
+              </div>
+            </div>
+            <p className="built-note">Beacon is an independent project. It isn&apos;t affiliated with, sponsored or endorsed by Toast or Amazon.</p>
           </Reveal>
         </div>
       </section>

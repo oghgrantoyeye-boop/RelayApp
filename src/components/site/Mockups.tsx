@@ -1,6 +1,7 @@
 // Static product mockups for the marketing site. Everything here is illustrative data about a
 // fictional company (Northwind Labs) and is labelled as such where it appears.
 import { BeaconMark } from "./Brand";
+import { SvgMark } from "./Logos";
 
 function Av({ n }: { n: string }) {
   return <span className="av" aria-hidden="true">{n.split(" ").map((p) => p[0]).join("")}</span>;
@@ -128,32 +129,33 @@ function ChainSvg() {
 
 /** "Your tools are connected. Your organization isn't." Silos, the gaps between them, and Beacon's signal paths. */
 export function GapVisual() {
+  // Each team in its own tools. These are examples of where the work lives, not integrations.
   const silos = [
-    { x: 30, y: 30, t: "Product", s: "Roadmaps, specs" },
-    { x: 300, y: 30, t: "Engineering", s: "Code, tickets" },
-    { x: 30, y: 250, t: "Sales", s: "CRM, deals" },
-    { x: 300, y: 250, t: "Operations", s: "Processes, budgets" },
+    { x: 30, y: 18, t: "Product", s: "Roadmaps, specs", tools: ["linear", "figma", "notion"] },
+    { x: 300, y: 18, t: "Engineering", s: "Code, tickets", tools: ["github", "jira", "confluence"] },
+    { x: 30, y: 246, t: "Sales", s: "CRM, deals", tools: ["hubspot", "zoom", "gmeet"] },
+    { x: 300, y: 246, t: "Operations", s: "Processes, budgets", tools: ["zendesk", "gdrive", "notion"] },
   ];
   return (
     <div className="gap-visual">
-      <svg viewBox="0 0 470 350" width="100%" role="img" aria-label="Four teams, each in its own tool, with the work between them connected through Beacon.">
+      <svg viewBox="0 0 470 350" width="100%" role="img" aria-label="Four teams, each in its own tools (Product in Linear, Figma and Notion; Engineering in GitHub, Jira and Confluence; Sales in HubSpot, Zoom and Google Meet; Operations in Zendesk, Google Drive and Notion), with the work between them connected through Beacon.">
         <g stroke="#d6d2c9" strokeWidth="1.5" strokeDasharray="3 5" fill="none">
-          <path d="M170 62 L300 62" />
-          <path d="M100 100 L100 250" />
-          <path d="M370 100 L370 250" />
-          <path d="M170 282 L300 282" />
+          <path d="M170 52 L300 52" />
+          <path d="M100 104 L100 246" />
+          <path d="M370 104 L370 246" />
+          <path d="M170 288 L300 288" />
         </g>
         <g fill="#68717e" fontSize="10.5" fontFamily="inherit">
-          <text x="182" y="54">&quot;who decided?&quot;</text>
+          <text x="182" y="44">&quot;who decided?&quot;</text>
           <text x="20" y="182" transform="rotate(-90 20 182)">&quot;when will it ship?&quot;</text>
           <text x="455" y="150" transform="rotate(90 455 150)">&quot;what changed?&quot;</text>
-          <text x="186" y="304">&quot;who owns this?&quot;</text>
+          <text x="186" y="310">&quot;who owns this?&quot;</text>
         </g>
         <g stroke="#315efb" strokeWidth="1.8" fill="none">
-          <path d="M140 100 Q180 150 222 168" />
-          <path d="M330 100 Q290 150 248 168" />
-          <path d="M140 250 Q180 200 222 184" />
-          <path d="M330 250 Q290 200 248 184" />
+          <path d="M140 104 Q180 150 222 168" />
+          <path d="M330 104 Q290 150 248 168" />
+          <path d="M140 246 Q180 200 222 184" />
+          <path d="M330 246 Q290 200 248 184" />
         </g>
         <g>
           <circle cx="235" cy="176" r="30" fill="#172333" />
@@ -161,9 +163,12 @@ export function GapVisual() {
         </g>
         {silos.map((s) => (
           <g key={s.t}>
-            <rect x={s.x} y={s.y} width="140" height="70" rx="10" fill="#fff" stroke="#e5e3de" />
-            <text x={s.x + 14} y={s.y + 30} fontSize="14" fontWeight="600" fill="#17191d">{s.t}</text>
-            <text x={s.x + 14} y={s.y + 50} fontSize="11.5" fill="#68717e">{s.s}</text>
+            <rect x={s.x} y={s.y} width="140" height="86" rx="10" fill="#fff" stroke="#e5e3de" />
+            <text x={s.x + 14} y={s.y + 26} fontSize="14" fontWeight="600" fill="#17191d">{s.t}</text>
+            <text x={s.x + 14} y={s.y + 44} fontSize="11.5" fill="#68717e">{s.s}</text>
+            {s.tools.map((id, i) => (
+              <SvgMark key={id} id={id} x={s.x + 14 + i * 24} y={s.y + 56} size={16} />
+            ))}
           </g>
         ))}
       </svg>

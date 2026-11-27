@@ -36,8 +36,9 @@ export default function SiteLayout({ children }: { children: React.ReactNode }) 
             <Logo />
             <nav className="nav-links" aria-label="Primary">
               <a href="/#product">Product</a>
-              <a href="/#use-cases">Use cases</a>
+              <a href="/#integrations">Integrations</a>
               <a href="/#how-it-works">How it works</a>
+              <a href="/#use-cases">Use cases</a>
               <a href="/#about">About</a>
             </nav>
             <div className="nav-cta">
@@ -53,13 +54,18 @@ export default function SiteLayout({ children }: { children: React.ReactNode }) 
             <span className="muted" style={{ fontSize: 14 }}>A signal across every team.</span>
             <nav aria-label="Footer">
               <a href="/#product">Product</a>
+              <a href="/#integrations">Integrations</a>
               <a href="/#use-cases">Use cases</a>
               <a href="/#how-it-works">How it works</a>
               <a href="/#about">About</a>
+              <a href="/#built-by">Built by</a>
               <Link href="/feed">Interactive demo</Link>
               <Link href="/early-access">Early access</Link>
             </nav>
-            <p className="small">© 2026 Beacon. Product views on this site use illustrative data about a fictional company.</p>
+            <p className="small">
+              © 2026 Beacon. Product views on this site use illustrative data about a fictional company. Product names and logos belong to
+              their owners and are used only to name the tools Beacon works with; Beacon isn&apos;t affiliated with or endorsed by them.
+            </p>
           </div>
         </footer>
       </body>
