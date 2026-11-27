@@ -11,6 +11,7 @@ import { fmt } from "@/lib/clock";
 import { Avatar, Flash, Icon, KindPill, LevelTag, Pill, StatePill, TeamChip, Topbar } from "@/components/ui";
 import { CommitmentLine } from "@/components/Commitment";
 import { askAgent, sendRequest, toggleFollow } from "@/app/actions";
+import { teamConnectors, CONNECTOR_LABEL } from "@/lib/integrations";
 
 export default async function TeamPage({ params, searchParams }: { params: Promise<{ slug: string }>; searchParams: Promise<{ msg?: string; q?: string }> }) {
   const { slug } = await params;
@@ -40,6 +41,7 @@ export default async function TeamPage({ params, searchParams }: { params: Promi
   const stats = isGroup ? null : await agentStats(db, team.id);
   const asked = q ? await getQuestion(db, viewer, q) : null;
   const lead = members.find((m) => m.role === "lead");
+  const tools = isGroup ? [] : await teamConnectors(db, team.id);
 
   return (
     <>
@@ -80,6 +82,7 @@ export default async function TeamPage({ params, searchParams }: { params: Promi
                   {stats && stats.total > 0 && (
                     <span className="small muted" style={{ marginLeft: "auto" }}>Answered {stats.answered} of {stats.total} questions itself in the last 30 days</span>
                   )}
+                  {isMember && <Link className="b sm" href={`/agents/${team.slug}`} style={{ marginLeft: stats && stats.total > 0 ? 8 : "auto" }}>Agent workspace</Link>}
                 </div>
                 <p className="small muted" style={{ marginTop: 4 }}>
                   It answers only from what {team.name} has published, at your level. If it can&apos;t, it sends your question to the person who owns that area, in their next batch of asks.
@@ -178,6 +181,15 @@ export default async function TeamPage({ params, searchParams }: { params: Promi
                     <div key={o.id}><dt>{o.title}</dt><dd><div>{o.owner_name}</div><div className="small muted">{o.description}</div></dd></div>
                   ))}
                 </dl>
+              </section>
+            )}
+            {tools.length > 0 && (
+              <section>
+                <h2>Connected tools</h2>
+                <div className="row">{tools.map((t) => <span key={t.id} className="chip" title={t.name}>{CONNECTOR_LABEL[t.kind] ?? t.kind}</span>)}</div>
+                <p className="small muted" style={{ marginTop: 8 }}>
+                  {isMember ? "Its agent reads these to answer questions and draft updates." : `Their content stays inside ${team.name} unless an interface shares it with you.`}
+                </p>
               </section>
             )}
             {children.length > 0 && (

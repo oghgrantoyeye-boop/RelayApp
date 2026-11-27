@@ -4,6 +4,7 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
+import { after } from "next/server";
 import { currentViewer, PERSONA_COOKIE } from "@/lib/session";
 import { ALL_KINDS, audit, loadViewer } from "@/lib/data";
 import { analyzeUpdate, publishDraft, type PublishForm } from "@/lib/updates";
@@ -224,5 +225,75 @@ export async function simulate(form: FormData) {
     };
     const r = await ingestCodingSession(db, viewer, sample);
     return `/write?draft=${r.updateId}`;
+  });
+}
+
+// ---- Integrations, meetings and agent work ----
+
+export async function connectTool(form: FormData) {
+  return run("/connect", async () => {
+    const { db, viewer } = await currentViewer();
+    const { addConnector, CONNECTOR_LABEL } = await import("@/lib/integrations");
+    const kind = str(form, "kind");
+    await addConnector(db, viewer, viewer.team.id, kind);
+    return withMsg("/connect", `Connected ${CONNECTOR_LABEL[kind] ?? kind} for ${viewer.team.name}. Its content stays inside your team unless you share it.`);
+  });
+}
+
+export async function syncTool(form: FormData) {
+  return run("/connect", async () => {
+    const { db, viewer } = await currentViewer();
+    const { syncConnector } = await import("@/lib/integrations");
+    await syncConnector(db, viewer, str(form, "id"));
+    return withMsg("/connect", "Synced.");
+  });
+}
+
+export async function summarizeMeetingAction(form: FormData) {
+  const id = str(form, "id");
+  return run(`/meetings/${id}`, async () => {
+    const { db, viewer } = await currentViewer();
+    const { summarizeMeeting } = await import("@/lib/meetings");
+    const s = await summarizeMeeting(db, viewer, id);
+    return withMsg(`/meetings/${id}`, `Summarized by ${s.by}: ${s.decisions.length} decisions, ${s.action_items.length} action items.`);
+  });
+}
+
+export async function routeMeetingAction(form: FormData) {
+  const id = str(form, "id");
+  return run(`/meetings/${id}`, async () => {
+    const { db, viewer } = await currentViewer();
+    const { routeMeeting } = await import("@/lib/meetings");
+    const updateId = await routeMeeting(db, viewer, id);
+    return withMsg(`/write?draft=${updateId}`, "Drafted from the meeting. Review the items and publish; action items for other people stay as drafts for them to confirm.");
+  });
+}
+
+export async function startTaskAction(form: FormData) {
+  const slug = str(form, "slug");
+  return run(`/agents/${slug}`, async () => {
+    const { db, viewer } = await currentViewer();
+    const { startTask, runTask } = await import("@/lib/work");
+    const kind = str(form, "kind") === "draft_update" ? "draft_update" : "research";
+    const id = await startTask(db, viewer, str(form, "unitId"), { kind, instructions: str(form, "instructions") });
+    after(() => runTask(db, id));
+    return `/agents/${slug}/tasks/${id}`;
+  });
+}
+
+export async function taskAction(form: FormData) {
+  const slug = str(form, "slug");
+  const id = str(form, "id");
+  const back = `/agents/${slug}/tasks/${id}`;
+  return run(back, async () => {
+    const { db, viewer } = await currentViewer();
+    const w = await import("@/lib/work");
+    const op = str(form, "op");
+    if (op === "comment") await w.commentTask(db, viewer, id, str(form, "text"));
+    else if (op === "redirect") {
+      await w.redirectTask(db, viewer, id, str(form, "text"));
+      after(() => w.runTask(db, id));
+    } else if (op === "takeover") await w.takeOverTask(db, viewer, id);
+    return back;
   });
 }

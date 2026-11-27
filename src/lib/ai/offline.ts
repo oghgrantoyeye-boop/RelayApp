@@ -50,7 +50,8 @@ export function classify(s: string): "progress" | "decision" | "risk" | "ask" {
   if (/\b(can you|could you|we need|need (?:a|an|the|from)|please|asking|ask:|requesting|would like)\b/.test(t)) return "ask";
   if (/^(can|could|would|will|is|are|does|do)\b.*\?$/.test(t.trim())) return "ask";
   if (/\b(fixed|fix is merged|merged|resolved|shipped|stable|is live|done|completed|on track)\b/.test(t) && !/\b(blocked|will miss|at risk)\b/.test(t)) return /\b(we'll|we will)\b/.test(t) ? "decision" : "progress";
-  if (/\b(blocked|blocker|at risk|risk|delay|delayed|slip|slipp|miss|behind|depends on|waiting on|leak|outage|concern)\b/.test(t)) return "risk";
+  const negated = /\b(isn't|is not|not|no longer|aren't|wasn't) (blocked|at risk|delayed|behind)\b/.test(t);
+  if (!negated && /\b(blocked|blocker|at risk|risk|delay|delayed|slip|slipp|miss|behind|depends on|waiting on|leak|outage|concern)\b/.test(t)) return "risk";
   if (/\b(decided|decision|we will|we'll|agreed|going with|chose|choose|plan to|planned|switch(?:ing)? to|default)\b/.test(t)) return "decision";
   return "progress";
 }

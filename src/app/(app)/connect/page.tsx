@@ -1,11 +1,16 @@
 import { headers } from "next/headers";
 import { currentViewer } from "@/lib/session";
-import { Flash, Topbar } from "@/components/ui";
-import { simulate } from "@/app/actions";
+import { Flash, LevelTag, Pill, Topbar } from "@/components/ui";
+import { connectTool, simulate, syncTool } from "@/app/actions";
+import { CATALOG, CONNECTOR_LABEL, recentSourceItems, teamConnectors } from "@/lib/integrations";
+import { fmt, fmtDateTime } from "@/lib/clock";
 
 export default async function ConnectPage({ searchParams }: { searchParams: Promise<{ msg?: string }> }) {
   const { msg } = await searchParams;
-  const { viewer } = await currentViewer();
+  const { db, viewer } = await currentViewer();
+  const tools = await teamConnectors(db, viewer.team.id);
+  const items = await recentSourceItems(db, viewer, viewer.team.id, 10);
+  const available = CATALOG.filter((k) => !tools.some((t) => t.kind === k));
   const h = await headers();
   const origin = `${h.get("x-forwarded-proto") ?? "http"}://${h.get("host") ?? "localhost:3000"}`;
   const settings = JSON.stringify(
@@ -21,15 +26,82 @@ export default async function ConnectPage({ searchParams }: { searchParams: Prom
   );
   return (
     <>
-      <Topbar crumbs={[viewer.user.name, "Connect tools"]} />
+      <Topbar crumbs={[viewer.team.name, "Integrations"]} />
       <div className="content">
         <Flash msg={msg} />
         <div className="page-head">
           <div>
-            <h1>Connect tools</h1>
-            <p>Updates can start from work you already do. Each source creates a draft that only you can see. Nothing is shared until you review and publish it.</p>
+            <h1>Integrations</h1>
+            <p>
+              The tools {viewer.team.name} works in. {viewer.team.name}&apos;s agent reads them to answer questions and draft updates. Their content stays
+              inside your team; other teams see only what an interface shares, and never raw chat.
+            </p>
           </div>
         </div>
+        <div className="notice warn" style={{ marginBottom: 16 }}>Demo: these connections hold Northwind Labs&apos; fictional data. Claude Code and GitHub below are real integrations.</div>
+        <div className="two" style={{ marginBottom: 28 }}>
+          <section className="primary">
+            <div>
+              <h2>{viewer.team.name}&apos;s connected tools ({tools.length})</h2>
+              {tools.length === 0 ? (
+                <div className="card empty">No tools connected yet.</div>
+              ) : (
+                <div className="tablewrap">
+                  <table>
+                    <thead><tr><th>Tool</th><th>Synced items</th><th>Last sync (UTC)</th><th>Connected by</th><th /></tr></thead>
+                    <tbody>
+                      {tools.map((t) => (
+                        <tr key={t.id}>
+                          <td><div style={{ fontWeight: 500 }}>{t.name}</div><div className="small muted">{CONNECTOR_LABEL[t.kind] ?? t.kind}</div></td>
+                          <td className="mono">{t.items + t.meetings}</td>
+                          <td className="mono">{t.last_sync_at ? fmtDateTime(t.last_sync_at) : "never"}</td>
+                          <td>{t.connected_by_name ?? "–"}</td>
+                          <td>
+                            <form action={syncTool}><input type="hidden" name="id" value={t.id} /><button className="b sm">Sync now</button></form>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+            <div>
+              <h2>Recently synced</h2>
+              {items.length === 0 ? (
+                <div className="card empty">Nothing synced yet.</div>
+              ) : (
+                <ul className="list card tight">
+                  {items.map(({ row, shown }) => (
+                    <li key={row.id}>
+                      <span className="lead-col"><Pill tone="gray" dot={false}>{CONNECTOR_LABEL[row.connector_kind] ?? row.connector_kind}</Pill></span>
+                      <div className="grow">
+                        <div style={{ fontWeight: 500 }}>{shown.title}{shown.status && <span className="muted" style={{ fontWeight: 400 }}> · {shown.status}</span>}</div>
+                        {shown.text && <div className="muted small" style={{ marginTop: 2 }}>{shown.text}</div>}
+                        <div className="small muted row" style={{ gap: 6, marginTop: 4 }}>{fmt(row.occurred_at)} <LevelTag level={shown.level} /></div>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          </section>
+          <aside>
+            <section>
+              <h2>Add a tool</h2>
+              <p className="small muted" style={{ marginBottom: 10 }}>In the demo, connecting a tool records the connection. A pilot connects your real workspace.</p>
+              <div className="row">
+                {available.map((k) => (
+                  <form key={k} action={connectTool}>
+                    <input type="hidden" name="kind" value={k} />
+                    <button className="b sm" type="submit">+ {CONNECTOR_LABEL[k]}</button>
+                  </form>
+                ))}
+              </div>
+            </section>
+          </aside>
+        </div>
+        <h2 style={{ marginBottom: 10 }}>Your own tools</h2>
         <div className="stack">
           <section className="card">
             <h2>Coding agents (Claude Code)</h2>

@@ -87,6 +87,8 @@ const PATHS: Record<string, ReactNode> = {
   lock: (<><rect x="5" y="11" width="14" height="9" rx="2" /><path d="M8 11V8a4 4 0 0 1 8 0v3" /></>),
   search: (<><circle cx="11" cy="11" r="6" /><path d="M20 20l-4-4" /></>),
   agent: (<><rect x="5" y="7" width="14" height="12" rx="3" /><path d="M12 3v4M9 12h.01M15 12h.01M9 16h6" /></>),
+  meetings: (<><rect x="3" y="6" width="13" height="12" rx="2" /><path d="M16 10l5-3v10l-5-3" /></>),
+  map: (<><circle cx="6" cy="6" r="2.5" /><circle cx="18" cy="7" r="2.5" /><circle cx="12" cy="18" r="2.5" /><path d="M8.3 7l7.4.6M7.3 8.2l3.6 7.6M16.8 9.2l-3.6 6.6" /></>),
 };
 
 export function Icon({ name, size = 15 }: { name: keyof typeof PATHS | string; size?: number }) {

@@ -20,7 +20,7 @@ const EXAMPLES: Record<string, string> = {
 - If webhook retries slip past Dec 12 we'll move the launch email, but keep the webinar.`,
 };
 
-const SOURCE_LABEL: Record<string, string> = { manual: "Written update", meeting: "Meeting notes", coding_agent: "Coding agent session", github: "GitHub pull request" };
+const SOURCE_LABEL: Record<string, string> = { manual: "Written update", meeting: "Meeting notes", coding_agent: "Coding agent session", github: "GitHub pull request", agent: "Agent draft from your tools" };
 
 export default async function WritePage({ searchParams }: { searchParams: Promise<{ msg?: string; draft?: string; example?: string }> }) {
   const { msg, draft: draftId, example } = await searchParams;
@@ -104,7 +104,11 @@ export default async function WritePage({ searchParams }: { searchParams: Promis
                     <div key={c.id} className="card" style={{ borderColor: "#ddd6fe" }}>
                       <input type="hidden" name="c_ids" value={c.id} />
                       <div className="row">
-                        <label className="check"><input type="checkbox" name={`confirm_${c.id}`} defaultChecked /> Confirm</label>
+                        {c.owner_user_id && c.owner_user_id !== viewer.user.id && !c.revises_id ? (
+                          <span className="small" style={{ fontWeight: 500 }}>Draft for {c.owner_name} to confirm</span>
+                        ) : (
+                          <label className="check"><input type="checkbox" name={`confirm_${c.id}`} defaultChecked /> Confirm</label>
+                        )}
                         {c.revises_id ? (
                           <Pill tone="amber">Moves an existing commitment from {fmt(c.revises_due)} to the date below</Pill>
                         ) : (

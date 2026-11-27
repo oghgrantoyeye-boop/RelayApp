@@ -60,13 +60,18 @@ export default async function RootLayout({ children }: { children: React.ReactNo
             <NavLink href="/write">
               <Icon name="write" />Write update{drafts!.n > 0 && <span className="count">{drafts!.n} draft{drafts!.n > 1 ? "s" : ""}</span>}
             </NavLink>
+            <NavLink href="/meetings"><Icon name="meetings" />Meetings</NavLink>
+            {Object.keys(viewer.team.how_to_ask ?? {}).length > 0 && (
+              <NavLink href={`/agents/${viewer.team.slug}`}><Icon name="agent" />{viewer.team.name} agent</NavLink>
+            )}
+            <NavLink href="/map"><Icon name="map" />Team map</NavLink>
             <NavLink href="/directory"><Icon name="directory" />Directory</NavLink>
             <NavLink href="/digest"><Icon name="digest" />Leadership digest{!isLeadership && <span className="count">view</span>}</NavLink>
             <NavLink href="/inbox">
               <Icon name="inbox" />Inbox{inbox!.n > 0 && <span className="count">{inbox!.n}</span>}
             </NavLink>
             <NavLink href="/audit"><Icon name="audit" />Audit log</NavLink>
-            <NavLink href="/connect"><Icon name="connect" />Connect tools</NavLink>
+            <NavLink href="/connect"><Icon name="connect" />Integrations</NavLink>
             <div className="section">Your teams</div>
             {viewer.units.map((u) => (
               <NavLink key={u.id} href={`/teams/${u.slug}`}>
