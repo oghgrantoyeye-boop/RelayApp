@@ -15,7 +15,7 @@ Relay pivoted from city permitting to knowledge sharing for tech companies of 20
 - **Team map** of commitments, asks and sharing between teams.
 - **Beacon launch site** at `/`, with early-access signups and the campaign in `marketing/`.
 - **Tests.** 85 tests cover every permission test in the brief, the agent and request routing, and the key walkthrough steps for each demo.
-- **Four customer demos** (`/demos`): Northwind Labs (software company), City of Harborview (city hall), Halden & Moss Architects (architecture firm) and Maison Verel (fashion house). Each is one file in `src/lib/demos/`, with a guide page at `/guide`.
+- **Five customer demos** (`/demos`): Northwind Labs (software company), City of Harborview (city hall), Halden & Moss Architects (architecture firm), Maison Verel (fashion house) and The Lakeport Courier (regional daily newspaper). Each is one file in `src/lib/demos/`, with a guide page at `/guide`.
 
 ## Decisions made
 

@@ -46,7 +46,7 @@ Open **Choose a demo** (`/demos`, also at the bottom of the sidebar) to load one
 
 People's headshots are illustrations drawn locally from each name by [`/api/avatar`](src/app/api/avatar/[seed]/route.ts), using DiceBear's Notionists style (CC0 1.0, a remix of work by Zoish). They aren't photos of real people, and no outside service is called.
 
-Each demo is one file in [`src/lib/demos/`](src/lib/demos/), in the format described in [`types.ts`](src/lib/demos/types.ts). [`tests/demos.test.ts`](tests/demos.test.ts) runs the key walkthrough steps against every demo, so a new demo is checked the moment it's added to `DEMOS` in [`index.ts`](src/lib/demos/index.ts). To start a server on a demo other than Northwind, set `RELAY_DEMO` to its id (`software`, `cityhall`, `architecture` or `fashion`).
+Each demo is one file in [`src/lib/demos/`](src/lib/demos/), in the format described in [`types.ts`](src/lib/demos/types.ts). [`tests/demos.test.ts`](tests/demos.test.ts) runs the key walkthrough steps against every demo, so a new demo is checked the moment it's added to `DEMOS` in [`index.ts`](src/lib/demos/index.ts). To start a server on a demo other than Northwind, set `RELAY_DEMO` to its id (`software`, `cityhall`, `architecture`, `fashion` or `newsroom`).
 
 ## The five-minute demo (Northwind Labs)
 
