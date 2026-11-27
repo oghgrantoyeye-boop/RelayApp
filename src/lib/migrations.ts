@@ -209,4 +209,101 @@ create index audit_at_idx on audit_event (at desc);
 create index delivery_recipient_idx on delivery (recipient_id, created_at desc);
 `,
   },
+  {
+    id: "002_integrations_meetings_work",
+    sql: `
+alter table app_user add column monthly_budget_usd numeric;
+alter table app_user add column spent_usd numeric not null default 0;
+
+-- A team's connected tools (Slack, Jira, Drive, ...). Their content belongs to that team.
+create table connector (
+  id text primary key,
+  unit_id text not null references unit(id),
+  kind text not null,
+  name text not null,
+  status text not null default 'connected',
+  connected_by text references app_user(id),
+  last_sync_at timestamptz,
+  created_at timestamptz not null
+);
+
+-- What a connector synced: messages, tickets, docs, pull requests.
+create table source_doc (
+  id text primary key,
+  connector_id text not null references connector(id) on delete cascade,
+  unit_id text not null references unit(id),
+  kind text not null check (kind in ('message', 'ticket', 'doc', 'pr')),
+  external_ref text,
+  title text not null,
+  body text not null default '',
+  status text,
+  author_name text,
+  marking_id text references marking(id),
+  occurred_at timestamptz not null
+);
+
+-- Meetings the team's agent attended (from Zoom, Meet or Teams), with their transcript.
+create table meeting (
+  id text primary key,
+  unit_id text not null references unit(id),
+  connector_id text references connector(id),
+  title text not null,
+  starts_at timestamptz not null,
+  duration_min int not null default 30,
+  attendee_ids text[] not null default '{}',
+  transcript text not null,
+  summary jsonb,
+  update_id text references team_update(id),
+  status text not null default 'recorded' check (status in ('recorded', 'summarized', 'routed')),
+  marking_id text references marking(id),
+  created_at timestamptz not null
+);
+
+-- Work a team's agent does for a member: research, drafting. Visible to the whole team.
+create table task_run (
+  id text primary key,
+  unit_id text not null references unit(id),
+  agent_id text not null references app_user(id),
+  requested_by text not null references app_user(id),
+  kind text not null check (kind in ('research', 'draft_update')),
+  title text not null,
+  instructions text not null,
+  status text not null default 'queued' check (status in ('queued', 'running', 'done', 'failed', 'stopped', 'needs_key')),
+  steps jsonb not null default '[]',
+  result_md text,
+  sources jsonb not null default '[]',
+  output_ref text,
+  taken_over_by text references app_user(id),
+  input_tokens int not null default 0,
+  output_tokens int not null default 0,
+  searches int not null default 0,
+  cost_usd numeric not null default 0,
+  error text,
+  created_at timestamptz not null,
+  updated_at timestamptz not null
+);
+
+create index source_doc_unit_idx on source_doc (unit_id, occurred_at desc);
+create index meeting_unit_idx on meeting (unit_id, starts_at desc);
+create index task_unit_idx on task_run (unit_id, created_at desc);
+`,
+  },
+  {
+    id: "003_early_access",
+    sql: `
+-- Early-access requests from the marketing site.
+create table lead (
+  id text primary key,
+  email text not null,
+  name text,
+  company text,
+  role text,
+  team_size text,
+  note text,
+  source text,
+  forwarded boolean not null default false,
+  created_at timestamptz not null default now()
+);
+`,
+  },
 ];

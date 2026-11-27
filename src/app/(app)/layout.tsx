@@ -1,15 +1,17 @@
 import type { Metadata } from "next";
 import { GeistSans } from "geist/font/sans";
 import { GeistMono } from "geist/font/mono";
-import "./globals.css";
+import "../globals.css";
 import { currentViewer } from "@/lib/session";
 import { NavLink, PathInput, PersonaSwitcher } from "@/components/Nav";
 import { Icon, initials } from "@/components/ui";
-import { resetDemo, setPersona } from "./actions";
+import { BeaconMark } from "@/components/site/Brand";
+import { resetDemo, setPersona } from "@/app/actions";
 
 export const metadata: Metadata = {
-  title: "Relay",
-  description: "Every team has a page. Its updates, asks and commitments reach the right teams automatically.",
+  title: "Beacon · Northwind Labs demo",
+  description: "Beacon's working prototype, with a fictional company. Every team has a page; its updates, asks and commitments reach the right teams automatically.",
+  icons: { icon: "/icon.svg" },
 };
 
 export const dynamic = "force-dynamic";
@@ -41,11 +43,11 @@ export default async function RootLayout({ children }: { children: React.ReactNo
       <body>
         <div className="shell">
           <nav className="nv" aria-label="Main">
-            <div className="brand">
-              <span className="logo">R</span>
-              <span>Relay</span>
-              <span className="muted small" style={{ fontWeight: 400 }}>Northwind Labs</span>
-            </div>
+            <a href="/" className="brand" title="Beacon home" style={{ color: "var(--ink)" }}>
+              <BeaconMark size={22} />
+              <span>beacon</span>
+              <span className="muted small" style={{ fontWeight: 400 }}>Northwind Labs demo</span>
+            </a>
             <form action="/directory" className="search" role="search">
               <Icon name="search" size={14} />
               <input type="search" name="q" placeholder="Search teams, people, what they own" aria-label="Search the directory" />

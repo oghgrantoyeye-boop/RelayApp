@@ -64,7 +64,7 @@ export default async function AuditPage({ searchParams }: { searchParams: Promis
               {rows.map((r) => (
                 <tr key={r.id}>
                   <td className="mono" style={{ whiteSpace: "nowrap" }}>{fmtDateTime(r.at)}</td>
-                  <td style={{ whiteSpace: "nowrap" }}>{r.actor_name ? <span className="row" style={{ gap: 6 }}><Avatar name={r.actor_name} agent={r.actor_kind === "agent"} />{r.actor_name}</span> : <span className="muted">Relay</span>}</td>
+                  <td style={{ whiteSpace: "nowrap" }}>{r.actor_name ? <span className="row" style={{ gap: 6 }}><Avatar name={r.actor_name} agent={r.actor_kind === "agent"} />{r.actor_name}</span> : <span className="muted">Beacon</span>}</td>
                   <td>{r.behalf_name ?? <span className="muted">–</span>}</td>
                   <td>{LABEL[r.action] ?? r.action}</td>
                   <td className="mono">{r.target_kind}{r.target_id ? `:${r.target_id}` : ""}</td>

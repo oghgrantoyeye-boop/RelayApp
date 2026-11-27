@@ -3,7 +3,7 @@ import { currentViewer } from "@/lib/session";
 import { getDraft, myDrafts } from "@/lib/updates";
 import { fmt, fmtDateTime } from "@/lib/clock";
 import { Flash, Pill, Topbar } from "@/components/ui";
-import { analyze, discardDraft, publish } from "../actions";
+import { analyze, discardDraft, publish } from "@/app/actions";
 
 const EXAMPLES: Record<string, string> = {
   platform: `Platform sync, Dec 6
@@ -97,7 +97,7 @@ export default async function WritePage({ searchParams }: { searchParams: Promis
             </section>
             {commitments.length > 0 && (
               <section>
-                <h2>Commitments Relay found</h2>
+                <h2>Commitments Beacon found</h2>
                 <p className="small muted" style={{ marginBottom: 8 }}>Promises with a date. Confirm them to notify the waiting team and everyone downstream.</p>
                 <div className="stack" style={{ gap: 12 }}>
                   {commitments.map((c) => (
@@ -144,7 +144,7 @@ export default async function WritePage({ searchParams }: { searchParams: Promis
         <div className="page-head">
           <div>
             <h1>Write update</h1>
-            <p>Write or paste an update or meeting notes. Relay splits it into items, tags the teams it affects and finds commitments. You review everything before it&apos;s shared.</p>
+            <p>Write or paste an update or meeting notes. Beacon splits it into items, tags the teams it affects and finds commitments. You review everything before it&apos;s shared.</p>
           </div>
         </div>
         <div className="two">

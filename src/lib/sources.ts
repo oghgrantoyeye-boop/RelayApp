@@ -73,7 +73,7 @@ export async function ingestPullRequest(db: Db, event: Row): Promise<{ updateId:
   if (event.action !== "closed" || !pr?.merged) return { skipped: "not a merged pull request" };
   const login = String(pr.user?.login ?? "");
   const user = await db.one(`select id from app_user where github_login = $1`, [login]);
-  if (!user) return { skipped: `no Relay user for GitHub login ${login}` };
+  if (!user) return { skipped: `no Beacon user for GitHub login ${login}` };
   const viewer = await loadViewer(db, user.id);
   if (!viewer) return { skipped: "user has no team" };
   const repo = String(event.repository?.full_name ?? "repo");

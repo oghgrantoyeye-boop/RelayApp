@@ -5,6 +5,7 @@ import type { Db } from "./db";
 import { addDays } from "./clock";
 import { levelTexts } from "./ai/offline";
 import { ALL_KINDS, ORG_ID } from "./data";
+import { seedIntegrations } from "./seed-integrations";
 
 type K = "progress" | "decision" | "risk" | "ask" | "answer";
 
@@ -412,5 +413,7 @@ export async function seed(db: Db) {
         [ORG_ID, `agent_${unit}`, asker, outcome === "answered" ? "agent_answer" : "agent_route", id, JSON.stringify({ question: text }), at(date, 14)],
       );
     }
+
+    await seedIntegrations(t);
   });
 }

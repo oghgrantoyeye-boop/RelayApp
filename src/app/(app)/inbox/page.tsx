@@ -1,7 +1,7 @@
 import { currentViewer } from "@/lib/session";
 import { fmtDateTime } from "@/lib/clock";
 import { Pill, Topbar, type Tone } from "@/components/ui";
-import { markInboxRead } from "../actions";
+import { markInboxRead } from "@/app/actions";
 
 const KIND: Record<string, [Tone, string]> = {
   ask_batch: ["blue", "Your batch of asks"],
@@ -24,7 +24,7 @@ export default async function InboxPage() {
         <div className="page-head">
           <div>
             <h1>Inbox</h1>
-            <p>Everything Relay sent you: alerts, answers and batches. In a pilot these also go to Slack and email{process.env.SLACK_WEBHOOK_URL ? " (Slack is connected)" : ""}.</p>
+            <p>Everything Beacon sent you: alerts, answers and batches. In a pilot these also go to Slack and email{process.env.SLACK_WEBHOOK_URL ? " (Slack is connected)" : ""}.</p>
           </div>
         </div>
         {rows.length === 0 ? (

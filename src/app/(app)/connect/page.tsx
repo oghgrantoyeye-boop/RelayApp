@@ -1,7 +1,7 @@
 import { headers } from "next/headers";
 import { currentViewer } from "@/lib/session";
 import { Flash, Topbar } from "@/components/ui";
-import { simulate } from "../actions";
+import { simulate } from "@/app/actions";
 
 export default async function ConnectPage({ searchParams }: { searchParams: Promise<{ msg?: string }> }) {
   const { msg } = await searchParams;
@@ -33,9 +33,9 @@ export default async function ConnectPage({ searchParams }: { searchParams: Prom
         <div className="stack">
           <section className="card">
             <h2>Coding agents (Claude Code)</h2>
-            <p className="muted">When a session ends, a small hook sends Relay what you asked for, the agent&apos;s closing notes and your recent commits. Relay drafts &ldquo;what I worked on&rdquo; and strips anything that looks like a secret.</p>
+            <p className="muted">When a session ends, a small hook sends Beacon what you asked for, the agent&apos;s closing notes and your recent commits. Beacon drafts &ldquo;what I worked on&rdquo; and strips anything that looks like a secret.</p>
             <ol style={{ margin: "10px 0 0", paddingLeft: 18, display: "flex", flexDirection: "column", gap: 8 }}>
-              <li>Copy <span className="mono">integrations/claude-code/relay-hook.mjs</span> from the Relay repo to <span className="mono">~/.claude/hooks/</span>.</li>
+              <li>Copy <span className="mono">integrations/claude-code/relay-hook.mjs</span> from the Beacon repo to <span className="mono">~/.claude/hooks/</span>.</li>
               <li>
                 Add this to <span className="mono">~/.claude/settings.json</span>. The token is {viewer.user.name}&apos;s demo token.
                 <pre className="code">{settings}</pre>

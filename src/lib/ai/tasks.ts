@@ -81,7 +81,7 @@ export async function splitUpdate(input: SplitInput): Promise<{ items: SplitItem
   const others = input.teams.filter((t) => t.id !== input.unitId);
   const out = await llm.json<{ items: SplitItem[]; commitments: (Omit<SuggestedCommitment, "waiting_unit_id" | "revises_commitment_id"> & { waiting_unit_id: string; revises_commitment_id: string })[] }>("split_update", {
     system:
-      "You turn a team's written update or meeting notes into update items for Relay, a tool that routes information between teams. " +
+      "You turn a team's written update or meeting notes into update items for Beacon, a tool that routes information between teams. " +
       "Only use what the text says. Never invent facts, dates or owners. Each item is one piece of news: progress, decision, risk or ask. " +
       "Write `text` as a clear sentence or two in the team's voice. `summary` is one sentence for teams that follow this one. " +
       "`headline` is under 10 words for the rest of the company and must not contain details the summary leaves out. " +
@@ -192,7 +192,7 @@ export async function answerFromPublished(input: AnswerInput): Promise<AnswerOut
   if (ranked.length > 0) {
     const out = await llm.json<{ answered: boolean; answer: string; source_refs: string[] }>("answer_question", {
       system:
-        `You are the ${input.teamName} team's agent in Relay. You answer colleagues from other teams using ONLY the published sources given, ` +
+        `You are the ${input.teamName} team's agent in Beacon. You answer colleagues from other teams using ONLY the published sources given, ` +
         "which are already limited to what this person may see. Never guess, never add facts, never promise anything for the team. " +
         "If the sources don't fully answer the question (for example it asks for a date and none is given), set answered to false. " +
         "Keep answers to 1-3 sentences and cite the refs you used.",
@@ -264,7 +264,7 @@ const LEVELS_SCHEMA = {
 export async function writeLevels(text: string, context: string, opts: { answer?: string } = {}): Promise<{ summary: string; headline: string }> {
   const out = await getLLM().json<{ summary: string; headline: string }>("write_levels", {
     system:
-      "Write two shorter versions of a team's update item for Relay. `summary`: one sentence for teams that follow this team. " +
+      "Write two shorter versions of a team's update item for Beacon. `summary`: one sentence for teams that follow this team. " +
       "`headline`: under 10 words for the rest of the company. Use only the text given; drop names of customers, people and numbers the headline doesn't need.",
     prompt: `${context}\n\nItem:\n${text}`,
     schema: LEVELS_SCHEMA,

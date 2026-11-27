@@ -3,7 +3,7 @@ import { buildDigest } from "@/lib/digest";
 import { fmt } from "@/lib/clock";
 import { Flash, Icon, Pill, StatePill, TeamChip, Topbar } from "@/components/ui";
 import { CommitmentLine } from "@/components/Commitment";
-import { sendDigest } from "../actions";
+import { sendDigest } from "@/app/actions";
 
 export default async function DigestPage({ searchParams }: { searchParams: Promise<{ msg?: string }> }) {
   const { msg } = await searchParams;

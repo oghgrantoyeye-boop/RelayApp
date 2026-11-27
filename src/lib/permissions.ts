@@ -49,7 +49,7 @@ export interface Reader {
 }
 
 export interface ItemRef {
-  type: "update_item" | "request" | "commitment" | "ownership" | "page" | "question";
+  type: "update_item" | "request" | "commitment" | "ownership" | "page" | "question" | "source" | "meeting" | "task";
   /** The interface kind the item travels under. */
   kind: string;
   /** Teams that read the item in full: its author team; both sides of a request; owner and waiting team of a commitment. */
@@ -62,6 +62,8 @@ export interface ItemRef {
   draftVisibleTo?: string[];
   /** A cap the publisher chose for readers outside the owning teams. */
   capLevel?: Level;
+  /** People who took part (meeting attendees): they read it in full, like the owning team. */
+  participantIds?: string[];
 }
 
 export interface Decision {
@@ -85,6 +87,9 @@ export function visibleLevel(policy: Policy, reader: Reader, item: ItemRef): Dec
   } else if (item.ownerUnitIds.some((u) => reader.unitIds.includes(u))) {
     level = "full";
     reason = "member";
+  } else if (item.participantIds?.includes(reader.userId)) {
+    level = "full";
+    reason = "participant";
   } else {
     level = policy.orgDefaultLevel;
     reason = "org_default";

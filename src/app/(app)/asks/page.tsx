@@ -2,7 +2,7 @@ import { currentViewer } from "@/lib/session";
 import { getAsks } from "@/lib/agent";
 import { addDays, fmt, fmtDateTime, today } from "@/lib/clock";
 import { Avatar, Flash, LevelTag, Pill, Topbar } from "@/components/ui";
-import { answerAsk, sendMyBatch } from "../actions";
+import { answerAsk, sendMyBatch } from "@/app/actions";
 
 export default async function AsksPage({ searchParams }: { searchParams: Promise<{ msg?: string }> }) {
   const { msg } = await searchParams;

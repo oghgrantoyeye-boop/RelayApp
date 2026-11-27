@@ -105,6 +105,20 @@ export function refCommitment(row: Row): ItemRef {
   };
 }
 
+export function refSource(row: Row): ItemRef {
+  return { type: "source", kind: `source:${row.kind}`, ownerUnitIds: [row.unit_id], markingIds: markingIdsOf(row) };
+}
+
+/** A meeting: the host team and everyone who attended read it in full. */
+export function refMeeting(row: Row): ItemRef {
+  return { type: "meeting", kind: "meeting", ownerUnitIds: [row.unit_id], participantIds: row.attendee_ids ?? [], markingIds: markingIdsOf(row) };
+}
+
+/** An agent's task run: shared with the agent's whole team, and with whoever asked for it. */
+export function refTask(row: Row): ItemRef {
+  return { type: "task", kind: "task", ownerUnitIds: [row.unit_id], participantIds: [row.requested_by], markingIds: [] };
+}
+
 export const COMMITMENT_SELECT = `
   select c.*, om.user_id as owner_user_id, ou.name as owner_unit_name, ou.slug as owner_unit_slug, ou.color as owner_unit_color,
          wu.name as waiting_unit_name, wu.slug as waiting_unit_slug, wu.color as waiting_unit_color, oau.name as owner_name

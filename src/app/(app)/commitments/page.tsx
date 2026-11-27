@@ -4,7 +4,7 @@ import { fmt } from "@/lib/clock";
 import { Flash, StatePill, Topbar } from "@/components/ui";
 import { CommitmentLine } from "@/components/Commitment";
 import { PathInput } from "@/components/Nav";
-import { commitmentAction } from "../actions";
+import { commitmentAction } from "@/app/actions";
 
 function Table({ rows, canClose, empty }: { rows: CommitmentView[]; canClose: boolean; empty: string }) {
   if (rows.length === 0) return <div className="card empty">{empty}</div>;
@@ -68,7 +68,7 @@ export default async function CommitmentsPage({ searchParams }: { searchParams: 
         {drafts.length > 0 && (
           <section className="card" style={{ marginBottom: 20, borderColor: "#ddd6fe" }}>
             <h2>Waiting for your confirmation</h2>
-            <p className="small muted" style={{ marginBottom: 8 }}>Relay found these promises in your updates. Only you can see them until you confirm.</p>
+            <p className="small muted" style={{ marginBottom: 8 }}>Beacon found these promises in your updates. Only you can see them until you confirm.</p>
             <ul className="list">
               {drafts.map((c) => (
                 <li key={c.id} style={{ paddingLeft: 0, paddingRight: 0 }}>

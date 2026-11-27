@@ -1,8 +1,15 @@
-# Relay
+# Beacon
 
-Every team has a page. Its updates, asks and commitments reach the teams that depend on it, at the level of detail each one is allowed to see. Each team also has an agent at its front door: it answers from what the team has published and routes everything else to the person who owns that area, batched, instead of another email.
+**A signal across every team.** Beacon is the orchestration and execution layer for modern organizations: it connects people, context and work across teams, and turns strategic intent into coordinated action.
 
-This is the v1 demo described in [`SPEC.md`](SPEC.md), seeded with a fictional 300-person company, Northwind Labs. The earlier city-permitting brief is in [`docs/permitting-brief.md`](docs/permitting-brief.md).
+This repository holds two things, deployed together:
+
+- **The marketing site** at `/`, with an early-access form at `/early-access`. Launch images and captions are in [`marketing/`](marketing/launch-campaign.md).
+- **The working prototype** at `/feed` and the pages around it, running inside a fictional 300-person company, Northwind Labs. It's the v1 product described in [`SPEC.md`](SPEC.md). (The code still uses the working name "Relay" internally.) The earlier city-permitting brief is in [`docs/permitting-brief.md`](docs/permitting-brief.md).
+
+## Early-access signups
+
+Set **`EARLY_ACCESS_WEBHOOK_URL`** in Vercel before you send people to the site. Every request is forwarded there as JSON (with a `text` field, so a Slack incoming webhook works as is; Zapier, Make or Formspree work too). Without it, requests are only stored in the app's database, which on Vercel resets whenever a new server starts. Set `DATABASE_URL` as well if you want a permanent copy in Postgres.
 
 ## Run it
 
@@ -14,7 +21,7 @@ npm install
 npm run dev
 ```
 
-Open http://localhost:3000. There's nothing else to set up: the database is an embedded Postgres (PGlite) stored in `.data/`, and it seeds itself on first run.
+Open http://localhost:3000 for the site, or http://localhost:3000/feed for the prototype. There's nothing else to set up: the database is an embedded Postgres (PGlite) stored in `.data/`, and it seeds itself on first run.
 
 - **AI:** with no API key, Relay uses its built-in offline writer, so the demo always works. To use Claude, put `ANTHROPIC_API_KEY=...` in `.env.local` (see `.env.example`).
 - **Reset:** the "Reset demo data" button in the sidebar, or `npm run db:reset`.

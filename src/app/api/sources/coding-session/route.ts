@@ -8,7 +8,7 @@ export async function POST(req: Request) {
   const db = await getDb();
   const token = req.headers.get("authorization")?.replace(/^Bearer\s+/i, "") ?? null;
   const viewer = await userByToken(db, token);
-  if (!viewer) return NextResponse.json({ error: "Unknown Relay token" }, { status: 401 });
+  if (!viewer) return NextResponse.json({ error: "Unknown Beacon token" }, { status: 401 });
   let body: Record<string, unknown>;
   try {
     body = await req.json();

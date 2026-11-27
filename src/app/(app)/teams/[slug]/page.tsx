@@ -10,7 +10,7 @@ import { agentStats, getQuestion } from "@/lib/agent";
 import { fmt } from "@/lib/clock";
 import { Avatar, Flash, Icon, KindPill, LevelTag, Pill, StatePill, TeamChip, Topbar } from "@/components/ui";
 import { CommitmentLine } from "@/components/Commitment";
-import { askAgent, sendRequest, toggleFollow } from "../../actions";
+import { askAgent, sendRequest, toggleFollow } from "@/app/actions";
 
 export default async function TeamPage({ params, searchParams }: { params: Promise<{ slug: string }>; searchParams: Promise<{ msg?: string; q?: string }> }) {
   const { slug } = await params;

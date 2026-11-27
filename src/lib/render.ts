@@ -78,3 +78,32 @@ export function showCommitment(row: Row, level: Level, ownerName: string): Shown
       return null;
   }
 }
+
+export interface ShownSource {
+  level: Level;
+  title: string;
+  text?: string;
+  status?: string;
+}
+
+/** Synced items from a team's tools. Raw chat never leaves the team; tickets and docs can, if shared. */
+export function showSource(row: Row, level: Level): ShownSource | null {
+  const ref = row.external_ref ? `${row.external_ref} ` : "";
+  if (level === "none") return null;
+  switch (row.kind) {
+    case "message":
+      return level === "full" ? { level, title: row.title, text: row.body } : null;
+    case "ticket":
+    case "pr":
+      if (level === "full") return { level, title: `${ref}${row.title}`, text: row.body, status: row.status ?? undefined };
+      if (level === "summary") return { level, title: `${ref}${row.title}`, status: row.status ?? undefined };
+      if (level === "status") return { level, title: `${ref.trim() || row.kind}`, status: row.status ?? undefined };
+      return null;
+    case "doc":
+      if (level === "full") return { level, title: row.title, text: row.body };
+      if (level === "summary") return { level, title: row.title, text: (row.body.match(/^.+?[.!?](\s|$)/)?.[0] ?? row.body).trim() };
+      return { level, title: row.title };
+    default:
+      return null;
+  }
+}
