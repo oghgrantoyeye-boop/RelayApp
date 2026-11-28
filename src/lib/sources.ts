@@ -67,8 +67,8 @@ export async function ingestCodingSession(db: Db, viewer: Viewer, payload: Parti
 }
 
 export function verifyGithubSignature(raw: string, signature: string | null): boolean {
-  const secret = process.env.GITHUB_WEBHOOK_SECRET;
-  if (!secret) return true; // not configured: accept (demo)
+  const secret = process.env.GITHUB_WEBHOOK_SECRET?.trim();
+  if (!secret) return process.env.NODE_ENV !== "production"; // local/demo only
   if (!signature?.startsWith("sha256=")) return false;
   const expected = Buffer.from(`sha256=${createHmac("sha256", secret).update(raw).digest("hex")}`);
   const got = Buffer.from(signature);
@@ -76,7 +76,11 @@ export function verifyGithubSignature(raw: string, signature: string | null): bo
 }
 
 /** GitHub "pull_request" webhook: a merged PR becomes a draft progress item for its author. */
-export async function ingestPullRequest(db: Db, event: Row): Promise<{ updateId: string } | { skipped: string }> {
+export async function ingestPullRequest(
+  db: Db,
+  event: Row,
+  opts?: { learnUnitId?: string },
+): Promise<{ updateId: string } | { skipped: string }> {
   const pr = event.pull_request;
   if (event.action !== "closed" || !pr?.merged) return { skipped: "not a merged pull request" };
   const login = String(pr.user?.login ?? "");
@@ -89,9 +93,17 @@ export async function ingestPullRequest(db: Db, event: Row): Promise<{ updateId:
   const text = `Merged #${pr.number} in ${repo}: ${scrub(String(pr.title))}.${body ? ` ${shorten(body, 200)}` : ""}`;
   const id = await createDraft(db, viewer, "github", text, [{ kind: "progress", text }], `${repo}#${pr.number}`);
   await audit(db, { orgId: viewer.orgId, actorId: viewer.user.id, action: "source_github_pr", targetKind: "update", targetId: id, detail: { repo, number: pr.number } });
-  // A merged PR is a fact from GitHub: the team runs this repository. The title is all Beacon reads;
-  // the description stays in the author's draft until they publish it.
-  await learnQuietly(db, { unitId: viewer.team.id, kind: "pr", ref: `${repo}#${pr.number}`, label: `PR #${pr.number} in ${repo}`, repo, text: scrub(String(pr.title)), actorId: viewer.user.id });
+  // Prefer the App-mapped team when present; otherwise the author's home team.
+  const learnUnitId = opts?.learnUnitId ?? viewer.team.id;
+  await learnQuietly(db, {
+    unitId: learnUnitId,
+    kind: "pr",
+    ref: `${repo}#${pr.number}`,
+    label: `PR #${pr.number} in ${repo}`,
+    repo,
+    text: scrub(String(pr.title)),
+    actorId: viewer.user.id,
+  });
   return { updateId: id };
 }
 
