@@ -586,6 +586,35 @@ create index workspace_invite_org_idx on workspace_invite (org_id, status);
 `,
   },
   {
+    id: "011_T-44_github_app",
+    sql: `
+-- GitHub App install per workspace (T-44). Replaces the single-repo webhook with an org install,
+-- repo→team maps, and live connectors. Tokens are stored encrypted (ENCRYPTION_KEY).
+alter table connector add column mode text not null default 'demo' check (mode in ('demo', 'live'));
+
+create table github_installation (
+  id text primary key,
+  org_id text not null references org(id) on delete cascade,
+  installation_id text not null unique,
+  account_login text not null,
+  encrypted_token text,
+  installed_by text references account(id),
+  created_at timestamptz not null default now()
+);
+create index github_installation_org_idx on github_installation (org_id);
+
+create table github_repo_map (
+  id text primary key,
+  org_id text not null references org(id) on delete cascade,
+  installation_id text not null references github_installation(installation_id) on delete cascade,
+  repo_full_name text not null,
+  unit_id text not null references unit(id) on delete cascade,
+  unique (org_id, repo_full_name)
+);
+create index github_repo_map_repo_idx on github_repo_map (lower(repo_full_name));
+`,
+  },
+  {
     id: "012_T-45_api_token_hash",
     sql: `
 -- Store coding-agent tokens as hash + display prefix (T-45). Plaintext is shown once via cookie.

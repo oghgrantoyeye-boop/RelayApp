@@ -2,6 +2,7 @@ import { cookies, headers } from "next/headers";
 import { currentViewer } from "@/lib/session";
 import { Flash, LevelTag, Pill, Topbar } from "@/components/ui";
 import { connectTool, issueCodingToken, revokeCodingToken, simulate, syncTool } from "@/app/actions";
+import { attachGithubInstallation, mapGithubRepo } from "@/app/actions/github";
 import { CATALOG, CONNECTOR_LABEL, recentSourceItems, teamConnectors } from "@/lib/integrations";
 import { fmt, fmtDateTime } from "@/lib/clock";
 import { aiStatus, usage } from "@/lib/ai/llm";
@@ -11,6 +12,7 @@ import {
   hookSettingsJson,
   isApiToken,
 } from "@/lib/auth/api-tokens";
+import { githubAppConfigured, githubAppInstallUrl } from "@/lib/github/app";
 
 export default async function ConnectPage({ searchParams }: { searchParams: Promise<{ msg?: string }> }) {
   const { msg } = await searchParams;
@@ -56,7 +58,11 @@ export default async function ConnectPage({ searchParams }: { searchParams: Prom
                     <tbody>
                       {tools.map((t) => (
                         <tr key={t.id}>
-                          <td><div style={{ fontWeight: 500 }}>{t.name}</div><div className="small muted">{CONNECTOR_LABEL[t.kind] ?? t.kind}</div></td>
+                          <td>
+                            <div style={{ fontWeight: 500 }}>{t.name}</div>
+                            <div className="small muted">{CONNECTOR_LABEL[t.kind] ?? t.kind}</div>
+                            {t.mode === "live" ? <Pill tone="green">Live</Pill> : <Pill tone="gray">Demo</Pill>}
+                          </td>
                           <td className="mono">{t.items + t.meetings}</td>
                           <td className="mono">{t.last_sync_at ? fmtDateTime(t.last_sync_at) : "never"}</td>
                           <td>{t.connected_by_name ?? "–"}</td>
@@ -147,9 +153,38 @@ export default async function ConnectPage({ searchParams }: { searchParams: Prom
             </form>
           </section>
           <section className="card">
-            <h2>GitHub pull requests</h2>
-            <p className="muted">Merged pull requests become draft progress items for the author&apos;s team. Point a repository webhook at the URL below, content type JSON, &ldquo;Pull requests&rdquo; events. Set <span className="mono">GITHUB_WEBHOOK_SECRET</span> to verify signatures.</p>
+            <h2>GitHub App</h2>
+            <p className="muted">
+              Install the Beacon GitHub App on an org, map repositories to teams, and merged PRs plus reviews teach that team.
+              Webhook URL (App or legacy):
+            </p>
             <pre className="code">{`${origin}/api/sources/github`}</pre>
+            {githubAppConfigured() ? (
+              <div style={{ marginTop: 12 }}>
+                {githubAppInstallUrl() && (
+                  <p className="small muted" style={{ marginBottom: 8 }}>
+                    <a href={githubAppInstallUrl()!}>Install on GitHub</a>, then attach the installation id here.
+                  </p>
+                )}
+                <form action={attachGithubInstallation} className="row" style={{ gap: 8, flexWrap: "wrap", marginBottom: 8 }}>
+                  <input name="installationId" placeholder="Installation id" required className="mono" style={{ minWidth: 140 }} />
+                  <input name="accountLogin" placeholder="GitHub org/user" required style={{ minWidth: 140 }} />
+                  <button className="b sm" type="submit">Attach install</button>
+                </form>
+                <form action={mapGithubRepo} className="row" style={{ gap: 8, flexWrap: "wrap" }}>
+                  <input name="installationId" placeholder="Installation id" required className="mono" style={{ minWidth: 140 }} />
+                  <input name="repo" placeholder="org/repo" required className="mono" style={{ minWidth: 160 }} />
+                  <input type="hidden" name="unitId" value={viewer.team.id} />
+                  <button className="b sm" type="submit">Map to {viewer.team.name}</button>
+                </form>
+              </div>
+            ) : (
+              <p className="small muted" style={{ marginTop: 8 }}>
+                Set <span className="mono">GITHUB_APP_ID</span>, <span className="mono">GITHUB_APP_PRIVATE_KEY</span> and{" "}
+                <span className="mono">GITHUB_APP_WEBHOOK_SECRET</span> (plus optional <span className="mono">GITHUB_APP_SLUG</span>) to enable installs.
+                Legacy per-repo webhooks with <span className="mono">GITHUB_WEBHOOK_SECRET</span> still work.
+              </p>
+            )}
             <p className="small muted" style={{ marginTop: 6 }}>People are matched by GitHub login. {viewer.user.name}&apos;s is <span className="mono">{viewer.user.github_login}</span>.</p>
             <form action={simulate} style={{ marginTop: 12 }}>
               <input type="hidden" name="kind" value="pr" />
