@@ -52,7 +52,7 @@ export default async function ConnectPage({ searchParams }: { searchParams: Prom
           </div>
         </div>
         <AiCard orgId={orgId} canEdit={canEditBudget} />
-        <div className="notice warn" style={{ marginBottom: 16 }}>Demo: these connections hold {demo.org.name}&apos;s fictional data. Claude Code and GitHub below are real integrations.</div>
+        {isSample && <div className="notice warn" style={{ marginBottom: 16 }}>Demo: these connections hold {demo.org.name}&apos;s fictional data. Claude Code and GitHub below are real integrations.</div>}
         <div className="two" style={{ marginBottom: 28 }}>
           <section className="primary">
             <div>

@@ -60,7 +60,7 @@ describe("work-performing agents are off by default", () => {
       createAgent(db, marcus, { unitId: sid("platform"), name: "Coder", purpose: "Fix bugs", connectorIds: [], actions: ["code"], approval: "outside_team", schedule: "on_request", budget: 20 }),
     ).rejects.toThrow(WORKERS_OFF_MESSAGE);
     const qa = await createAgent(db, marcus, { unitId: sid("platform"), name: "Front desk", purpose: "Answer questions", connectorIds: [], actions: ["answer"], approval: "outside_team", schedule: "on_request", budget: 20 });
-    expect((await listAgents(db)).some((a) => a.id === qa)).toBe(true);
+    expect((await listAgents(db, "software")).some((a) => a.id === qa)).toBe(true);
   });
 
   it("the demo guide skips hidden pages", async () => {

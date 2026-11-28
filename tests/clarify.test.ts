@@ -1,3 +1,4 @@
+import { DEFAULT_DEMO } from "@/lib/demos";
 // T-20: an agent can ask one follow-up before answering or routing, the asker's reply continues the
 // question, and your own agent asks which team you mean when two match about equally.
 import { beforeEach, describe, expect, it } from "vitest";
@@ -65,7 +66,7 @@ describe("clarifying questions", () => {
   it("in the agent panel, picking a suggested reply continues the question", async () => {
     setLLM(new FakeLLM({ answer_question: { answered: false, claims: [], gaps: [], clarify: FOLLOW } }));
     const priya = await v("priya");
-    const agent = (await listAgents(db)).find((a) => a.builtIn && a.team.id === PLATFORM)!;
+    const agent = (await listAgents(db, DEFAULT_DEMO)).find((a) => a.builtIn && a.team.id === PLATFORM)!;
     await sendChat(db, priya, { target: agent.id, text: Q });
     let msgs = await conversation(db, priya, agent.id);
     const ask = msgs.at(-1)!;

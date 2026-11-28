@@ -543,8 +543,8 @@ export async function askForDetail(db: Db, viewer: Viewer, key: string, question
 async function clusterRequests(db: Db, viewer: Viewer, key: string): Promise<Row[]> {
   const reqs = await db.query(
     `select r.*, m.user_id as assignee_user_id, tu.name as to_name from request r left join member m on m.id = r.assignee_member_id join unit tu on tu.id = r.to_unit_id
-     where (r.cluster_key = $1 or r.id = $1) and r.status = 'open'`,
-    [key],
+     where (r.cluster_key = $1 or r.id = $1) and r.status = 'open' and r.org_id = $2`,
+    [key, viewer.orgId],
   );
   if (reqs.length === 0) throw new Error("Nothing open to answer here.");
   if (!reqs.every((r) => r.assignee_user_id === viewer.user.id || viewer.reader.unitIds.includes(r.to_unit_id)))

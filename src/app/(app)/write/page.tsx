@@ -12,7 +12,7 @@ export default async function WritePage({ searchParams }: { searchParams: Promis
   const { msg, draft: draftId, example } = await searchParams;
   const { db, viewer, demo } = await currentViewer();
   const teams = viewer.units.filter((u) => Object.keys(u.how_to_ask ?? {}).length > 0 || u.role === "lead");
-  const allTeams = await db.query(`select id, name from unit where how_to_ask <> '{}'::jsonb order by name`);
+  const allTeams = await db.query(`select id, name from unit where org_id = $1 and how_to_ask <> '{}'::jsonb order by name`, [viewer.orgId]);
 
   if (draftId) {
     let draft: Awaited<ReturnType<typeof getDraft>> = null;

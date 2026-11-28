@@ -44,7 +44,8 @@ export default async function MapPage() {
   }
   // Open asks between teams, at the viewer's level.
   const reqs = await db.query(
-    `select r.*, fu.name as from_name, tu.name as to_name from request r join unit fu on fu.id = r.from_unit_id join unit tu on tu.id = r.to_unit_id where r.status = 'open'`,
+    `select r.*, fu.name as from_name, tu.name as to_name from request r join unit fu on fu.id = r.from_unit_id join unit tu on tu.id = r.to_unit_id where r.status = 'open' and fu.org_id = $1`,
+    [viewer.orgId],
   );
   for (const r of reqs) {
     const lvl = visibleLevel(policy, viewer.reader, refRequest(r)).level;
@@ -56,7 +57,7 @@ export default async function MapPage() {
     if (!e.items.includes(shown.title)) e.items.push(shown.title);
   }
   // What each team shares with which teams.
-  for (const i of await db.query(`select * from interface`)) {
+  for (const i of await db.query(`select i.* from interface i join unit u on u.id = i.from_unit_id where u.org_id = $1`, [viewer.orgId])) {
     edges.push({ type: "share", from: i.from_unit_id, to: i.to_unit_id, count: 1, level: LEVEL_LABEL[i.level as Level].toLowerCase(), cadence: i.cadence, items: [`${(i.kinds as string[]).filter((k) => !k.startsWith("source:")).length} kinds of items${(i.kinds as string[]).some((k) => k.startsWith("source:")) ? ", plus tickets from their tools" : ""}`] });
   }
 

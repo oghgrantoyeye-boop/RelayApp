@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { currentViewer } from "@/lib/session";
 import { loadViewer } from "@/lib/data";
 import { Avatar, Flash, Topbar } from "@/components/ui";
@@ -18,7 +19,9 @@ function OpenAs({ as, href, label, primary, step }: { as: string; href: string; 
 
 export default async function GuidePage({ searchParams }: { searchParams: Promise<{ msg?: string }> }) {
   const { msg } = await searchParams;
-  const { db, viewer, demo, orgId } = await currentViewer();
+  const { db, viewer, demo, orgId, isSample } = await currentViewer();
+  // A real workspace has no demo story to walk through.
+  if (!isSample) redirect("/feed");
   const { scoped } = await import("@/lib/scoped");
   const people = new Map<string, { name: string; first: string; title: string; team: string }>();
   const ids = [...demo.intro.cast.map((c) => c.as), ...demo.guide.flatMap((s) => [s.as, s.compare ?? s.as]), ...demo.explore.map((s) => s.as)];

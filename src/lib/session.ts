@@ -47,7 +47,9 @@ export async function currentViewer() {
     }
   }
 
-  // Sample / demo path: persona cookie inside a demo workspace (or the only seeded org).
+  // Sample / demo path: persona cookie inside a demo workspace. A real workspace is never opened
+  // this way: without a membership, its cookie is ignored and the default sample loads instead.
+  if (org && !isSampleOrg(org.settings)) org = null;
   const orgId = (org?.id as string | undefined) ?? undefined;
   const demo = await activeDemo(db, orgId);
   const activeOrg = orgId ?? demo.id;
@@ -70,6 +72,7 @@ export async function currentViewer() {
     demo,
     orgId: activeOrg,
     account,
-    isSample: isSampleOrg(orgRow?.settings) || true,
+    // Only sample workspaces reach this path, including a fresh database before any seed.
+    isSample: true,
   };
 }

@@ -403,7 +403,7 @@ export async function chatSend(form: FormData) {
     const { sendChat, resolveMention } = await import("@/lib/assistant");
     let target = str(form, "target") || "me";
     const text = str(form, "text");
-    const mention = await resolveMention(db, text);
+    const mention = await resolveMention(db, viewer.orgId, text);
     if (mention) target = mention.agent.id;
     await sendChat(db, viewer, { target, text, replyTo: str(form, "replyTo") || undefined });
     if (form.get("from") === "dock") (await cookies()).set(DOCK_COOKIE, target, { path: "/", sameSite: "lax", httpOnly: true });

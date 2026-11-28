@@ -8,9 +8,9 @@ import { showUpdateItem } from "./render";
 import { splitUpdate, type TeamInfo } from "./ai/tasks";
 import { learnQuietly } from "./context-learn";
 
-export async function teamInfos(db: Db): Promise<TeamInfo[]> {
-  const units = await db.query(`select id, name from unit where how_to_ask <> '{}'::jsonb order by name`);
-  const owns = await db.query(`select unit_id, title, keywords from ownership_item`);
+export async function teamInfos(db: Db, orgId: string): Promise<TeamInfo[]> {
+  const units = await db.query(`select id, name from unit where org_id = $1 and how_to_ask <> '{}'::jsonb order by name`, [orgId]);
+  const owns = await db.query(`select o.unit_id, o.title, o.keywords from ownership_item o join unit u on u.id = o.unit_id where u.org_id = $1`, [orgId]);
   return units.map((u) => ({
     id: u.id,
     name: u.name,
@@ -36,7 +36,7 @@ export async function analyzeUpdate(
     unitId: input.unitId,
     unitName: unit!.name,
     today: today(),
-    teams: await teamInfos(db),
+    teams: await teamInfos(db, viewer.orgId),
     openCommitments,
   });
 

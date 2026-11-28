@@ -1,3 +1,4 @@
+import { DEFAULT_DEMO } from "@/lib/demos";
 // T-26: My questions lists what the viewer asked, where it went and why, the progress so far and
 // the reply, and only ever the viewer's own questions.
 import { beforeEach, describe, expect, it } from "vitest";
@@ -69,7 +70,7 @@ describe("My questions", () => {
 
   it("a routed chat answer links to the question in My questions", async () => {
     const priya = await v("priya");
-    const agent = (await listAgents(db)).find((a) => a.builtIn && a.team.id === sid("platform"))!;
+    const agent = (await listAgents(db, DEFAULT_DEMO)).find((a) => a.builtIn && a.team.id === sid("platform"))!;
     await sendChat(db, priya, { target: agent.id, text: "Does Platform support SAML for merchant identity providers?" });
     const reply = (await conversation(db, priya, agent.id)).at(-1)!;
     expect(reply.refs.some((x) => x.href.startsWith("/questions?open="))).toBe(true);
