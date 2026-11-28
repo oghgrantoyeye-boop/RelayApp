@@ -87,7 +87,7 @@ describe("clarifying questions", () => {
     let msgs = await conversation(db, priya, "me");
     const ask = msgs.at(-1)!;
     expect(ask.text).toMatch(/could be Platform or Payments API/);
-    expect(ask.answer!.clarify!.options).toEqual(["Platform", "Payments API"]);
+    expect(ask.answer!.clarify!.options).toEqual(["Platform", "Payments API", "Both"]);
 
     await sendChat(db, priya, { target: "me", text: "Payments API", replyTo: ask.id });
     msgs = await conversation(db, priya, "me");

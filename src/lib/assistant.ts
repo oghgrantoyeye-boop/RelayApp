@@ -6,7 +6,7 @@
 import type { Db, Row } from "./db";
 import { fmt, now } from "./clock";
 import { audit, newId, type Viewer } from "./data";
-import { askTeam, continueQuestion, getQuestion, type ClaimView } from "./agent";
+import { askTeam, askTeams, continueQuestion, getQuestion, type ClaimView } from "./agent";
 import { search } from "./directory";
 import { getFeed } from "./feed";
 import { commitmentViews } from "./commitments";
@@ -29,6 +29,8 @@ export interface ChatClarify {
   questionId?: string;
   teamIds?: string[];
   original?: string;
+  /** T-27: the asker can send to more than one of teamIds ("Both", "All three", or several names). */
+  multi?: boolean;
   /** Set once the asker replied, so a later message isn't taken as the reply. */
   done?: boolean;
 }
@@ -135,7 +137,9 @@ export async function sendChat(db: Db, viewer: Viewer, input: { target: ChatTarg
     await learnQuietly(db, { unitId: agent.team.id, kind: "agent_chat", ref: userMsgId, label: `${viewer.user.name} in ${agent.name}`, text, actorId: viewer.user.id });
   const pending = await pendingClarify(db, viewer, target, text, input.replyTo);
   const reply = pending ? await replyToClarify(db, viewer, pending, text) : await replyTo(db, viewer, agent, text);
-  return save(db, viewer, { role: "agent", target, agentLabel: agent ? agent.name : MY_AGENT, ...reply });
+  let last = "";
+  for (const r of Array.isArray(reply) ? reply : [reply]) last = await save(db, viewer, { role: "agent", target, agentLabel: agent ? agent.name : MY_AGENT, ...r });
+  return last;
 }
 
 type Reply = { text: string; refs: ChatRef[]; actions: ChatAction[]; answer?: ChatMsg["answer"] };
@@ -216,13 +220,15 @@ async function replyTo(db: Db, viewer: Viewer, agent: AgentRow | null, text: str
       };
     }
     const askable = r.teams.filter((x) => Object.keys(x.team.how_to_ask ?? {}).length > 0);
-    if (closeCall(askable)) {
-      const two = askable.slice(0, 2);
+    const close = closeTeams(askable);
+    if (close.length >= 2) {
+      const names = close.map((x) => x.team.name);
+      const all = close.length === 2 ? "Both" : `All ${close.length}`;
       return {
-        text: `This could be ${two[0].team.name} or ${two[1].team.name}. Which did you mean?`,
+        text: `This could be ${listNames(names, "or")}. Which should I ask? I can ask ${close.length === 2 ? "both" : "all of them"} and keep it as one question.`,
         refs: [],
         actions: [],
-        answer: { claims: [], gaps: [], clarify: { question: "", options: two.map((x) => x.team.name), teamIds: two.map((x) => x.team.id), original: text } },
+        answer: { claims: [], gaps: [], clarify: { question: "", options: [...names, all], teamIds: close.map((x) => x.team.id), original: text, multi: true } },
       };
     }
     unitId = t.team.id;
@@ -234,8 +240,25 @@ async function replyTo(db: Db, viewer: Viewer, agent: AgentRow | null, text: str
 }
 
 /** Two teams match about equally: ask which one rather than guess. */
-function closeCall(teams: { team: Row; score: number }[]): boolean {
-  return teams.length >= 2 && teams[1].score >= 3 && teams[1].score >= 0.7 * teams[0].score;
+/** The teams close enough to the best match that Beacon should ask which one (at most three). */
+function closeTeams<T extends { team: Row; score: number }>(teams: T[]): T[] {
+  if (teams.length < 2) return teams.slice(0, 1);
+  const top = teams[0].score;
+  return [teams[0], ...teams.slice(1, 3).filter((t) => t.score >= 3 && t.score >= 0.7 * top)];
+}
+
+function listNames(names: string[], joiner: "and" | "or"): string {
+  return names.length <= 2 ? names.join(` ${joiner} `) : `${names.slice(0, -1).join(", ")} ${joiner} ${names[names.length - 1]}`;
+}
+
+/** Which of the offered teams a reply picks: "both"/"all" picks every one, otherwise each named team. */
+export function pickedTeams<T extends { name: string }>(teams: T[], text: string, multi: boolean): T[] {
+  const lower = text.toLowerCase().trim();
+  if (multi && /^(both|all\b.*|all of them|everyone|each)[.!]?$/.test(lower)) return teams;
+  const named = teams.filter((t) => lower.includes(String(t.name).toLowerCase()));
+  if (named.length > 0) return multi ? named : named.slice(0, 1);
+  const one = teams.find((t) => lower.length > 0 && String(t.name).toLowerCase().includes(lower));
+  return one ? [one] : [];
 }
 
 /** How an agent's answer, follow-up or routing reads in the chat. */
@@ -279,17 +302,27 @@ async function pendingClarify(db: Db, viewer: Viewer, target: string, text: stri
   return replyTo || picked || shortReply ? { messageId: last.id, clarify } : null;
 }
 
-async function replyToClarify(db: Db, viewer: Viewer, pending: { messageId: string; clarify: ChatClarify }, text: string): Promise<Reply> {
+async function replyToClarify(db: Db, viewer: Viewer, pending: { messageId: string; clarify: ChatClarify }, text: string): Promise<Reply | Reply[]> {
   const { clarify } = pending;
   const m = (await db.one(`select answer from chat_message where id = $1`, [pending.messageId]))!;
   await db.query(`update chat_message set answer = $2 where id = $1`, [pending.messageId, JSON.stringify({ ...m.answer, clarify: { ...clarify, done: true } })]);
   if (clarify.teamIds?.length) {
     const teams = await db.query(`select id, name from unit where id = any($1)`, [clarify.teamIds]);
-    const lower = text.toLowerCase();
-    const team = teams.find((t) => lower.includes(String(t.name).toLowerCase())) ?? teams.find((t) => String(t.name).toLowerCase().includes(lower));
-    if (!team) return { text: `I'll leave it there. Ask again and name the team, or pick its agent on the left.`, refs: [], actions: [] };
-    const { questionId } = await askTeam(db, viewer, team.id, clarify.original ?? text, { noClarify: true });
-    return replyForQuestion(db, viewer, questionId, `Thanks. I asked the ${team.name} agent. `);
+    const ordered = clarify.teamIds.map((id) => teams.find((t) => t.id === id)).filter((t): t is Row => !!t) as { id: string; name: string }[];
+    const picked = pickedTeams(ordered, text, !!clarify.multi);
+    if (picked.length === 0) return { text: `I'll leave it there. Ask again and name the team, or pick its agent on the left.`, refs: [], actions: [] };
+    if (picked.length === 1) {
+      const { questionId } = await askTeam(db, viewer, picked[0].id, clarify.original ?? text, { noClarify: true });
+      return replyForQuestion(db, viewer, questionId, `Thanks. I asked the ${picked[0].name} agent. `);
+    }
+    // T-27: one question, several teams. Each team's reply is its own message so each can be rated.
+    const { questionIds } = await askTeams(db, viewer, picked.map((t) => t.id), clarify.original ?? text);
+    const names = listNames(picked.map((t) => t.name), "and");
+    const replies: Reply[] = [];
+    for (const [i, qid] of questionIds.entries()) {
+      replies.push(await replyForQuestion(db, viewer, qid, i === 0 ? `Thanks. I asked ${names} and linked them as one question in My questions. **${picked[i].name}:** ` : `**${picked[i].name}:** `));
+    }
+    return replies;
   }
   const { questionId } = await continueQuestion(db, viewer, clarify.questionId!, text);
   return replyForQuestion(db, viewer, questionId, "Thanks. ");

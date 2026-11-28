@@ -674,3 +674,31 @@ export async function submitRequest(db: Db, viewer: Viewer, unitId: string, inpu
   await audit(db, { orgId: viewer.orgId, actorId: viewer.user.id, action: "create_request", targetKind: "request", targetId: id, detail: { destination: route.destination, to: member?.user_id ?? null, delivery: immediate ? "immediate" : "batch" } });
   return { id, assignee: member?.name ?? null, destination: route.destination, reason: route.reason, ownership: ownership?.title ?? null, immediate, nextBatch };
 }
+
+/** At most this many teams for one question, so a question isn't broadcast to everyone. */
+export const MAX_TEAMS_PER_QUESTION = 4;
+
+/**
+ * T-27: send one question to several teams. Each team's agent answers or routes it on its own, at
+ * the asker's level, and the rows share a group id so My questions shows them as one question.
+ */
+export async function askTeams(db: Db, viewer: Viewer, unitIds: string[], text: string): Promise<{ groupId: string | null; questionIds: string[] }> {
+  const ids = [...new Set(unitIds)];
+  if (ids.length === 0) throw new Error("Pick at least one team.");
+  if (ids.length > MAX_TEAMS_PER_QUESTION) throw new Error(`Pick at most ${MAX_TEAMS_PER_QUESTION} teams.`);
+  const found = await db.query(`select id from unit where id = any($1) and org_id = $2`, [ids, viewer.orgId]);
+  if (found.length !== ids.length) throw new Error("One of those teams doesn't exist.");
+  if (ids.length === 1) {
+    const { questionId } = await askTeam(db, viewer, ids[0], text, { noClarify: true });
+    return { groupId: null, questionIds: [questionId] };
+  }
+  const groupId = newId("qg");
+  const questionIds: string[] = [];
+  for (const unitId of ids) {
+    const { questionId } = await askTeam(db, viewer, unitId, text, { noClarify: true });
+    await db.query(`update question set group_id = $1 where id = $2`, [groupId, questionId]);
+    questionIds.push(questionId);
+  }
+  await audit(db, { orgId: viewer.orgId, actorId: viewer.user.id, action: "question_multi_team", targetKind: "question_group", targetId: groupId, detail: { teams: ids, questions: questionIds } });
+  return { groupId, questionIds };
+}
