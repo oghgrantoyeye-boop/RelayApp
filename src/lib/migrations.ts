@@ -629,4 +629,15 @@ alter table app_user add column api_token_hash text unique;
 alter table app_user add column api_token_prefix text;
 `,
   },
+  {
+    id: "010_T-19_answer_claims",
+    sql: `
+-- Claim-by-claim answers (T-19). Each claim cites its sources; a claim with none is Beacon's
+-- inference. gaps lists what the agent couldn't find. Chat messages keep the same shape so the
+-- agent panel can render the answer the same way as the team page.
+alter table question add column claims jsonb not null default '[]';
+alter table question add column gaps jsonb not null default '[]';
+alter table chat_message add column answer jsonb;
+`,
+  },
 ];

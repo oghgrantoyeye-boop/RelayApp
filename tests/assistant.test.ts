@@ -52,7 +52,9 @@ for (const pack of DEMOS) {
       const team = (await listAgents(db)).find((x) => x.builtIn && x.team.id === sid(c.answer.team))!;
       await sendChat(db, a, { target: team.id, text: c.answer.question });
       const [, reply] = await conversation(db, a, team.id);
-      expect(reply.text).toContain(c.answer.contains);
+      // The answer comes claim by claim, each with its tag and source (T-19).
+      expect(reply.answer!.claims.map((x) => x.text).join(" ")).toContain(c.answer.contains);
+      expect(reply.answer!.claims.every((x) => x.tag !== "inference" && !!x.source && !!x.date)).toBe(true);
       expect(reply.refs.length).toBeGreaterThan(0);
     });
 

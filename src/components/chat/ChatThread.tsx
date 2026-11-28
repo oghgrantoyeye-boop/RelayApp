@@ -4,6 +4,7 @@ import { Avatar } from "@/components/ui";
 import { Markdown } from "@/components/Markdown";
 import { chatDecide } from "@/app/actions";
 import { FullPathInput } from "@/components/Nav";
+import { AnswerClaims } from "@/components/AnswerClaims";
 
 /** One conversation with an agent: messages, the sources each answer used, and actions to approve. */
 export function ChatThread({ messages, me, empty }: { messages: ChatMsg[]; me: string; empty: React.ReactNode }) {
@@ -16,6 +17,7 @@ export function ChatThread({ messages, me, empty }: { messages: ChatMsg[]; me: s
           <div className="chat-body">
             <div className="chat-who">{m.role === "user" ? "You" : m.agentLabel}</div>
             <div className="chat-text">{m.role === "agent" ? <Markdown text={m.text} /> : <p style={{ margin: 0, whiteSpace: "pre-wrap" }}>{m.text}</p>}</div>
+            {m.answer && <AnswerClaims claims={m.answer.claims} gaps={m.answer.gaps} />}
             {m.refs.length > 0 && (
               <div className="chat-refs">
                 {m.refs.map((r, i) => (

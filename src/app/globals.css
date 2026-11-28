@@ -230,3 +230,9 @@ fieldset.field legend { font-size: 12px; color: var(--muted); margin-bottom: 4px
 .ctx-acts { flex: none; gap: 6px; }
 .ctx-fix summary { display: inline-block; margin-top: 6px; list-style: none; cursor: pointer; }
 .ctx-fix summary::-webkit-details-marker { display: none; }
+
+/* Claim-by-claim answers (T-19) */
+.claims { display: flex; flex-direction: column; gap: 8px; margin-top: 8px; }
+.claim { padding: 8px 10px; border: 1px solid var(--line); border-radius: 8px; background: #fff; }
+.claim-meta { gap: 8px; margin-top: 4px; flex-wrap: wrap; }
+.claim-gap { padding: 8px 10px; border-radius: 8px; background: var(--soft, #f6f6f8); color: var(--muted); }

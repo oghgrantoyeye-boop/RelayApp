@@ -166,9 +166,19 @@ export interface AnswerInput {
   sources: off.Doc[];
 }
 
+/** One statement in an answer. refs empty means Beacon inferred it: no source says it directly. */
+export interface AnswerClaim {
+  text: string;
+  refs: string[];
+}
+
 export interface AnswerOutput {
   answered: boolean;
+  /** The claims joined into prose, for places that show one line. */
   answer: string;
+  claims: AnswerClaim[];
+  /** What the agent looked for and couldn't find, in plain words. */
+  gaps: string[];
   source_refs: string[];
   /** Closest published context when the agent couldn't fully answer. */
   partial?: off.Doc;
@@ -178,59 +188,84 @@ export interface AnswerOutput {
 const ANSWER_SCHEMA = {
   type: "object",
   additionalProperties: false,
-  required: ["answered", "answer", "source_refs"],
+  required: ["answered", "claims", "gaps"],
   properties: {
     answered: { type: "boolean" },
-    answer: { type: "string" },
-    source_refs: { type: "array", items: { type: "string" } },
+    claims: {
+      type: "array",
+      items: {
+        type: "object",
+        additionalProperties: false,
+        required: ["text", "refs"],
+        properties: { text: { type: "string" }, refs: { type: "array", items: { type: "string" } } },
+      },
+    },
+    gaps: { type: "array", items: { type: "string" } },
   },
 };
+
+const MAX_CLAIMS = 5;
 
 export async function answerFromPublished(input: AnswerInput): Promise<AnswerOutput> {
   const ranked = off.rank(input.question, input.sources).slice(0, 12);
   const llm = getLLM();
   if (ranked.length > 0) {
-    const out = await llm.json<{ answered: boolean; answer: string; source_refs: string[] }>("answer_question", {
+    const out = await llm.json<{ answered: boolean; claims: AnswerClaim[]; gaps: string[] }>("answer_question", {
       system:
-        `You are the ${input.teamName} team's agent in Beacon. You answer colleagues from other teams using ONLY the published sources given, ` +
-        "which are already limited to what this person may see. Never guess, never add facts, never promise anything for the team. " +
-        "If the sources don't fully answer the question (for example it asks for a date and none is given), set answered to false. " +
-        "Keep answers to 1-3 sentences and cite the refs you used.",
+        `You are the ${input.teamName} team's agent in Beacon. You answer colleagues from other teams using ONLY the sources given, ` +
+        "which are already limited to what this person may see. Answer as a short list of claims, each one sentence. " +
+        "Every claim cites the refs it rests on. You may add at most one claim with no refs when it follows plainly from the cited claims; " +
+        "it will be shown as your inference. Never add facts, never promise anything for the team. " +
+        "In gaps, say in a few words each thing the question asks that the sources don't answer. " +
+        "If the sources don't answer the question at all (for example it asks for a date and none is given), set answered to false.",
       prompt:
         `Today is ${input.today}.\nQuestion: ${input.question}\n\nSources:\n` +
         ranked.map((r) => `[${r.doc.ref}] ${r.doc.text}`).join("\n"),
       schema: ANSWER_SCHEMA,
       maxTokens: 1500,
     });
-    if (out && typeof out.answered === "boolean") {
-      const refs = (out.source_refs ?? []).filter((r) => ranked.some((x) => x.doc.ref === r));
+    if (out && typeof out.answered === "boolean" && Array.isArray(out.claims)) {
+      const known = new Set(ranked.map((x) => x.doc.ref));
+      let inferred = 0;
+      const claims = out.claims
+        .map((c) => ({ text: String(c.text ?? "").trim(), refs: (c.refs ?? []).filter((r) => known.has(r)) }))
+        .filter((c) => c.text && (c.refs.length > 0 || inferred++ === 0))
+        .slice(0, MAX_CLAIMS);
+      const refs = [...new Set(claims.flatMap((c) => c.refs))];
+      const gaps = (out.gaps ?? []).map((g) => String(g).trim()).filter(Boolean).slice(0, 3);
+      // An answer needs at least one sourced claim; inference alone is not an answer.
       if (!out.answered || refs.length === 0)
-        return { answered: false, answer: "", source_refs: [], partial: ranked[0]?.doc, by: llm.name };
-      return { answered: true, answer: out.answer, source_refs: refs, by: llm.name };
+        return { answered: false, answer: "", claims: [], gaps, source_refs: [], partial: ranked[0]?.doc, by: llm.name };
+      return { answered: true, answer: claims.map((c) => c.text).join(" "), claims, gaps, source_refs: refs, by: llm.name };
     }
   }
   return { ...offlineAnswer(input, ranked), by: "Offline writer" };
 }
 
 function offlineAnswer(input: AnswerInput, ranked: { doc: off.Doc; score: number }[]): Omit<AnswerOutput, "by"> {
+  const none = (gaps: string[], partial?: off.Doc) => ({ answered: false, answer: "", claims: [], gaps, source_refs: [], partial });
   const qn = off.tokens(input.question).length;
   const threshold = Math.min(2, Math.max(1, qn - 1));
   const relevant = ranked.filter((r) => r.score >= threshold);
   const top = relevant[0];
-  if (!top) return { answered: false, answer: "", source_refs: [], partial: ranked[0]?.doc };
+  if (!top) return none([`${input.teamName} hasn't shared anything that answers this.`], ranked[0]?.doc);
   if (off.asksForDate(input.question)) {
     // A "when" question needs a source that gives an upcoming date.
     const dated = relevant.find((r) => {
       const d = off.findDate(r.doc.text, input.today);
       return !!d && d >= input.today;
     });
-    if (!dated) return { answered: false, answer: "", source_refs: [], partial: top.doc };
-    return { answered: true, answer: dated.doc.text, source_refs: [dated.doc.ref] };
+    if (!dated) return none(["A date. Nothing shared gives an upcoming one."], top.doc);
+    return { answered: true, answer: dated.doc.text, claims: [{ text: dated.doc.text, refs: [dated.doc.ref] }], gaps: [], source_refs: [dated.doc.ref] };
   }
   const used = [top, ...relevant.filter((r) => r !== top && r.score === top.score && !r.doc.ref.startsWith("ownership:"))].slice(0, 2);
+  // Word matching can't tell what an answer is missing, so the offline writer only names gaps when
+  // it can't answer at all. The model names them for partial answers.
   return {
     answered: true,
     answer: used.map((u) => u.doc.text).join(" "),
+    claims: used.map((u) => ({ text: u.doc.text, refs: [u.doc.ref] })),
+    gaps: [],
     source_refs: used.map((u) => u.doc.ref),
   };
 }

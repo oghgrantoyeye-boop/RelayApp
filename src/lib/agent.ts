@@ -34,13 +34,15 @@ export interface Source extends Doc {
   provenance: SourceProvenance;
   /** When the source was last true, as an ISO date: published, confirmed or last seen. */
   lastSeen: string;
+  /** Where to read it: the team page (its "What Beacon knows" section for context) or the meeting. */
+  href?: string;
 }
 
 const iso = (d: unknown): string => (d ? new Date(d as string).toISOString() : now().toISOString());
 
 /** Everything the team has published that this asker may see, rendered at their level. */
 async function publishedSources(db: Db, unitId: string, reader: Parameters<typeof visibleLevel>[1]): Promise<Source[]> {
-  const unit = await db.one(`select org_id from unit where id = $1`, [unitId]);
+  const unit = await db.one(`select org_id, slug from unit where id = $1`, [unitId]);
   if (!unit) return [];
   const policy = await loadPolicy(db, unit.org_id);
   const out: Source[] = [];
@@ -111,7 +113,11 @@ async function publishedSources(db: Db, unitId: string, reader: Parameters<typeo
     const s = m.summary as { summary: string; decisions: string[] };
     out.push({ ref: `meeting:${m.id}`, text: `${m.title}: ${s.summary} ${(s.decisions ?? []).join(" ")}`, markingIds: markingIdsOf(m), level, label: `Meeting, ${fmt(m.starts_at)}`, provenance: "learned", lastSeen: iso(m.starts_at) });
   }
-  return out;
+  const page = `/teams/${unit.slug}`;
+  return out.map((src) => ({
+    ...src,
+    href: src.ref.startsWith("meeting:") ? `/meetings/${src.ref.slice(8)}` : src.ref.startsWith("context:") ? `${page}#knows` : page,
+  }));
 }
 
 async function ownerFor(db: Db, unitId: string, question: string): Promise<{ ownership: Row | null; member: Row }> {
@@ -161,8 +167,8 @@ export async function askTeam(db: Db, viewer: Viewer, unitId: string, text: stri
     const used = sources.filter((s) => result.source_refs.includes(s.ref));
     const markings = deriveMarkings(used);
     await db.query(
-      `insert into question (id, org_id, asker_id, unit_id, text, outcome, answer_text, source_refs, marking_ids, created_at) values ($1, $2, $3, $4, $5, 'answered', $6, $7, $8, $9)`,
-      [qid, unit.org_id, viewer.user.id, unitId, question, result.answer, JSON.stringify(used.map((u) => u.ref)), markings, now()],
+      `insert into question (id, org_id, asker_id, unit_id, text, outcome, answer_text, source_refs, marking_ids, claims, gaps, created_at) values ($1, $2, $3, $4, $5, 'answered', $6, $7, $8, $9, $10, $11)`,
+      [qid, unit.org_id, viewer.user.id, unitId, question, result.answer, JSON.stringify(used.map((u) => u.ref)), markings, JSON.stringify(result.claims), JSON.stringify(result.gaps), now()],
     );
     await audit(db, { orgId: viewer.orgId, actorId: agent.id, onBehalfOfId: viewer.user.id, action: "agent_answer", targetKind: "question", targetId: qid, detail: { sources: used.map((u) => u.ref), markings, by: result.by } });
     return { questionId: qid };
@@ -196,8 +202,8 @@ export async function askTeam(db: Db, viewer: Viewer, unitId: string, text: stri
   const answer = `${unit.name} hasn't published an answer to this yet. I sent it to ${who}.${others} ${when}`;
   const markings = partial ? deriveMarkings([partial]) : [];
   await db.query(
-    `insert into question (id, org_id, asker_id, unit_id, text, outcome, answer_text, source_refs, marking_ids, request_id, created_at) values ($1, $2, $3, $4, $5, 'routed', $6, $7, $8, $9, $10)`,
-    [qid, unit.org_id, viewer.user.id, unitId, question, answer, JSON.stringify(partial ? [partial.ref] : []), markings, reqId, now()],
+    `insert into question (id, org_id, asker_id, unit_id, text, outcome, answer_text, source_refs, marking_ids, request_id, gaps, created_at) values ($1, $2, $3, $4, $5, 'routed', $6, $7, $8, $9, $10, $11)`,
+    [qid, unit.org_id, viewer.user.id, unitId, question, answer, JSON.stringify(partial ? [partial.ref] : []), markings, reqId, JSON.stringify(result.gaps), now()],
   );
   await audit(db, { orgId: viewer.orgId,
     actorId: agent.id,
@@ -218,7 +224,49 @@ export async function getQuestion(db: Db, viewer: Viewer, id: string) {
   if (q.asker_id !== viewer.user.id || !canSeeDerived(policy, viewer.reader, q.marking_ids)) return null;
   const refs: string[] = q.source_refs ?? [];
   const sources = (await publishedSourcesFor(db, q.unit_id, viewer)).filter((s) => refs.includes(s.ref));
-  return { question: q, sources };
+  return { question: q, sources, claims: claimViews(q.claims ?? [], sources), gaps: (q.gaps ?? []) as string[] };
+}
+
+export type ClaimTag = SourceProvenance | "inference";
+
+export interface ClaimView {
+  text: string;
+  tag: ClaimTag;
+  /** "Confirmed by the team", "Seen in tools": what kind of basis the claim has. */
+  basis: string;
+  /** When its newest source was last true, ISO. Absent for inference. */
+  date?: string;
+  /** Its newest source is older than STALE_SOURCE_DAYS, so it may be out of date. */
+  stale: boolean;
+  source?: { label: string; text: string; href?: string };
+}
+
+/** Sources not seen for this long are flagged in an answer. */
+export const STALE_SOURCE_DAYS = 90;
+
+/**
+ * Each claim with its tag, date and source, from the sources this viewer may still see. A claim
+ * whose sources the viewer can no longer see is dropped rather than shown without its basis.
+ */
+export function claimViews(claims: { text: string; refs: string[] }[], sources: Source[]): ClaimView[] {
+  const byRef = new Map(sources.map((s) => [s.ref, s]));
+  const staleBefore = now().getTime() - STALE_SOURCE_DAYS * 86_400_000;
+  const rank: Record<SourceProvenance, number> = { confirmed: 0, seen: 1, learned: 2 };
+  const out: ClaimView[] = [];
+  for (const c of claims) {
+    if (c.refs.length === 0) {
+      out.push({ text: c.text, tag: "inference", basis: "Beacon's inference", stale: false });
+      continue;
+    }
+    const used = c.refs.map((r) => byRef.get(r)).filter((s): s is Source => !!s);
+    if (used.length === 0) continue;
+    // The strongest source decides the tag: something the team confirmed beats something learned.
+    const best = [...used].sort((a, b) => rank[a.provenance] - rank[b.provenance])[0];
+    const newest = used.map((s) => s.lastSeen).sort().at(-1)!;
+    const basis = best.provenance === "confirmed" ? "Confirmed by the team" : best.provenance === "seen" ? "Seen in tools" : "Learned from the team's activity";
+    out.push({ text: c.text, tag: best.provenance, basis, date: newest, stale: Date.parse(newest) < staleBefore, source: { label: best.label, text: best.text, href: best.href } });
+  }
+  return out;
 }
 
 /** What a team's agent may draw on when this viewer asks it something. */
