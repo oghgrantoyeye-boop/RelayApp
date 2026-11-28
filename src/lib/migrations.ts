@@ -711,4 +711,21 @@ create index ai_usage_org_at_idx on ai_usage (org_id, at);
 alter table context_entry add column unsure_by text[] not null default '{}';
 `,
   },
+  {
+    id: "017_T-21_answer_feedback",
+    sql: `
+-- Answer feedback (T-21): the asker says whether an agent's answer helped, with an optional note.
+-- A thumbs down lowers Beacon's confidence in the team context the answer used.
+create table answer_feedback (
+  id text primary key,
+  org_id text not null references org(id) on delete cascade,
+  question_id text not null references question(id) on delete cascade,
+  user_id text not null references app_user(id),
+  vote text not null check (vote in ('up', 'down')),
+  note text not null default '',
+  at timestamptz not null,
+  unique (question_id, user_id)
+);
+`,
+  },
 ];

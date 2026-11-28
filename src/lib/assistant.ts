@@ -51,7 +51,7 @@ export interface ChatMsg {
   refs: ChatRef[];
   actions: ChatAction[];
   /** A team agent's answer, claim by claim (T-19), and at most one follow-up question (T-20). */
-  answer?: { claims: ClaimView[]; gaps: string[]; clarify?: ChatClarify };
+  answer?: { claims: ClaimView[]; gaps: string[]; clarify?: ChatClarify; questionId?: string; vote?: "up" | "down" | null };
   at: string;
 }
 
@@ -63,7 +63,15 @@ function toMsg(r: Row): ChatMsg {
 
 export async function conversation(db: Db, viewer: Viewer, target: ChatTarget, limit = 40): Promise<ChatMsg[]> {
   const rows = await db.query(`select * from chat_message where user_id = $1 and target = $2 order by created_at desc, id desc limit $3`, [viewer.user.id, target, limit]);
-  return rows.reverse().map(toMsg);
+  const msgs = rows.reverse().map(toMsg);
+  // T-21: show whether you already rated each agent answer.
+  const ids = msgs.map((m) => m.answer?.questionId).filter((x): x is string => !!x);
+  if (ids.length > 0) {
+    const votes = await db.query(`select question_id, vote from answer_feedback where user_id = $1 and question_id = any($2)`, [viewer.user.id, ids]);
+    const by = new Map(votes.map((v) => [v.question_id as string, v.vote as "up" | "down"]));
+    for (const m of msgs) if (m.answer?.questionId) m.answer.vote = by.get(m.answer.questionId) ?? null;
+  }
+  return msgs;
 }
 
 /** The people's agents list for the chat view: yours first, then your teams' agents, then the rest. */
@@ -241,7 +249,7 @@ async function replyForQuestion(db: Db, viewer: Viewer, questionId: string, via:
     return { text: `${via}One question so I get this to the right place: ${q.clarify!.question}`, refs: [], actions: [], answer: { claims: [], gaps: [], clarify: { ...clarify!, question: "" } } };
   }
   if (q.question.outcome === "answered") {
-    if (q.claims.length > 0) return { text: `${via}Here's what ${unit.name} has shared that answers this.`, refs, actions: [], answer: { claims: q.claims, gaps: q.gaps, clarify } };
+    if (q.claims.length > 0) return { text: `${via}Here's what ${unit.name} has shared that answers this.`, refs, actions: [], answer: { claims: q.claims, gaps: q.gaps, clarify, questionId } };
     return { text: `${via}${q.question.answer_text}`, refs, actions: [] };
   }
   const req = await db.one(

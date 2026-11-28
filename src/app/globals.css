@@ -246,3 +246,7 @@ fieldset.field legend { font-size: 12px; color: var(--muted); margin-bottom: 4px
 .route { border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; margin-top: 8px; }
 tr[aria-selected="true"] td { background: var(--soft); }
 .pending-q { border-color: #f59e0b; background: #fffbeb; }
+
+/* T-21: rate an agent answer */
+.rate-answer details > summary { list-style: none; cursor: pointer; display: inline-flex; }
+.rate-answer details > summary::-webkit-details-marker { display: none; }

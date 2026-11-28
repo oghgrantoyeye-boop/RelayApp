@@ -16,6 +16,8 @@ import { teamConnectors, CONNECTOR_LABEL } from "@/lib/integrations";
 import { pendingQuestions, teamContext } from "@/lib/context";
 import { TeamContext } from "@/components/TeamContext";
 import { AnswerClaims } from "@/components/AnswerClaims";
+import { RateAnswer } from "@/components/RateAnswer";
+import { myVote } from "@/lib/feedback";
 import { PendingQuestions } from "@/components/PendingQuestions";
 
 export default async function TeamPage({ params, searchParams }: { params: Promise<{ slug: string }>; searchParams: Promise<{ msg?: string; q?: string; ask?: string }> }) {
@@ -45,6 +47,7 @@ export default async function TeamPage({ params, searchParams }: { params: Promi
   const open = (await commitmentViews(db, viewer.reader, (r) => r.owner_unit_id === team.id && r.status === "open")).sort((a, b) => a.due.localeCompare(b.due));
   const stats = isGroup ? null : await agentStats(db, team.id);
   const asked = q ? await getQuestion(db, viewer, q) : null;
+  const vote = asked && asked.question.asker_id === viewer.user.id ? await myVote(db, viewer, asked.question.id) : null;
   const lead = members.find((m) => m.role === "lead");
   const followUp = asked?.clarify ? (
     <FollowUp
@@ -109,7 +112,10 @@ export default async function TeamPage({ params, searchParams }: { params: Promi
                     <div className="small muted">You asked</div>
                     <div style={{ fontWeight: 500 }}>{asked.question.text}</div>
                     {asked.question.outcome === "answered" && asked.claims.length > 0 ? (
-                      <AnswerClaims claims={asked.claims} gaps={asked.gaps} followUp={asked.clarify && followUp} />
+                      <>
+                        <AnswerClaims claims={asked.claims} gaps={asked.gaps} followUp={asked.clarify && followUp} />
+                        {asked.question.asker_id === viewer.user.id && <RateAnswer questionId={asked.question.id} back={`/teams/${team.slug}?q=${asked.question.id}`} vote={vote?.vote} />}
+                      </>
                     ) : asked.question.outcome === "clarify" ? (
                       <div style={{ marginTop: 8 }}>{followUp}</div>
                     ) : (
