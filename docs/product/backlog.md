@@ -99,7 +99,7 @@ reviews Claude's. The base branch is the default branch, `claude/dazzling-archim
 | `GITHUB_WEBHOOK_SECRET` | Verifies GitHub webhook signatures. | Read today |
 | `SLACK_CLIENT_ID`, `SLACK_CLIENT_SECRET`, `SLACK_SIGNING_SECRET` | The Slack app (T-40 to T-43). | New |
 | `GITHUB_APP_ID`, `GITHUB_APP_PRIVATE_KEY`, `GITHUB_APP_WEBHOOK_SECRET` | The GitHub App (T-44). | New |
-| `AUTH_SECRET`, `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `MICROSOFT_CLIENT_ID`, `MICROSOFT_CLIENT_SECRET`, `EMAIL_SERVER` | Sign-in (T-31). | New |
+| `AUTH_SECRET`, `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `MICROSOFT_CLIENT_ID`, `MICROSOFT_CLIENT_SECRET`, `EMAIL_SERVER` | Sign-in (T-31). For Microsoft, also add optional ID-token claims `email` and `xms_edov` on the Entra app (Token configuration) so verified emails work after T-36. | New |
 | `BEACON_ADMIN_EMAILS` | Comma-separated emails that can sign in without approval and approve early-access leads (T-36). | New |
 | `ENCRYPTION_KEY` | Encrypts stored Slack and GitHub tokens (T-40, T-44). | New |
 
@@ -140,9 +140,9 @@ The model adapter supports Claude only. An OpenAI key would need a second provid
   adapter, selected by `RELAY_LLM_PROVIDER=openai` and `OPENAI_API_KEY`. Acceptance: with a key,
   answers come from Claude in the preview deploy; without one, the demo still works. Touches:
   `src/lib/ai/llm.ts`. S.
-- [~] **T-04 Hosted database by default.** Mock: all. Document and check `DATABASE_URL` for the
+- [x] **T-04 Hosted database by default.** Mock: all. Document and check `DATABASE_URL` for the
   Vercel project; show a warning banner in the app when running on Vercel without it.
-  Acceptance: data survives a redeploy on the preview. S.
+  Acceptance: data survives a redeploy on the preview. S. (Cursor)
 
 ## M2 and M3: learned team context and grounded answers
 
@@ -163,7 +163,7 @@ The model adapter supports Claude only. An OpenAI key would need a second provid
   `learnFrom` from `publishDraft`, `summarizeMeeting`, `ingestPullRequest` and
   `ingestCodingSession`. Acceptance: a merged PR touching a new repository adds a "Runs" entry
   tagged Seen in GitHub. Depends: T-11. M.
-- [ ] **T-14 Seed by learning.** Mock: M2. The sample workspaces build their team context by
+- [~] **T-14 Seed by learning.** (Claude) Mock: M2. The sample workspaces build their team context by
   running `learnFrom` over their seeded updates, answers, meetings and documents. Acceptance:
   Platform's page in Northwind looks like M2 without hand-written context. Depends: T-12, T-13. S.
 - [x] **T-15 "What Beacon knows about us" section.** (Claude) Mock: M2. Entries grouped by kind with
@@ -201,12 +201,12 @@ The model adapter supports Claude only. An OpenAI key would need a second provid
 - [x] **T-23 Team queue page.** (Claude) Mock: M4. For you and Team queue tabs, I'll take it
   (`request.claimed_by`), Pass to a teammate, answer once for everyone who asked, Ask them for more
   detail. Acceptance: matches M4; any Platform member can answer. Depends: T-22. M.
-- [ ] **T-24 Answers feed learning.** Mock: M4. Remove the Publish checkbox; after an answer,
+- [~] **T-24 Answers feed learning.** (Claude) Mock: M4. Remove the Publish checkbox; after an answer,
   show what Beacon learned and whether it needs confirming, as in M4. Depends: T-12, T-23. S.
-- [ ] **T-25 Request lifecycle.** Mock: M5. Statuses awaiting team, needs your input, answered,
+- [~] **T-25 Request lifecycle.** (Claude) Mock: M5. Statuses awaiting team, needs your input, answered,
   resolved, declined, unresolved; unresolved after 3 business days with Send to the lead or Ask
   again; every change audited. Acceptance: status tests for each transition. Depends: T-22. M.
-- [ ] **T-26 My questions page.** Mock: M5. The progress steps, the reply, That answers it and
+- [~] **T-26 My questions page.** (Claude) Mock: M5. The progress steps, the reply, That answers it and
   Ask a follow-up, and the table of past questions with where they went. Depends: T-25. M.
 - [ ] **T-27 Multi-team questions.** Mock: M3. When several teams match, list them and let the
   person send to one or more, linked by one question. Depends: T-22. M.
@@ -235,8 +235,8 @@ The model adapter supports Claude only. An OpenAI key would need a second provid
   existing account still signs in, a non-admin gets a 404 on the admin page. Depends: T-31. S. (Cursor)
 - [x] **T-32 Sample workspaces side by side.** Mock: M1. Each demo pack seeds its own workspace;
   Reset resets only that one; no more truncating every table. Depends: T-30. M. (Cursor)
-- [~] **T-33 Create a workspace and invite people.** Mock: M1, M6. Create, invite by email, create
-  teams and leads. Depends: T-31. M.
+- [x] **T-33 Create a workspace and invite people.** Mock: M1, M6. Create, invite by email, create
+  teams and leads. Depends: T-31. M. (Cursor)
 - [ ] **T-35 AI spend cap per workspace.** Mock: M6. Record each model call's tokens in an `ai_usage` table with `org_id`, show this month's spend in workspace settings, and fall back to the offline writer with a clear note when a workspace's monthly cap (`org.settings.ai_monthly_usd`) is reached. Depends: T-30, T-03. S. (Claude)
 - [ ] **T-34 Workspace settings.** Mock: M6. Sources, Slack channels Beacon learns from (with
   exclusion), what needs a teammate's OK (the trust rules, stored in `org.settings`), people.
@@ -263,14 +263,14 @@ other questions. Then GitHub, then the planned tools.
 - [ ] **T-43 Slack: ask from Slack.** Mock: M3. A `/beacon` slash command and an @Beacon mention
   that ask a team's agent and reply in thread with the same claim-by-claim answer and routing.
   Depends: T-19, T-40. M.
-- [ ] **T-44 GitHub App.** Mock: M2, M6. Replace the per-repository webhook with a GitHub App
+- [~] **T-44 GitHub App.** Mock: M2, M6. Replace the per-repository webhook with a GitHub App
   install (`GITHUB_APP_ID`, `GITHUB_APP_PRIVATE_KEY`, `GITHUB_APP_WEBHOOK_SECRET`); map
   repositories to teams; feed merged PRs and reviews to `learnFrom`; respect repository access when
   showing sources. Acceptance: installing on the northwind org and merging a PR updates the owning
-  team's page. Depends: T-11. L.
-- [ ] **T-45 Claude Code tokens per person.** Mock: M6. Real per-person tokens issued from
+  team's page. Depends: T-11. L. (Cursor)
+- [~] **T-45 Claude Code tokens per person.** Mock: M6. Real per-person tokens issued from
   settings (replacing `rly_demo_*`), revocable, with the hook install command shown. Depends:
-  T-31. S.
+  T-31. S. (Cursor)
 - [ ] **T-46 Jira or Linear (pick one).** Mock: M2. Read issues for the teams that own projects,
   into `learnFrom` and as sources. Depends: T-11. L.
 - [ ] **T-47 Google Meet or Zoom transcripts.** Mock: M2. Read transcripts of meetings the team
@@ -280,7 +280,7 @@ other questions. Then GitHub, then the planned tools.
 
 - [x] **T-50 Remove slip and at-risk framing.** (Claude) No slipped or at-risk styling in the feed, team
   page and inbox; "Open commitments" becomes "Active work" (as in M2). S.
-- [ ] **T-51 Rewrite the Northwind story.** The spec's narrative, as in M3 to M5: Ava asks
+- [~] **T-51 Rewrite the Northwind story.** (Claude) The spec's narrative, as in M3 to M5: Ava asks
   whether Platform can support merchant sign-on; clarify; team queue; Ken answers; Beacon learns.
   Update `types.ts`, `tests/demos.test.ts`, `/guide`. Hide the other demos until rewritten. L.
 - [ ] **T-52 Marketing follow-ups.** Anything T-00 leaves, plus `marketing/launch-campaign.md`. S.

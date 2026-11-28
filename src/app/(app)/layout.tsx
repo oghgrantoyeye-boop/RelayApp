@@ -12,6 +12,8 @@ import { Avatar, Icon } from "@/components/ui";
 import { BeaconMark } from "@/components/site/Brand";
 import { resetDemo, setPersona } from "@/app/actions";
 import { workersEnabled } from "@/lib/flags";
+import { needsHostedDbWarning } from "@/lib/db";
+
 
 export const metadata: Metadata = {
   title: "Beacon demo",
@@ -77,6 +79,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
             </NavLink>
             <NavLink href="/audit"><Icon name="audit" />Audit log</NavLink>
             <NavLink href="/connect"><Icon name="connect" />Integrations</NavLink>
+            {!isSample && <NavLink href="/workspace/people"><Icon name="directory" />People</NavLink>}
             {workersEnabled() && (
               <>
                 <div className="section">Deferred</div>
@@ -116,7 +119,15 @@ export default async function RootLayout({ children }: { children: React.ReactNo
               {isSample && <a href="/demos" className="b sm" style={{ width: "100%", justifyContent: "center", marginTop: 6 }}>Choose a demo</a>}
             </div>
           </nav>
-          <main className="main">{Number.isInteger(guideStep) && <GuideBar demo={demo} step={guideStep} firstName={firstName} fullName={fullName} />}{children}</main>
+          <main className="main">
+            {needsHostedDbWarning() && (
+              <div className="notice err" role="status" style={{ margin: "12px 16px 0" }}>
+                This Vercel deploy has no <code>DATABASE_URL</code>. Data is in memory and resets when the server restarts. Attach a Neon or other Postgres URL in the Vercel project so preview and production keep their data.
+              </div>
+            )}
+            {Number.isInteger(guideStep) && <GuideBar demo={demo} step={guideStep} firstName={firstName} fullName={fullName} />}
+            {children}
+          </main>
           <Suspense fallback={null}><Dock db={db} viewer={viewer} demo={demo} /></Suspense>
         </div>
       </body>

@@ -101,9 +101,18 @@ export default async function SignInPage({
             )}
 
             {account && (
-              <p style={{ margin: "16px 0 6px", color: "#5f5f6b", fontSize: 12 }}>
-                <Link href="/signin">Create a workspace</Link> comes in a later task. For now open a sample below.
-              </p>
+              <div style={{ margin: "16px 0 8px" }}>
+                <Link href="/signin/create" style={rowStyle}>
+                  <span style={{ ...logoStyle, background: "#0f766e" }}>+</span>
+                  <span>
+                    <strong>Create a workspace</strong>
+                    <br />
+                    <span style={{ color: "#5f5f6b", fontSize: 12 }}>
+                      Invite your teams and connect sources. Beacon starts learning right away.
+                    </span>
+                  </span>
+                </Link>
+              </div>
             )}
 
             <p style={{ margin: "16px 0 6px", color: "#5f5f6b", fontSize: 12 }}>Sample workspaces</p>
