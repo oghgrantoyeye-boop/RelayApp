@@ -159,7 +159,7 @@ The model adapter supports Claude only. An OpenAI key would need a second provid
   `answerCluster` (the answerer's reply) and from team members' messages in `chat_message`.
   Acceptance: answering a routed question in the demo creates a learned or pending entry on the
   team page. Depends: T-11. S.
-- [~] **T-13 Learn from updates, meetings, PRs and Claude Code sessions.** (Claude) Mock: M2. Call
+- [x] **T-13 Learn from updates, meetings, PRs and Claude Code sessions.** (Claude) Mock: M2. Call
   `learnFrom` from `publishDraft`, `summarizeMeeting`, `ingestPullRequest` and
   `ingestCodingSession`. Acceptance: a merged PR touching a new repository adds a "Runs" entry
   tagged Seen in GitHub. Depends: T-11. M.
@@ -194,7 +194,7 @@ The model adapter supports Claude only. An OpenAI key would need a second provid
 
 ## M4 and M5: routing, the team queue and request status
 
-- [ ] **T-22 Route to the team queue.** Mock: M3, M4. `chooseRoute()` sends a confident ownership
+- [~] **T-22 Route to the team queue.** (Claude) Mock: M3, M4. `chooseRoute()` sends a confident ownership
   match to the owner (and shows it in the team queue), anything else to the team queue, and says
   why (`request.destination`, `request.route_reason`). Acceptance: "merchant sign-on" goes to
   Platform's queue with the reason shown. M.
@@ -220,7 +220,7 @@ The model adapter supports Claude only. An OpenAI key would need a second provid
 - [x] **T-31 Sign-in.** Mock: M1. Google, Microsoft and email magic links (env vars above), a
   `session` table, membership in several workspaces, and the workspace chooser. The persona
   switcher stays only inside sample workspaces. Depends: T-30. M. (Cursor)
-- [~] **T-36 Gate account creation behind early access.** Do this next, before T-32 continues. (Cursor)
+- [x] **T-36 Gate account creation behind early access.** Do this next, before T-32 continues. (Cursor)
   Today `upsertAccount` (`src/lib/auth/accounts.ts`) creates an account for any email that signs in
   with Google, Microsoft or a magic link. Change it so a new account is created only when the email
   is approved: a `lead` row with `status = 'approved'` (add `status` pending/approved/declined,

@@ -173,6 +173,6 @@ export function extractContext(input: { kind: string; text: string; question?: s
     const q = input.question.replace(/\?+\s*$/, "").trim();
     add({ kind: "knows", title: tidy(q, 90), body: shorten(firstSentence(input.text), 200) });
   }
-  if (input.kind === "pr" && input.repo) add({ kind: "system", title: input.repo, body: `Recent work: ${shorten(firstSentence(input.text), 160)}` });
+  if ((input.kind === "pr" || input.kind === "coding_session") && input.repo) add({ kind: "system", title: input.repo, body: `Recent work: ${shorten(firstSentence(input.text), 160)}` });
   return out.slice(0, 5);
 }
