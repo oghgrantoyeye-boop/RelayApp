@@ -118,7 +118,7 @@ The model adapter supports Claude only. An OpenAI key would need a second provid
 - [x] **T-02 New navigation.** (Claude) Mock: M2 to M6 sidebar. Ask Beacon, Teams, Team queue, My
   questions, What's changing, Inbox, Audit log, Workspace settings. Acceptance: matches the mock's
   sidebar; Commitments, Meetings, Map and Digest are gone from the nav. Depends: T-01. S.
-- [ ] **T-03 Real model calls on Vercel.** Mock: M3. Confirm every AI task runs with
+- [~] **T-03 Real model calls on Vercel.** (Claude) Mock: M3. Confirm every AI task runs with
   `ANTHROPIC_API_KEY` set in Vercel: log which provider answered (`by`) in the audit event, show a
   small "Offline writer" note in the UI when no key is set, and add a per-workspace monthly spend
   cap with a clear message when it's reached. Optional: an `openai` provider behind the same
