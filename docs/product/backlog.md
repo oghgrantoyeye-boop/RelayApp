@@ -201,7 +201,7 @@ The model adapter supports Claude only. An OpenAI key would need a second provid
 - [~] **T-23 Team queue page.** (Claude) Mock: M4. For you and Team queue tabs, I'll take it
   (`request.claimed_by`), Pass to a teammate, answer once for everyone who asked, Ask them for more
   detail. Acceptance: matches M4; any Platform member can answer. Depends: T-22. M.
-- [ ] **T-24 Answers feed learning.** Mock: M4. Remove the Publish checkbox; after an answer,
+- [~] **T-24 Answers feed learning.** (Claude) Mock: M4. Remove the Publish checkbox; after an answer,
   show what Beacon learned and whether it needs confirming, as in M4. Depends: T-12, T-23. S.
 - [ ] **T-25 Request lifecycle.** Mock: M5. Statuses awaiting team, needs your input, answered,
   resolved, declined, unresolved; unresolved after 3 business days with Send to the lead or Ask
