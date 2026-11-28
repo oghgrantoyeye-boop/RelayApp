@@ -249,6 +249,33 @@ export async function markInboxRead() {
   redirect("/inbox");
 }
 
+export async function issueCodingToken() {
+  return run("/connect", async () => {
+    const { db, viewer, isSample } = await currentViewer();
+    if (isSample) throw new Error("Personal tokens can't be issued in a sample workspace");
+    const { issueApiToken, API_TOKEN_ONCE_COOKIE } = await import("@/lib/auth/api-tokens");
+    const token = await issueApiToken(db, viewer.user);
+    (await cookies()).set(API_TOKEN_ONCE_COOKIE, token, {
+      path: "/",
+      sameSite: "lax",
+      httpOnly: true,
+      maxAge: 120,
+    });
+    return withMsg("/connect", "Issued a new Claude Code token. Copy the install command now. It won't be shown again.");
+  });
+}
+
+export async function revokeCodingToken() {
+  return run("/connect", async () => {
+    const { db, viewer, isSample } = await currentViewer();
+    if (isSample) throw new Error("Personal tokens can't be revoked in a sample workspace");
+    const { revokeApiToken, API_TOKEN_ONCE_COOKIE } = await import("@/lib/auth/api-tokens");
+    await revokeApiToken(db, viewer.user);
+    (await cookies()).delete(API_TOKEN_ONCE_COOKIE);
+    return withMsg("/connect", "Revoked your Claude Code token. Hooks using it will stop working until you issue a new one.");
+  });
+}
+
 export async function simulate(form: FormData) {
   return run("/connect", async () => {
     const { db, viewer } = await currentViewer();
