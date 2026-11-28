@@ -10,6 +10,8 @@ const KIND: Record<string, [Tone, string]> = {
   commitment_alert: ["amber", "Commitment"],
   update: ["gray", "Update"],
   leadership_digest: ["violet", "Leadership digest"],
+  request_update: ["amber", "Follow-up on a question"],
+  request_unresolved: ["red", "No reply yet"],
 };
 
 export default async function InboxPage() {

@@ -12,8 +12,8 @@ import { Avatar, Icon } from "@/components/ui";
 import { BeaconMark } from "@/components/site/Brand";
 import { resetDemo, setPersona } from "@/app/actions";
 import { workersEnabled } from "@/lib/flags";
+import { sweepUnresolved } from "@/lib/requests";
 import { needsHostedDbWarning } from "@/lib/db";
-
 
 export const metadata: Metadata = {
   title: "Beacon demo",
@@ -25,6 +25,9 @@ export const dynamic = "force-dynamic";
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   const { db, viewer, demo, isSample } = await currentViewer();
+  // Requests with no reply in 3 business days become unresolved and the asker is told (T-25).
+  // Idempotent and cheap, so it runs on every page rather than needing a scheduler.
+  await sweepUnresolved(db, viewer.orgId).catch((err) => console.error("[beacon] unresolved sweep failed:", err));
   const [asks, inbox, drafts, people] = await Promise.all([
     db.one(`select count(*)::int as n from request r left join member m on m.id = r.assignee_member_id where r.status = 'open' and (r.claimed_by = $1 or (r.claimed_by is null and (m.user_id = $1 or (r.destination = 'team_queue' and r.to_unit_id = any($2)))))`, [viewer.user.id, viewer.reader.unitIds]),
     db.one(`select count(*)::int as n from delivery where recipient_id = $1 and read_at is null`, [viewer.user.id]),
