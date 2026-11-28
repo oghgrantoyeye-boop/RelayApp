@@ -10,7 +10,9 @@ import { getFeed } from "@/lib/feed";
 import { teamCommitments } from "@/lib/commitments";
 import { analyzeUpdate, getDraft, publishDraft } from "@/lib/updates";
 import { buildDigest } from "@/lib/digest";
-import { askTeam, getAsks, getQuestion } from "@/lib/agent";
+import { answerCluster, askTeam, claimCluster, getAsks, getQuestion } from "@/lib/agent";
+import { myQuestions, resolveRequest } from "@/lib/requests";
+import { learnedFromAnswer } from "@/lib/context";
 import { search } from "@/lib/directory";
 import { DEMOS } from "@/lib/demos";
 import { scoped } from "@/lib/scoped";
@@ -124,6 +126,39 @@ for (const pack of DEMOS) {
       const day = Number(c.revise.due.slice(8));
       expect(again.question.answer_text).toContain(`Dec ${day}`);
     });
+
+    if (c.story) {
+      const st = c.story;
+      it("tells the team-context story: what's known plus the queue, a teammate answers, the next person is answered", async () => {
+        const asker = await v(st.as);
+        const first = (await getQuestion(db, asker, (await askTeam(db, asker, sid(st.team), st.question)).questionId))!;
+        // What the team has shared is shown with its source, and the rest goes to the team queue.
+        expect(first.question.outcome).toBe("routed");
+        expect(first.claims.length).toBeGreaterThan(0);
+        expect(first.gaps.length).toBeGreaterThan(0);
+        const req = (await db.one(`select * from request where id = $1`, [first.question.request_id]))!;
+        expect(req.destination).toBe("team_queue");
+
+        const answerer = await v(st.answerer);
+        const queue = await getAsks(db, answerer, "team");
+        const cluster = queue.clusters.find((x) => x.requests.some((r) => r.id === req.id))!;
+        expect(cluster).toBeTruthy();
+        await claimCluster(db, answerer, cluster.key);
+        const reply = pack.ui.answerExamples?.[st.question];
+        expect(reply, "ui.answerExamples has the guide's reply").toBeTruthy();
+        const answered = await answerCluster(db, answerer, cluster.key, { answer: reply! });
+        expect((await learnedFromAnswer(db, answerer, answered.requestId))!.entries.length).toBeGreaterThan(0);
+
+        const mine = (await myQuestions(db, asker)).find((x) => x.requestId === req.id)!;
+        expect(mine.state).toBe("answered");
+        await resolveRequest(db, asker, req.id);
+
+        const next = await v(st.next);
+        const again = (await getQuestion(db, next, (await askTeam(db, next, sid(st.team), st.nextQuestion)).questionId))!;
+        expect(again.question.outcome).toBe("answered");
+        expect(again.claims.some((x) => x.text.includes(st.contains) && x.tag === "learned")).toBe(true);
+      });
+    }
 
     it("every guide and cast person exists, and steps are short", async () => {
       for (const s of [...pack.guide, ...pack.explore]) {

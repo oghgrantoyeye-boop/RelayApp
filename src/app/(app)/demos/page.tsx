@@ -1,5 +1,5 @@
 import { currentViewer } from "@/lib/session";
-import { DEMOS } from "@/lib/demos";
+import { LISTED_DEMOS } from "@/lib/demos";
 import { Flash, Pill, Topbar } from "@/components/ui";
 import { switchDemo } from "@/app/actions";
 
@@ -18,7 +18,7 @@ export default async function DemosPage({ searchParams }: { searchParams: Promis
           </div>
         </div>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))", gap: 14 }}>
-          {DEMOS.map((d) => {
+          {LISTED_DEMOS.map((d) => {
             const teams = d.teams.filter((t) => !t.group);
             return (
               <div key={d.id} className="card" style={{ display: "flex", flexDirection: "column", gap: 10 }}>

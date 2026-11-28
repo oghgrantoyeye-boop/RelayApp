@@ -100,7 +100,7 @@ export default async function TeamPage({ params, searchParams }: { params: Promi
                   {isMember && <Link className="b sm" href={`/agents/${team.slug}`} style={{ marginLeft: stats && stats.total > 0 ? 8 : "auto" }}>Agent workspace</Link>}
                 </div>
                 <p className="small muted" style={{ marginTop: 4 }}>
-                  It answers only from what {team.name} has published, at your level. If it can&apos;t, it sends your question to the person who owns that area, in their next batch of asks.
+                  It answers only from what Beacon knows about {team.name}, at your level, and says what it couldn&apos;t find. The rest goes to whoever owns that area, or to {team.name}&apos;s queue if no one does.
                 </p>
                 {asked && (
                   <div style={{ marginTop: 12, padding: "10px 12px", background: "var(--soft)", borderRadius: 8 }}>
@@ -112,9 +112,9 @@ export default async function TeamPage({ params, searchParams }: { params: Promi
                       <div style={{ marginTop: 8 }}>{followUp}</div>
                     ) : (
                       <>
+                        {(asked.claims.length > 0 || asked.gaps.length > 0) && <AnswerClaims claims={asked.claims} gaps={asked.gaps} />}
                         <div className="ai-body" style={{ marginTop: 8 }}>{asked.question.answer_text}</div>
                         {asked.question.request_id && <div className="small" style={{ marginTop: 6 }}><Link href={`/questions?open=${asked.question.request_id}`}>Track it in My questions</Link></div>}
-                        {asked.gaps.length > 0 && <AnswerClaims claims={[]} gaps={asked.gaps} />}
                       </>
                     )}
                     <div className="row small muted" style={{ marginTop: 8 }}>

@@ -309,6 +309,7 @@ const MEETINGS: Mtg[] = [
 
 export const lakeportCourier: DemoPack = {
   id: "newsroom",
+  hidden: true,
   audience: "Regional daily newspaper",
   org: { name: "The Lakeport Courier", short: "the Courier", headcount: 140, domain: "lakeportcourier", about: "a fictional regional daily newspaper in a mid-size Canadian city, with about 140 staff" },
   summary:

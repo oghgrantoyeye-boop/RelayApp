@@ -67,6 +67,7 @@ describe("work-performing agents are off by default", () => {
     const pack = await activeDemo(db);
     const hidden = [/^\/digest/, /^\/map/, /^\/agents\/new/, /\/tasks\//];
     expect([...pack.guide, ...pack.explore].some((s) => hidden.some((r) => r.test(s.href)))).toBe(false);
-    expect(pack.guide.length).toBeLessThan(getDemo("software").guide.length);
+    const full = getDemo("software");
+    expect(pack.guide.length + pack.explore.length).toBeLessThan(full.guide.length + full.explore.length);
   });
 });

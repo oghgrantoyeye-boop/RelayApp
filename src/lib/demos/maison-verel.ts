@@ -330,6 +330,7 @@ const MEETINGS: Mtg[] = [
 
 export const maisonVerel: DemoPack = {
   id: "fashion",
+  hidden: true,
   audience: "Mid-size fashion house",
   org: { name: "Maison Verel", short: "Verel", headcount: 400, domain: "maisonverel", about: "a fictional 400-person fashion house with a Porto sample atelier and eight boutiques" },
   summary:
