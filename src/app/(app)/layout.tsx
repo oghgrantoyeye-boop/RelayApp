@@ -24,7 +24,7 @@ export const dynamic = "force-dynamic";
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   const { db, viewer, demo, isSample } = await currentViewer();
   const [asks, inbox, drafts, people] = await Promise.all([
-    db.one(`select count(*)::int as n from request r left join member m on m.id = r.assignee_member_id where r.status = 'open' and (m.user_id = $1 or (r.destination = 'team_queue' and r.to_unit_id = any($2)))`, [viewer.user.id, viewer.reader.unitIds]),
+    db.one(`select count(*)::int as n from request r left join member m on m.id = r.assignee_member_id where r.status = 'open' and (r.claimed_by = $1 or (r.claimed_by is null and (m.user_id = $1 or (r.destination = 'team_queue' and r.to_unit_id = any($2)))))`, [viewer.user.id, viewer.reader.unitIds]),
     db.one(`select count(*)::int as n from delivery where recipient_id = $1 and read_at is null`, [viewer.user.id]),
     db.one(`select count(*)::int as n from team_update where author_id = $1 and status = 'draft'`, [viewer.user.id]),
     db.query(

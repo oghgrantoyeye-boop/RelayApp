@@ -205,12 +205,13 @@ export async function commitmentAction(form: FormData) {
 }
 
 export async function answerAsk(form: FormData) {
-  return run("/asks", async () => {
+  const back = str(form, "tab") === "team" ? "/asks?tab=team" : "/asks";
+  return run(back, async () => {
     const { db, viewer } = await currentViewer();
     const key = str(form, "key");
     if (form.get("decline") === "1") {
       await declineCluster(db, viewer, key, str(form, "answer"));
-      return withMsg("/asks", "Declined. Everyone who asked was told.");
+      return withMsg(back, "Declined. Everyone who asked was told.");
     }
     const lvl = str(form, "publishLevel");
     const r = await answerCluster(db, viewer, key, {
@@ -222,7 +223,31 @@ export async function answerAsk(form: FormData) {
     const parts = [`Answered ${r.recipients} ${r.recipients === 1 ? "person" : "people"} at once.`];
     if (r.publishedId) parts.push("Published to your team page, so the agent can answer it next time.");
     if (r.commitmentId) parts.push("Added a commitment.");
-    return withMsg("/asks", parts.join(" "));
+    return withMsg(back, parts.join(" "));
+  });
+}
+
+/** Team queue buttons: I'll take it, Pass to a teammate, Ask them for more detail. */
+export async function queueAction(form: FormData) {
+  const back = str(form, "tab") === "team" ? "/asks?tab=team" : "/asks";
+  return run(back, async () => {
+    const { db, viewer } = await currentViewer();
+    const { claimCluster, passCluster, askForDetail } = await import("@/lib/agent");
+    const key = str(form, "key");
+    const op = str(form, "op");
+    if (op === "claim") {
+      await claimCluster(db, viewer, key);
+      return withMsg("/asks", "It's yours. It's under For you now, and the team can see you picked it up.");
+    }
+    if (op === "pass") {
+      const r = await passCluster(db, viewer, key, str(form, "to"), str(form, "note"));
+      return withMsg(back, `Passed to ${r.to}. They've been told.`);
+    }
+    if (op === "detail") {
+      const r = await askForDetail(db, viewer, key, str(form, "question"));
+      return withMsg(back, `Asked ${r.recipients === 1 ? "them" : `all ${r.recipients}`} for more detail. The question stays open.`);
+    }
+    throw new Error("Unknown action");
   });
 }
 

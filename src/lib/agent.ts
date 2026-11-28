@@ -379,29 +379,48 @@ export interface AskCluster {
   destination: "owner" | "team_queue";
   /** Why it went there, as the asker was told. */
   reason: string | null;
+  /** The owner it was sent to, if any. */
+  assignee: string | null;
+  /** The teammate who picked it up, if anyone did. */
+  claimedBy: { id: string; name: string } | null;
+  /** The follow-up a teammate asked the askers, if any. */
+  detailQuestion: string | null;
 }
 
-/** A person's asks: open requests assigned to them, duplicates merged, urgent first. */
-export async function getAsks(db: Db, viewer: Viewer): Promise<{ clusters: AskCluster[]; nextBatch: Date; pending: number }> {
+export type AsksTab = "for_you" | "team";
+
+/**
+ * A person's asks, duplicates merged, urgent first. "For you": sent to you as the owner, or picked
+ * up by you. "Team queue": everything open for your teams, so anyone on the team can pick it up.
+ */
+export async function getAsks(db: Db, viewer: Viewer, tab: AsksTab = "for_you"): Promise<{ clusters: AskCluster[]; nextBatch: Date; pending: number; counts: Record<AsksTab, number> }> {
   const policy = await loadPolicy(db, viewer.orgId);
   const rows = await db.query(
-    `select r.*, a.name as requester_name, fu.name as from_name, tu.name as to_name, o.title as ownership_title, mk.label as marking_label
+    `select r.*, a.name as requester_name, fu.name as from_name, tu.name as to_name, o.title as ownership_title, mk.label as marking_label,
+            m.user_id as assignee_user_id, au.name as assignee_name, cu.name as claimed_name
      from request r
      left join member m on m.id = r.assignee_member_id
+     left join app_user au on au.id = m.user_id
+     left join app_user cu on cu.id = r.claimed_by
      join app_user a on a.id = r.requester_id
      join unit fu on fu.id = r.from_unit_id
      join unit tu on tu.id = r.to_unit_id
      left join ownership_item o on o.id = r.ownership_item_id
      left join marking mk on mk.id = r.marking_id
-     where r.status = 'open' and (m.user_id = $1 or (r.destination = 'team_queue' and r.to_unit_id = any($2)))
+     where r.status = 'open' and (m.user_id = $1 or r.claimed_by = $1 or r.to_unit_id = any($2))
      order by r.created_at`,
     [viewer.user.id, viewer.reader.unitIds],
   );
+  // Once someone picks a question up, it's theirs: it leaves the owner's "For you" too.
+  const forYou = (r: Row) => r.claimed_by ? r.claimed_by === viewer.user.id : r.assignee_user_id === viewer.user.id;
   const groups = new Map<string, Row[]>();
   for (const r of rows) {
+    if (tab === "for_you" && !forYou(r)) continue;
     const k = r.cluster_key ?? r.id;
     groups.set(k, [...(groups.get(k) ?? []), r]);
   }
+  const keys = (pick: (r: Row) => boolean) => new Set(rows.filter(pick).map((r) => r.cluster_key ?? r.id)).size;
+  const counts = { for_you: keys(forYou), team: keys(() => true) };
   const clusters: AskCluster[] = [];
   for (const [key, reqs] of groups) {
     const first = reqs[0];
@@ -410,6 +429,7 @@ export async function getAsks(db: Db, viewer: Viewer): Promise<{ clusters: AskCl
     if (!shown) continue;
     const today0 = today();
     const neededBy = reqs.map((r) => r.needed_by).filter(Boolean).sort()[0] ?? null;
+    const claimed = reqs.find((r) => r.claimed_by);
     clusters.push({
       key,
       title: shown.title,
@@ -425,11 +445,56 @@ export async function getAsks(db: Db, viewer: Viewer): Promise<{ clusters: AskCl
       firstAsked: first.created_at,
       destination: first.destination,
       reason: first.route_reason ?? null,
+      assignee: first.assignee_name ?? null,
+      claimedBy: claimed ? { id: claimed.claimed_by, name: claimed.claimed_name } : null,
+      detailQuestion: reqs.find((r) => r.detail_question)?.detail_question ?? null,
     });
   }
   clusters.sort((a, b) => Number(b.urgent) - Number(a.urgent) || b.askers.length - a.askers.length || +a.firstAsked - +b.firstAsked);
-  await audit(db, { orgId: viewer.orgId, actorId: viewer.user.id, action: "read_asks", targetKind: "asks", targetId: viewer.user.id, detail: { clusters: clusters.length, requests: rows.length } });
-  return { clusters, nextBatch: nextBatchAt(viewer.user.ask_cadence), pending: rows.filter((r) => !r.delivered_at).length };
+  await audit(db, { orgId: viewer.orgId, actorId: viewer.user.id, action: "read_asks", targetKind: "asks", targetId: viewer.user.id, detail: { tab, clusters: clusters.length, requests: rows.length } });
+  const mine = rows.filter(forYou);
+  return { clusters, nextBatch: nextBatchAt(viewer.user.ask_cadence), pending: mine.filter((r) => !r.delivered_at).length, counts };
+}
+
+/** "I'll take it": the question is yours now, and leaves everyone else's "For you". */
+export async function claimCluster(db: Db, viewer: Viewer, key: string) {
+  const reqs = await clusterRequests(db, viewer, key);
+  for (const r of reqs) await db.query(`update request set claimed_by = $2, claimed_at = $3 where id = $1`, [r.id, viewer.user.id, now()]);
+  await audit(db, { orgId: viewer.orgId, actorId: viewer.user.id, action: "claim_request", targetKind: "request", targetId: reqs[0].id, detail: { cluster: key } });
+}
+
+/** "Pass to a teammate": hand it to someone else on the team, who's told now. */
+export async function passCluster(db: Db, viewer: Viewer, key: string, toUserId: string, note = "") {
+  const reqs = await clusterRequests(db, viewer, key);
+  const unitId = reqs[0].to_unit_id;
+  const to = await db.one(`select a.id, a.name from member m join app_user a on a.id = m.user_id where m.unit_id = $1 and a.id = $2 and a.kind = 'human'`, [unitId, toUserId]);
+  if (!to) throw new Error(`They're not on ${reqs[0].to_name}.`);
+  for (const r of reqs) await db.query(`update request set claimed_by = $2, claimed_at = $3 where id = $1`, [r.id, to.id, now()]);
+  await deliver(db, [to.id], {
+    kind: "ask_now",
+    subject: `${viewer.user.name} passed you a question for ${reqs[0].to_name}`,
+    body: `${reqs[0].title}${note.trim() ? `\n\n${viewer.user.name}: ${note.trim()}` : ""}`,
+    refs: [{ type: "request", id: reqs[0].id, href: "/asks" }],
+  });
+  await audit(db, { orgId: viewer.orgId, actorId: viewer.user.id, action: "pass_request", targetKind: "request", targetId: reqs[0].id, detail: { cluster: key, to: to.id } });
+  return { to: to.name as string };
+}
+
+/** "Ask them for more detail": one question to everyone who asked. The ask stays open. */
+export async function askForDetail(db: Db, viewer: Viewer, key: string, question: string) {
+  const text = question.trim().slice(0, 600);
+  if (!text) throw new Error("Write what you need to know.");
+  const reqs = await clusterRequests(db, viewer, key);
+  for (const r of reqs) await db.query(`update request set detail_question = $2, detail_asked_at = $3 where id = $1`, [r.id, text, now()]);
+  const askers = [...new Set(reqs.map((r) => r.requester_id))];
+  await deliver(db, askers, {
+    kind: "answer",
+    subject: `${viewer.user.name} (${reqs[0].to_name}) needs more detail`,
+    body: `You asked: ${reqs[0].title}\n\n${text}`,
+    refs: [{ type: "request", id: reqs[0].id, href: "/inbox" }],
+  });
+  await audit(db, { orgId: viewer.orgId, actorId: viewer.user.id, action: "ask_detail", targetKind: "request", targetId: reqs[0].id, detail: { cluster: key, recipients: askers.length } });
+  return { recipients: askers.length };
 }
 
 async function clusterRequests(db: Db, viewer: Viewer, key: string): Promise<Row[]> {
