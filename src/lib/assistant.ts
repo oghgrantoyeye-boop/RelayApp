@@ -15,6 +15,7 @@ import { getAgent, listAgents, type AgentRow } from "./agents";
 import { workersEnabled, WORKERS_OFF_MESSAGE } from "./flags";
 import { PermissionError } from "./permissions";
 import { learnQuietly } from "./context-learn";
+import { getLLM } from "./ai/llm";
 
 export type ChatTarget = "me" | string; // "me", or an agent's user id
 
@@ -115,6 +116,9 @@ const OWED = /(what do (i|we) owe|my commitments|our commitments|what('?s| is) d
 const DRAFT = /(draft|write).*(update|weekly)/i;
 const WHO = /^who (owns|handles|knows|is responsible for|should i ask about)\s+(.+?)\??$/i;
 const RESEARCH = /^(research|look into|find out)\b/i;
+/** Small talk: a greeting or thanks on its own, not a question about anyone's work. */
+const GREETING = /^(hi|hello|hey|hiya|yo|howdy|good (morning|afternoon|evening)|thanks?( you)?|thx|cheers|ok(ay)?|cool|great)( there| beacon)?[\s!.?]*$/i;
+const HELP = /^(help|\?|what can (you|i) do|what do you do|who are you|what are you|what is (this|beacon)|how (does|do) (this|beacon|you) work|how do i (use|start)( this| beacon)?)[\s!.?]*$/i;
 const REVIEW = /\b(review|redline|check the draft|go through)\b/i;
 const CODE = /\b(fix|bug|pull request|refactor|implement|patch|code)\b/i;
 
@@ -149,6 +153,7 @@ async function replyTo(db: Db, viewer: Viewer, agent: AgentRow | null, text: str
   const inTeam = agent ? viewer.reader.unitIds.includes(agent.team.id) : true;
   const can = (a: string) => !agent || agent.actions.includes(a);
 
+  if (GREETING.test(text.trim()) || HELP.test(text.trim())) return intro(db, viewer, agent, HELP.test(text.trim()));
   if (!agent && ATTENTION.test(text)) return attention(db, viewer);
   if (!agent && OWED.test(text)) return owed(db, viewer);
 
@@ -212,13 +217,7 @@ async function replyTo(db: Db, viewer: Viewer, agent: AgentRow | null, text: str
   if (!unitId) {
     const r = await search(db, text, viewer.orgId);
     const t = r.teams.find((x) => Object.keys(x.team.how_to_ask ?? {}).length > 0);
-    if (!t) {
-      return {
-        text: "I couldn't tell which team this belongs to. Try \"who owns …\", or pick a team's agent on the left.",
-        refs: [],
-        actions: [],
-      };
-    }
+    if (!t) return noTeamFound(db, viewer, text);
     const askable = r.teams.filter((x) => Object.keys(x.team.how_to_ask ?? {}).length > 0);
     const close = closeTeams(askable);
     if (close.length >= 2) {
@@ -237,6 +236,87 @@ async function replyTo(db: Db, viewer: Viewer, agent: AgentRow | null, text: str
   if (agent && !can("answer")) return { text: `Answering questions isn't one of my jobs. Ask the ${agent.team.name} agent instead.`, refs: [], actions: [] };
   const { questionId } = await askTeam(db, viewer, unitId!, text);
   return replyForQuestion(db, viewer, questionId, via);
+}
+
+/** Teams in the workspace someone could ask, other than the viewer's own. */
+async function otherTeams(db: Db, viewer: Viewer): Promise<Row[]> {
+  const units = await db.query(`select id, name, slug from unit where org_id = $1 and how_to_ask <> '{}'::jsonb order by name`, [viewer.orgId]);
+  return units.filter((u) => !viewer.reader.unitIds.includes(u.id));
+}
+
+/** Setup steps for a workspace that has nothing to ask yet. */
+function setupRefs(viewer: Viewer): Reply["refs"] {
+  return [
+    { label: "Connect GitHub or Claude Code", href: "/connect" },
+    { label: "Write a first update", href: "/write" },
+    { label: "Invite people", href: "/workspace/people" },
+    ...(viewer.team ? [{ label: viewer.team.name, href: `/teams/${viewer.team.slug}` }] : []),
+  ];
+}
+
+/** A greeting or "what can you do?": say what this agent does, and what to try first. */
+async function intro(db: Db, viewer: Viewer, agent: AgentRow | null, asked: boolean): Promise<Reply> {
+  const first = viewer.user.name.split(" ")[0];
+  if (agent) {
+    const mine = viewer.reader.unitIds.includes(agent.team.id);
+    return {
+      text: mine
+        ? `Hi ${first}. I'm ${agent.name}. I answer other teams' questions about ${agent.team.name} from what the team has shared, and send the rest to the right person. Ask me what we own or what we're working on, or "Draft our weekly update".`
+        : `Hi ${first}. I'm ${agent.name}. Ask me anything about ${agent.team.name}'s work. I answer from what the team has shared at your level of access, and if I don't know, I ask the right person on the team for you.`,
+      refs: [{ label: agent.team.name, href: `/teams/${agent.team.slug}` }],
+      actions: [],
+    };
+  }
+  const others = await otherTeams(db, viewer);
+  if (others.length === 0) {
+    return {
+      text:
+        `${asked ? "" : `Hi ${first}. `}I'm your Beacon agent. I keep track of what each team or project is doing and answer questions about it, with sources. ` +
+        "Your workspace is new, so there's not much for me to go on yet. Connect GitHub or Claude Code so I can learn from your work as it happens, or write a first update. " +
+        "If other people work with you, invite them and I'll route their questions to the right owner.",
+      refs: setupRefs(viewer),
+      actions: [],
+    };
+  }
+  const names = others.slice(0, 3).map((u) => u.name);
+  return {
+    text:
+      `${asked ? "" : `Hi ${first}. `}I'm your Beacon agent. Ask me about any team's work and I'll find who owns it, answer from what they've shared at your level of access, and send anything new to the right person. ` +
+      `Try "What changed for me this week?" or "Who owns …?", or ask ${listNames(names, "or")} directly.`,
+    refs: others.slice(0, 3).map((u) => ({ label: u.name, href: `/teams/${u.slug}` })),
+    actions: [],
+  };
+}
+
+const CHAT_SCHEMA = { type: "object", properties: { reply: { type: "string" } }, required: ["reply"], additionalProperties: false };
+
+/**
+ * Nothing in the workspace matches. With a model, reply normally and say what Beacon couldn't find;
+ * without one, say so and suggest what to try, instead of a dead end.
+ */
+async function noTeamFound(db: Db, viewer: Viewer, text: string): Promise<Reply> {
+  const others = await otherTeams(db, viewer);
+  const refs = others.length === 0 ? setupRefs(viewer) : [{ label: "Browse teams", href: "/directory" }];
+  const teams = others.map((u) => u.name).join(", ") || "none yet besides your own";
+  const got = await getLLM().json<{ reply: string }>("chat_reply", {
+    system:
+      `You are Beacon, a workplace assistant for ${viewer.user.name}. Beacon tracks what each team or project does and answers questions from what they've shared. ` +
+      `Teams in this workspace: ${teams}. None of them matched this message, so you have no workspace facts to use. ` +
+      "Reply helpfully and briefly (under 90 words), in plain sentences. Never invent facts about the workspace, its people or its work. " +
+      "If the message is about the workspace's work, say you couldn't find a team that covers it and suggest asking \"who owns …\" or connecting tools.",
+    prompt: text,
+    schema: CHAT_SCHEMA,
+    maxTokens: 600,
+  });
+  if (got?.reply?.trim()) return { text: got.reply.trim(), refs, actions: [] };
+  return {
+    text:
+      others.length === 0
+        ? "I couldn't find anything about that yet. Your workspace is new, so connect GitHub or Claude Code, or write a first update, and I'll have something to answer from."
+        : `I couldn't find a team that covers that. Try "who owns …", ask one of ${listNames(others.slice(0, 3).map((u) => u.name), "or")} directly, or browse the teams.`,
+    refs,
+    actions: [],
+  };
 }
 
 /** Two teams match about equally: ask which one rather than guess. */
