@@ -12,7 +12,7 @@ import { listAgents } from "@/lib/agents";
 import { ingestCodingSession, ingestPullRequest } from "@/lib/sources";
 import { summarizeMeeting } from "@/lib/meetings";
 import { analyzeUpdate, getDraft, publishDraft } from "@/lib/updates";
-import { sid } from "./helpers";
+import { clearLearned, sid } from "./helpers";
 
 describe("learning from answers and agent chats", () => {
   let db: Db;
@@ -24,6 +24,7 @@ describe("learning from answers and agent chats", () => {
     db = await openDb({});
     await migrate(db);
     await seed(db, "software");
+    await clearLearned(db);
   });
 
   it("an answer to a routed question becomes context for the answering team, with the answer as its source", async () => {
@@ -73,6 +74,7 @@ describe("learning from updates, meetings, PRs and coding sessions", () => {
     db = await openDb({});
     await migrate(db);
     await seed(db, "software");
+    await clearLearned(db);
   });
 
   it("a merged PR in a new repository adds a Runs entry seen in GitHub", async () => {

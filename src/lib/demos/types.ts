@@ -128,6 +128,8 @@ export interface DemoPack {
   confidentialRequests: ConfidentialRequest[];
   commitments: Com[];
   questions: Qn[];
+  /** Answers people already gave to requests, so Beacon has learned from them (T-14). */
+  answers?: { request: string; by: string; text: string; at: string }[];
   connectors: Conn[];
   docs: SourceDoc[];
   meetings: Mtg[];

@@ -8,7 +8,7 @@ import { FakeLLM, setLLM } from "@/lib/ai/llm";
 import { loadViewer, type Viewer } from "@/lib/data";
 import { PermissionError } from "@/lib/permissions";
 import { learnFrom } from "@/lib/context-learn";
-import { sid } from "./helpers";
+import { clearLearned, sid } from "./helpers";
 import { confirmEntry, editEntry, restoreEntry, retireEntry, teamContext } from "@/lib/context";
 
 describe("what Beacon knows about a team", () => {
@@ -24,6 +24,7 @@ describe("what Beacon knows about a team", () => {
     db = await openDb({});
     await migrate(db);
     await seed(db, "software");
+    await clearLearned(db);
     await learnFrom(db, pr);
     await learnFrom(db, { unitId: PLATFORM, kind: "answer", ref: "rq_1", label: "Lena's answer", question: "How do I load-test a new endpoint?", text: "Use the k6 harness. We own the staging cluster." });
   });

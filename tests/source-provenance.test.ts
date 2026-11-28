@@ -8,7 +8,7 @@ import { FakeLLM, setLLM } from "@/lib/ai/llm";
 import { loadViewer, type Viewer } from "@/lib/data";
 import { askTeam, publishedSourcesFor } from "@/lib/agent";
 import { learnFrom } from "@/lib/context-learn";
-import { sid } from "./helpers";
+import { clearLearned, sid } from "./helpers";
 
 describe("sources carry provenance and freshness", () => {
   let db: Db;
@@ -21,6 +21,7 @@ describe("sources carry provenance and freshness", () => {
     db = await openDb({});
     await migrate(db);
     await seed(db, "software");
+    await clearLearned(db);
   });
 
   it("every source has a provenance and a last-seen date", async () => {

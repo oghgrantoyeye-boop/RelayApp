@@ -1,5 +1,6 @@
 // Seeds one demo organization under org.id = pack.id. Row ids are prefixed with pack.id so
 // several samples can sit side by side (T-32). Pack files keep short local ids; scoping happens here.
+import { seedContextByLearning } from "./context-seed";
 import type { Db } from "./db";
 import { addDays } from "./clock";
 import { levelTexts } from "./ai/offline";
@@ -19,6 +20,8 @@ export async function seed(db: Db, demoId?: string) {
   await db.tx(async (t) => {
     await seedPack(t, pack);
     await seedIntegrations(t, pack);
+    // T-14: team context is learned from the seeded history, never hand-written.
+    await seedContextByLearning(t, pack);
   });
 }
 

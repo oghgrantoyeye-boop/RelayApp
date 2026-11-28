@@ -27,6 +27,8 @@ export interface LearnSource {
   needsTeammate?: boolean;
   /** Who wrote it, for the audit log. */
   actorId?: string;
+  /** Offline extractor only (seeding sample workspaces). */
+  offline?: boolean;
 }
 
 export interface LearnResult {
@@ -44,7 +46,7 @@ export async function learnFrom(db: Db, src: LearnSource): Promise<LearnResult> 
   const unit = await db.one(`select id, name, org_id from unit where id = $1`, [src.unitId]);
   if (!unit) return result;
   const known = (await db.query(`select title from context_entry where unit_id = $1 and status <> 'retired' order by last_seen_at desc limit 40`, [src.unitId])).map((r) => r.title as string);
-  const { claims, by } = await extractContext({ teamName: unit.name, kind: src.kind, text, question: src.question, repo: src.repo, known });
+  const { claims, by } = await extractContext({ teamName: unit.name, kind: src.kind, text, question: src.question, repo: src.repo, known, offline: src.offline });
   result.by = by;
   const at = src.at ?? now();
   for (const claim of claims) {
