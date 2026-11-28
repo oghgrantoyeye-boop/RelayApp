@@ -2,7 +2,13 @@
 import { createCipheriv, createDecipheriv, createHash, randomBytes } from "node:crypto";
 
 function keyBytes(): Buffer {
-  const raw = process.env.ENCRYPTION_KEY?.trim() || process.env.AUTH_SECRET?.trim() || "dev-only-insecure-key";
+  const raw = process.env.ENCRYPTION_KEY?.trim() || process.env.AUTH_SECRET?.trim();
+  if (!raw) {
+    if (process.env.NODE_ENV === "production") {
+      throw new Error("ENCRYPTION_KEY or AUTH_SECRET is required in production");
+    }
+    return createHash("sha256").update("dev-only-insecure-key").digest();
+  }
   return createHash("sha256").update(raw).digest();
 }
 

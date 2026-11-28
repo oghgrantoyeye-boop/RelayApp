@@ -2,7 +2,7 @@ import { cookies, headers } from "next/headers";
 import { currentViewer } from "@/lib/session";
 import { Flash, LevelTag, Pill, Topbar } from "@/components/ui";
 import { connectTool, issueCodingToken, revokeCodingToken, simulate, syncTool } from "@/app/actions";
-import { attachGithubInstallation, mapGithubRepo } from "@/app/actions/github";
+import { mapGithubRepo } from "@/app/actions/github";
 import { CATALOG, CONNECTOR_LABEL, recentSourceItems, teamConnectors } from "@/lib/integrations";
 import { fmt, fmtDateTime } from "@/lib/clock";
 import { aiStatus, usage } from "@/lib/ai/llm";
@@ -17,6 +17,12 @@ import { githubAppConfigured, githubAppInstallUrl } from "@/lib/github/app";
 export default async function ConnectPage({ searchParams }: { searchParams: Promise<{ msg?: string }> }) {
   const { msg } = await searchParams;
   const { db, viewer, demo, isSample } = await currentViewer();
+  const installs = isSample
+    ? []
+    : await db.query(
+        `select installation_id, account_login from github_installation where org_id = $1 order by created_at`,
+        [viewer.orgId],
+      );
   const tools = await teamConnectors(db, viewer.team.id);
   const items = await recentSourceItems(db, viewer, viewer.team.id, 10);
   const available = CATALOG.filter((k) => !tools.some((t) => t.kind === k));
@@ -159,20 +165,28 @@ export default async function ConnectPage({ searchParams }: { searchParams: Prom
               Webhook URL (App or legacy):
             </p>
             <pre className="code">{`${origin}/api/sources/github`}</pre>
-            {githubAppConfigured() ? (
+            <p className="small muted" style={{ marginTop: 6 }}>
+              Setup URL for the App: <span className="mono">{`${origin}/api/sources/github/setup`}</span>
+            </p>
+            {isSample ? (
+              <p className="small muted" style={{ marginTop: 8 }}>
+                Sample workspaces use the simulate button below. Real GitHub App installs are for signed-in workspace owners.
+              </p>
+            ) : githubAppConfigured() ? (
               <div style={{ marginTop: 12 }}>
-                {githubAppInstallUrl() && (
+                {githubAppInstallUrl(undefined, viewer.orgId) && (
                   <p className="small muted" style={{ marginBottom: 8 }}>
-                    <a href={githubAppInstallUrl()!}>Install on GitHub</a>, then attach the installation id here.
+                    <a href={githubAppInstallUrl(undefined, viewer.orgId)!}>Install on GitHub</a>
+                    {" "}(returns here via the setup URL and attaches after verifying the installation).
                   </p>
                 )}
-                <form action={attachGithubInstallation} className="row" style={{ gap: 8, flexWrap: "wrap", marginBottom: 8 }}>
-                  <input name="installationId" placeholder="Installation id" required className="mono" style={{ minWidth: 140 }} />
-                  <input name="accountLogin" placeholder="GitHub org/user" required style={{ minWidth: 140 }} />
-                  <button className="b sm" type="submit">Attach install</button>
-                </form>
+                {installs.length > 0 && (
+                  <p className="small muted" style={{ marginBottom: 8 }}>
+                    Attached: {installs.map((i) => `${i.account_login} (#${i.installation_id})`).join(", ")}
+                  </p>
+                )}
                 <form action={mapGithubRepo} className="row" style={{ gap: 8, flexWrap: "wrap" }}>
-                  <input name="installationId" placeholder="Installation id" required className="mono" style={{ minWidth: 140 }} />
+                  <input name="installationId" placeholder="Installation id" required className="mono" style={{ minWidth: 140 }} defaultValue={String(installs[0]?.installation_id ?? "")} />
                   <input name="repo" placeholder="org/repo" required className="mono" style={{ minWidth: 160 }} />
                   <input type="hidden" name="unitId" value={viewer.team.id} />
                   <button className="b sm" type="submit">Map to {viewer.team.name}</button>

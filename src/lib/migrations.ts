@@ -609,9 +609,16 @@ create table github_repo_map (
   installation_id text not null references github_installation(installation_id) on delete cascade,
   repo_full_name text not null,
   unit_id text not null references unit(id) on delete cascade,
-  unique (org_id, repo_full_name)
+  unique (org_id, installation_id, repo_full_name)
 );
-create index github_repo_map_repo_idx on github_repo_map (lower(repo_full_name));
+create index github_repo_map_repo_idx on github_repo_map (installation_id, lower(repo_full_name));
+
+-- Repos this installation is allowed to map (from App API or installation webhooks).
+create table github_installation_repo (
+  installation_id text not null references github_installation(installation_id) on delete cascade,
+  repo_full_name text not null,
+  primary key (installation_id, repo_full_name)
+);
 `,
   },
   {
