@@ -350,3 +350,65 @@ export async function draftFromSession(s: SessionInput): Promise<{ items: { kind
   if (blocked) items.push({ kind: "risk", text: off.shorten(blocked, 200) });
   return { items, by: "Offline writer" };
 }
+
+const CONTEXT_SCHEMA = {
+  type: "object",
+  additionalProperties: false,
+  required: ["claims"],
+  properties: {
+    claims: {
+      type: "array",
+      items: {
+        type: "object",
+        additionalProperties: false,
+        required: ["kind", "title", "body"],
+        properties: {
+          kind: { type: "string", enum: ["about", "responsibility", "capability", "how_to_work", "knows", "system"] },
+          title: { type: "string" },
+          body: { type: "string" },
+        },
+      },
+    },
+  },
+};
+
+export interface ExtractInput {
+  teamName: string;
+  /** answer, agent_chat, update, pr, coding_session, meeting, source_doc, slack */
+  kind: string;
+  text: string;
+  /** For an answer: the question it answers. */
+  question?: string;
+  /** For a pull request: the repository. */
+  repo?: string;
+  /** Titles Beacon already knows for this team, so the model reuses them instead of rephrasing. */
+  known: string[];
+}
+
+/**
+ * Lasting facts about a team in its own words: what it owns, runs, can help with, knows and how to
+ * ask it. Never time-bound status, never anything about people's performance, at most five.
+ */
+export async function extractContext(input: ExtractInput): Promise<{ claims: off.ContextClaim[]; by: string }> {
+  const llm = getLLM();
+  const out = await llm.json<{ claims: off.ContextClaim[] }>("extract_context", {
+    system:
+      `You maintain Beacon's picture of the ${input.teamName} team so other teams can understand it. From one piece of the team's own ` +
+      "activity, extract lasting facts other teams would want to know: what the team owns (responsibility), systems it runs (system), " +
+      "what it can help with (capability), what it knows how to do (knows), how to work with it (how_to_work), or what it is (about). " +
+      "Only what the text states or a team member clearly says. Skip time-bound status, dates, opinions and anything about individuals' " +
+      "performance. Reuse a known title when the fact is the same. Titles are short noun phrases; bodies are one plain sentence. " +
+      "Return an empty list when there is nothing lasting. At most five.",
+    prompt:
+      `Source: ${input.kind}${input.repo ? ` in ${input.repo}` : ""}\n` +
+      (input.question ? `Question it answers: ${input.question}\n` : "") +
+      `Text:\n${input.text}\n\nKnown titles:\n${input.known.slice(0, 40).map((t) => `- ${t}`).join("\n") || "(none yet)"}`,
+    schema: CONTEXT_SCHEMA,
+    maxTokens: 1500,
+  });
+  if (out && Array.isArray(out.claims)) {
+    const claims = out.claims.filter((c) => c && typeof c.title === "string" && c.title.trim()).slice(0, 5);
+    return { claims, by: llm.name };
+  }
+  return { claims: off.extractContext(input), by: "Offline writer" };
+}

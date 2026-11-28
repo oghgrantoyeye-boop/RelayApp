@@ -142,3 +142,37 @@ export function rank(question: string, docs: Doc[]): { doc: Doc; score: number }
 export function asksForDate(question: string): boolean {
   return /^\s*(when|by when|what date|what's the date|eta|how soon)\b/i.test(question) || /\b(eta|land|ship|ready|done)\b.*\?\s*$/i.test(question) && /\bwhen\b/i.test(question);
 }
+
+export type ContextKind = "about" | "responsibility" | "capability" | "how_to_work" | "knows" | "system";
+export interface ContextClaim {
+  kind: ContextKind;
+  title: string;
+  body: string;
+}
+
+const tidy = (s: string, max = 80) => capitalize(shorten(s.replace(/[.!?]+$/, "").trim(), max));
+
+/**
+ * Lasting facts about a team in a piece of its own text: what it owns, runs, can help with, knows,
+ * and how to ask it. Time-bound status ("lands Dec 9") is left to updates and answers.
+ */
+export function extractContext(input: { kind: string; text: string; question?: string; repo?: string }): ContextClaim[] {
+  const out: ContextClaim[] = [];
+  const add = (c: ContextClaim) => {
+    if (c.title.length >= 3 && !out.some((o) => o.kind === c.kind && jaccard(tokens(o.title), tokens(c.title)) >= 0.5)) out.push(c);
+  };
+  for (const s of sentences(input.text)) {
+    let m: RegExpMatchArray | null;
+    if ((m = s.match(/\bwe (?:own|are responsible for|look after|are the owners? of)\s+(.+)$/i))) add({ kind: "responsibility", title: tidy(m[1]), body: s });
+    else if ((m = s.match(/\bwe (?:run|operate|host|maintain)\s+(.+)$/i))) add({ kind: "system", title: tidy(m[1]), body: s });
+    else if ((m = s.match(/\b(?:we can help (?:you )?with|happy to help with|we can help by)\s+(.+)$/i))) add({ kind: "capability", title: tidy(m[1]), body: s });
+    else if (/\b(ask (?:us )?in #[\w-]+|post in #[\w-]+|file a ticket|page (?:the )?on-call|book (?:a|an) .+ in #[\w-]+|best way to (?:reach|ask) us)\b/i.test(s))
+      add({ kind: "how_to_work", title: tidy(s, 90), body: s });
+  }
+  if (input.kind === "answer" && input.question) {
+    const q = input.question.replace(/\?+\s*$/, "").trim();
+    add({ kind: "knows", title: tidy(q, 90), body: shorten(firstSentence(input.text), 200) });
+  }
+  if (input.kind === "pr" && input.repo) add({ kind: "system", title: input.repo, body: `Recent work: ${shorten(firstSentence(input.text), 160)}` });
+  return out.slice(0, 5);
+}
