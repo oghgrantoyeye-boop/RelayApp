@@ -9,7 +9,7 @@ import { deliver } from "./deliver";
 import { COMMITMENT_SELECT } from "./data";
 import { canSeeDerived, deriveMarkings, PermissionError, visibleLevel, type Level } from "./permissions";
 import { showCommitment, showContext, showRequest, showSource, showUpdateItem, KIND_LABEL } from "./render";
-import { answerFromPublished, confidentOwnership, routeQuestion, writeLevels, type Clarify } from "./ai/tasks";
+import { answerFromPublished, confidentOwnership, routeQuestion, type Clarify } from "./ai/tasks";
 import { jaccard, overlap, tokens, type Doc } from "./ai/offline";
 import { notifyCommitmentChange } from "./commitments";
 import { learnQuietly } from "./context-learn";
@@ -514,12 +514,16 @@ async function clusterRequests(db: Db, viewer: Viewer, key: string): Promise<Row
   return reqs;
 }
 
-/** Answer once: the reply goes to everyone who asked. Optionally publish it so the agent can answer next time. */
+/**
+ * Answer once: the reply goes to everyone who asked and stays private to them. Beacon learns the
+ * general fact for the team's page from it, so the agent can answer next time without anyone
+ * publishing anything; what it learned is shown to the answerer to confirm, fix or drop.
+ */
 export async function answerCluster(
   db: Db,
   viewer: Viewer,
   key: string,
-  input: { answer: string; publish?: boolean; publishLevel?: Level; commitDue?: string },
+  input: { answer: string; commitDue?: string },
 ) {
   const answer = input.answer.trim();
   if (!answer) throw new Error("Write an answer first.");
@@ -539,7 +543,7 @@ export async function answerCluster(
   });
   await audit(db, { orgId: viewer.orgId, actorId: viewer.user.id, action: "answer_request", targetKind: "request", targetId: reqs[0].id, detail: { cluster: key, recipients: askers.length } });
   // What the team says when it answers is the best evidence of what it knows and how it works.
-  await learnQuietly(db, {
+  const learned = await learnQuietly(db, {
     unitId,
     kind: "answer",
     ref: reqs[0].id,
@@ -549,21 +553,6 @@ export async function answerCluster(
     markingIds: [...new Set(reqs.map((r) => r.marking_id).filter(Boolean))] as string[],
     actorId: viewer.user.id,
   });
-
-  let publishedId: string | null = null;
-  if (input.publish) {
-    const marking = reqs.find((r) => r.marking_id)?.marking_id ?? null;
-    const text = `${reqs[0].title.replace(/\?*$/, "?")} ${answer}`;
-    const { summary, headline } = await writeLevels(text, `An answer from ${reqs[0].to_name} to a common question.`, { answer });
-    publishedId = newId("ui");
-    await db.query(
-      `insert into update_item (id, unit_id, author_id, kind, text, summary_text, headline_text, affected_unit_ids, marking_id, max_level, status, source_kind, source_ref, created_at, published_at)
-       values ($1, $2, $3, 'answer', $4, $5, $6, $7, $8, $9, 'published', 'answer', $10, $11, $11)`,
-      [publishedId, unitId, viewer.user.id, text, summary, headline, [...new Set(reqs.map((r) => r.from_unit_id))], marking,
-        input.publishLevel && input.publishLevel !== "full" ? input.publishLevel : null, reqs[0].id, now()],
-    );
-    await audit(db, { orgId: viewer.orgId, actorId: viewer.user.id, action: "publish_answer", targetKind: "update_item", targetId: publishedId, detail: { cap: input.publishLevel ?? null } });
-  }
 
   let commitmentId: string | null = null;
   if (input.commitDue) {
@@ -577,7 +566,7 @@ export async function answerCluster(
     await audit(db, { orgId: viewer.orgId, actorId: viewer.user.id, action: "accept_request", targetKind: "commitment", targetId: commitmentId, detail: { due: input.commitDue } });
     await notifyCommitmentChange(db, commitmentId, (shown) => ({ subject: `${reqs[0].to_name} committed to ${fmt(input.commitDue!)}`, body: `${shown.title}, due ${fmt(input.commitDue!)}.` }));
   }
-  return { recipients: askers.length, publishedId, commitmentId };
+  return { recipients: askers.length, requestId: reqs[0].id, learned: learned ? [...new Set([...learned.created, ...learned.merged])] : [], commitmentId };
 }
 
 export async function declineCluster(db: Db, viewer: Viewer, key: string, reason: string) {
