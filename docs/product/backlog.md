@@ -86,6 +86,7 @@ No pull requests per task: both lanes commit straight to the default branch,
 | `SLACK_CLIENT_ID`, `SLACK_CLIENT_SECRET`, `SLACK_SIGNING_SECRET` | The Slack app (T-40 to T-43). | New |
 | `GITHUB_APP_ID`, `GITHUB_APP_PRIVATE_KEY`, `GITHUB_APP_WEBHOOK_SECRET` | The GitHub App (T-44). | New |
 | `AUTH_SECRET`, `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `MICROSOFT_CLIENT_ID`, `MICROSOFT_CLIENT_SECRET`, `EMAIL_SERVER` | Sign-in (T-31). | New |
+| `BEACON_ADMIN_EMAILS` | Comma-separated emails that can sign in without approval and approve early-access leads (T-36). | New |
 | `ENCRYPTION_KEY` | Encrypts stored Slack and GitHub tokens (T-40, T-44). | New |
 
 The model adapter supports Claude only. An OpenAI key would need a second provider in
@@ -205,6 +206,19 @@ The model adapter supports Claude only. An OpenAI key would need a second provid
 - [x] **T-31 Sign-in.** Mock: M1. Google, Microsoft and email magic links (env vars above), a
   `session` table, membership in several workspaces, and the workspace chooser. The persona
   switcher stays only inside sample workspaces. Depends: T-30. M. (Cursor)
+- [ ] **T-36 Gate account creation behind early access.** Do this next, before T-32 continues.
+  Today `upsertAccount` (`src/lib/auth/accounts.ts`) creates an account for any email that signs in
+  with Google, Microsoft or a magic link. Change it so a new account is created only when the email
+  is approved: a `lead` row with `status = 'approved'` (add `status` pending/approved/declined,
+  `approved_at`, `approved_by` to `lead` in a new migration), a pending workspace invite (T-33), or
+  an email in `BEACON_ADMIN_EMAILS`. Anyone else who signs in gets no account and no session: save
+  them as a lead (source `signin`) if they aren't one, and send them to `/signin/waitlist`, which
+  says "You're on the early access list. We'll email you when your workspace is ready." Existing
+  accounts keep signing in. Sample workspaces stay open to everyone without an account. Admin
+  approval: `/admin/early-access`, visible only to accounts whose email is in `BEACON_ADMIN_EMAILS`,
+  lists leads newest first with Approve and Decline, and approving writes an audit event. Tests:
+  an unapproved email gets no account through all three sign-in paths, an approved one does, an
+  existing account still signs in, a non-admin gets a 404 on the admin page. Depends: T-31. S. (Cursor)
 - [~] **T-32 Sample workspaces side by side.** Mock: M1. Each demo pack seeds its own workspace;
   Reset resets only that one; no more truncating every table. Depends: T-30. M. (Cursor)
 - [ ] **T-33 Create a workspace and invite people.** Mock: M1, M6. Create, invite by email, create
