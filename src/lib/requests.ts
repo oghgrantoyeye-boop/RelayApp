@@ -5,7 +5,7 @@
 // in every team-queue query while it is awaiting the team, needs the asker's input or has gone
 // unresolved. Every change of what the asker sees is written to the audit log as request_status.
 import type { Db, Row } from "./db";
-import { fmt, now } from "./clock";
+import { fmt, fmtDateTime, now } from "./clock";
 import { audit, type Viewer } from "./data";
 import { deliver } from "./deliver";
 import { PermissionError } from "./permissions";
@@ -92,7 +92,7 @@ export async function sweepUnresolved(db: Db, orgId: string): Promise<string[]> 
       kind: "request_unresolved",
       subject: `No reply from ${r.to_name} yet`,
       body: `You asked on ${fmt(r.created_at)}: ${r.title}\n\nNo one has answered in ${UNRESOLVED_AFTER_BUSINESS_DAYS} business days. You can send it to the team lead or ask again.`,
-      refs: [{ type: "request", id: r.id, href: "/questions" }],
+      refs: [{ type: "request", id: r.id, href: `/questions?open=${r.id}` }],
     });
     marked.push(r.id);
   }
@@ -181,4 +181,143 @@ export async function askAgain(db: Db, viewer: Viewer, id: string) {
     body: `${r.title}\n\nAsked ${fmt(r.created_at)}, no reply yet.`,
     refs: [{ type: "request", id, href: r.destination === "team_queue" ? "/asks?tab=team" : "/asks" }],
   });
+}
+
+// ---- My questions (T-26) ----
+
+export type MyState = RequestState | "agent_answered" | "clarify";
+
+export const MY_STATE: Record<MyState, { label: string; tone: "green" | "amber" | "red" | "blue" | "violet" | "gray" }> = {
+  awaiting_team: { label: "Awaiting the team", tone: "amber" },
+  needs_info: { label: "Needs your input", tone: "violet" },
+  clarify: { label: "Needs your input", tone: "violet" },
+  answered: { label: "Answered", tone: "green" },
+  agent_answered: { label: "Answered by the agent", tone: "green" },
+  resolved: { label: "Resolved", tone: "green" },
+  declined: { label: "Declined", tone: "gray" },
+  unresolved: { label: `No reply in ${UNRESOLVED_AFTER_BUSINESS_DAYS} days`, tone: "red" },
+};
+
+export interface Step {
+  label: string;
+  sub: string;
+  done: boolean;
+}
+
+export interface MyQuestion {
+  /** The request id when it was routed to people, otherwise the question id. */
+  key: string;
+  requestId: string | null;
+  questionId: string | null;
+  text: string;
+  unitId: string;
+  slug: string;
+  team: string;
+  /** Where it went, for the table: "Platform's queue", "Aisha Bello, Platform", "the Platform agent". */
+  wentTo: string;
+  /** Why it went there, in the router's words. */
+  why: string | null;
+  state: MyState;
+  lastChange: Date;
+  steps: Step[];
+  reply: { by: string; text: string } | null;
+  /** What the team or Beacon asked the asker, while it waits on them. */
+  ask: string | null;
+  clarifyOptions: string[];
+}
+
+const latest = (...vals: unknown[]) => new Date(Math.max(...vals.map(time)));
+
+/**
+ * Everything the viewer asked, newest change first: requests routed to people (from the agent or
+ * the form) and questions the agent answered itself. Only the asker's own questions are listed.
+ */
+export async function myQuestions(db: Db, viewer: Viewer): Promise<MyQuestion[]> {
+  const me = viewer.user.id;
+  const reqs = await db.query(
+    `select r.*, tu.name as to_name, tu.slug as to_slug, ow.name as owner_name, cl.name as claimer_name, ab.name as answerer_name,
+            q.id as qid, q.parent_id as q_parent
+       from request r join unit tu on tu.id = r.to_unit_id
+       left join member om on om.id = r.assignee_member_id left join app_user ow on ow.id = om.user_id
+       left join app_user cl on cl.id = r.claimed_by left join app_user ab on ab.id = r.answered_by
+       left join question q on q.request_id = r.id
+      where r.requester_id = $1 and r.org_id = $2`,
+    [me, viewer.orgId],
+  );
+  const qs = await db.query(
+    `select q.*, u.name as unit_name, u.slug as unit_slug,
+            exists (select 1 from question c where c.parent_id = q.id) as has_follow_up
+       from question q join unit u on u.id = q.unit_id
+      where q.asker_id = $1 and q.org_id = $2 and q.request_id is null`,
+    [me, viewer.orgId],
+  );
+  const out: MyQuestion[] = [];
+
+  for (const r of reqs) {
+    const state = requestState(r);
+    const queue = r.destination === "team_queue";
+    const steps: Step[] = [{ label: "Asked", sub: fmtDateTimeShort(r.created_at), done: true }];
+    const clarified = r.q_parent ? /\(([^()]+)\)\s*$/.exec(r.title)?.[1] ?? null : null;
+    if (clarified) steps.push({ label: "Clarified", sub: clarified, done: true });
+    steps.push(
+      queue
+        ? { label: `In ${r.to_name}'s queue`, sub: "No single owner", done: true }
+        : { label: `Sent to ${r.owner_name ?? r.to_name}`, sub: r.to_name, done: true },
+    );
+    if (r.claimed_by) steps.push({ label: `${(r.claimer_name as string).split(" ")[0]} picked it up`, sub: fmtDateTimeShort(r.claimed_at), done: true });
+    if (r.detail_asked_at) steps.push({ label: "Asked you for detail", sub: fmtDateTimeShort(r.detail_asked_at), done: true });
+    if (r.detail_replied_at) steps.push({ label: "You replied", sub: fmtDateTimeShort(r.detail_replied_at), done: true });
+    if (r.escalated_at) steps.push({ label: "Sent to the lead", sub: fmtDateTimeShort(r.escalated_at), done: true });
+    if (state === "unresolved") steps.push({ label: `No reply in ${UNRESOLVED_AFTER_BUSINESS_DAYS} days`, sub: fmtDateTimeShort(r.unresolved_at), done: true });
+    if (state === "declined") steps.push({ label: "Declined", sub: fmtDateTimeShort(r.answered_at), done: true });
+    else steps.push({ label: "Answered", sub: r.answered_at ? fmtDateTimeShort(r.answered_at) : "Not yet", done: !!r.answered_at });
+    if (state === "resolved") steps.push({ label: "Resolved", sub: fmtDateTimeShort(r.resolved_at), done: true });
+
+    out.push({
+      key: r.id,
+      requestId: r.id,
+      questionId: r.qid ?? null,
+      text: r.title,
+      unitId: r.to_unit_id,
+      slug: r.to_slug,
+      team: r.to_name,
+      wentTo: queue ? `${r.to_name}'s queue` : `${r.owner_name ?? "The team"}, ${r.to_name}`,
+      why: r.route_reason ?? null,
+      state,
+      lastChange: latest(r.created_at, r.claimed_at, r.detail_asked_at, r.detail_replied_at, r.unresolved_at, r.asked_again_at, r.escalated_at, r.answered_at, r.resolved_at),
+      steps,
+      reply: r.answer_text && (state === "answered" || state === "resolved" || state === "declined") ? { by: `${r.answerer_name ?? "The team"}, ${r.to_name}`, text: r.answer_text } : null,
+      ask: state === "needs_info" ? r.detail_question : null,
+      clarifyOptions: [],
+    });
+  }
+
+  for (const q of qs) {
+    if (q.outcome === "clarify" && q.has_follow_up) continue; // the follow-up is listed instead
+    const clarify = q.outcome === "clarify";
+    out.push({
+      key: q.id,
+      requestId: null,
+      questionId: q.id,
+      text: q.text,
+      unitId: q.unit_id,
+      slug: q.unit_slug,
+      team: q.unit_name,
+      wentTo: `The ${q.unit_name} agent`,
+      why: null,
+      state: clarify ? "clarify" : "agent_answered",
+      lastChange: new Date(q.created_at),
+      steps: clarify
+        ? [{ label: "Asked", sub: fmtDateTimeShort(q.created_at), done: true }, { label: "Beacon asked what you meant", sub: "Waiting for you", done: true }]
+        : [{ label: "Asked", sub: fmtDateTimeShort(q.created_at), done: true }, { label: `Answered by the ${q.unit_name} agent`, sub: fmtDateTimeShort(q.created_at), done: true }],
+      reply: clarify ? null : { by: `The ${q.unit_name} agent`, text: q.answer_text },
+      ask: clarify ? (q.clarify?.question ?? q.answer_text) : null,
+      clarifyOptions: clarify ? (q.clarify?.options ?? []) : [],
+    });
+  }
+  return out.sort((a, b) => b.lastChange.getTime() - a.lastChange.getTime());
+}
+
+function fmtDateTimeShort(v: unknown): string {
+  return v ? fmtDateTime(new Date(v as string)) : "";
 }

@@ -424,3 +424,43 @@ export async function createAgentAction(form: FormData) {
     return withMsg(`/messages?with=${id}`, "Your new teammate is ready. Say hello, or give it its first job.");
   });
 }
+
+/** My questions (T-26): the asker's buttons. Each library call re-checks that the viewer asked it. */
+export async function myQuestionAction(form: FormData) {
+  const key = str(form, "key");
+  const here = `/questions?open=${encodeURIComponent(key)}`;
+  return run(here, async () => {
+    const { db, viewer } = await currentViewer();
+    const lib = await import("@/lib/requests");
+    const op = str(form, "op");
+    if (op === "resolve") {
+      await lib.resolveRequest(db, viewer, key);
+      return withMsg(here, "Marked as answered. Thanks for closing the loop.");
+    }
+    if (op === "reply") {
+      await lib.replyWithDetail(db, viewer, key, str(form, "reply"));
+      return withMsg(here, "Sent. It's back with the team.");
+    }
+    if (op === "lead") {
+      const { lead } = await lib.sendToLead(db, viewer, key);
+      return withMsg(here, `Sent to ${lead}, who was told now.`);
+    }
+    if (op === "again") {
+      await lib.askAgain(db, viewer, key);
+      return withMsg(here, "Asked again. The team was reminded.");
+    }
+    if (op === "clarify" || op === "followup") {
+      const { askTeam, continueQuestion } = await import("@/lib/agent");
+      const text = str(form, op === "clarify" ? "reply" : "question");
+      const questionId = str(form, "questionId");
+      if (!text) throw new Error(op === "clarify" ? "Pick or write what you meant." : "Write your follow-up first.");
+      const r = op === "clarify"
+        ? await continueQuestion(db, viewer, questionId, text)
+        : await askTeam(db, viewer, str(form, "unitId"), text, questionId ? { parentId: questionId } : {});
+      const asked = await db.one(`select request_id, outcome from question where id = $1`, [r.questionId]);
+      const msg = asked?.outcome === "answered" ? "The agent answered it." : asked?.outcome === "clarify" ? "Beacon needs one more detail." : "Sent to the team. Track it here.";
+      return withMsg(`/questions?open=${encodeURIComponent(asked?.request_id ?? r.questionId)}`, msg);
+    }
+    throw new Error("Unknown action.");
+  });
+}

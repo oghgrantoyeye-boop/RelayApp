@@ -251,7 +251,7 @@ async function replyForQuestion(db: Db, viewer: Viewer, questionId: string, via:
   const actions = req && req.urgency !== "blocking"
     ? [action("nudge", `Ask ${String(req.assignee).split(" ")[0]} to look sooner`, `Marks your question blocking and notifies ${req.assignee} now instead of in their next batch.`, { requestId: req.id })]
     : [];
-  return { text: `${via}${q.question.answer_text}`, refs: [...refs, { label: "Your asks", href: "/asks" }], actions, answer: q.gaps.length ? { claims: [], gaps: q.gaps } : undefined };
+  return { text: `${via}${q.question.answer_text}`, refs: [...refs, { label: "Track it in My questions", href: `/questions?open=${encodeURIComponent(q.question.request_id ?? questionId)}` }], actions, answer: q.gaps.length ? { claims: [], gaps: q.gaps } : undefined };
 }
 
 /**

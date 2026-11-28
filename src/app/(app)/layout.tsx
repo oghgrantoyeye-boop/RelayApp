@@ -68,6 +68,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
             <NavLink href="/guide"><Icon name="spark" />Demo guide</NavLink>
             {workersEnabled() && <a href="/agents/new" className="b bp sm nv-new"><Icon name="agent" />New teammate</a>}
             <NavLink href="/messages"><Icon name="chat" />Ask Beacon</NavLink>
+            <NavLink href="/questions"><Icon name="chat" />My questions</NavLink>
             <NavLink href="/directory"><Icon name="directory" />Teams</NavLink>
             <NavLink href="/asks">
               <Icon name="asks" />Asks for you{asks!.n > 0 && <span className="count hot">{asks!.n}</span>}
