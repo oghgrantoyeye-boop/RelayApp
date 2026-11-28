@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { notFound } from "next/navigation";
 import { cookies } from "next/headers";
 import { getDb } from "@/lib/db";
 import { accountFromSession, SESSION_COOKIE } from "@/lib/auth/accounts";
@@ -10,7 +11,7 @@ async function requireAdmin() {
   const db = await getDb();
   const jar = await cookies();
   const account = await accountFromSession(db, jar.get(SESSION_COOKIE)?.value);
-  if (!account || !isAdminEmail(account.email)) throw new Error("Not allowed");
+  if (!account || !isAdminEmail(account.email)) notFound();
   return { db, account };
 }
 

@@ -3,9 +3,10 @@ import { beforeEach, describe, expect, it } from "vitest";
 import { openDb, migrate, type Db } from "@/lib/db";
 import { seed } from "@/lib/seed";
 import { setNow } from "@/lib/clock";
-import { upsertAccount, createSession, accountFromSession } from "@/lib/auth/accounts";
+import { upsertAccount, createSession, accountFromSession, UnverifiedEmailError } from "@/lib/auth/accounts";
 import { requestMagicLink, consumeMagicLink } from "@/lib/auth/magic";
 import { EarlyAccessError, isAdminEmail, listLeads, setLeadStatus } from "@/lib/auth/early-access";
+import { decodeJwtPayload } from "@/lib/auth/oauth";
 import { newId } from "@/lib/data";
 
 describe("early access gate", () => {
@@ -71,5 +72,44 @@ describe("early access gate", () => {
     await db.query(`insert into lead (id, email, status) values ($1, $2, 'approved')`, [newId("ld"), "member@example.com"]);
     const outsider = await upsertAccount(db, { email: "member@example.com", name: "Member" });
     await expect(setLeadStatus(db, lead.id, "declined", outsider)).rejects.toThrow(/early-access admins/i);
+  });
+
+  it("refuses unverified provider emails that match an admin or an existing account", async () => {
+    const admin = await upsertAccount(db, { email: "admin@beacon.test", name: "Admin" });
+    await expect(
+      upsertAccount(db, { email: "admin@beacon.test", name: "Attacker", googleSub: "g-evil", emailVerified: false }),
+    ).rejects.toBeInstanceOf(UnverifiedEmailError);
+    expect(await db.one(`select id from account where google_sub = 'g-evil'`)).toBeNull();
+
+    await db.query(`insert into lead (id, email, status, source) values ($1, $2, 'approved', 'test')`, [newId("ld"), "taken@example.com"]);
+    const victim = await upsertAccount(db, { email: "taken@example.com", name: "Victim", googleSub: "g-victim" });
+    await expect(
+      upsertAccount(db, { email: "taken@example.com", name: "Thief", microsoftSub: "m-thief", emailVerified: false }),
+    ).rejects.toBeInstanceOf(UnverifiedEmailError);
+    expect(await db.one(`select id from account where microsoft_sub = 'm-thief'`)).toBeNull();
+    expect((await db.one(`select * from account where id = $1`, [victim.id]))?.google_sub).toBe("g-victim");
+    expect(admin.id).toBeTruthy();
+
+    // Same Microsoft sub can still sign in without re-verifying email for linking.
+    const ms = await upsertAccount(db, {
+      email: "admin@beacon.test",
+      name: "Admin",
+      microsoftSub: "m-admin",
+      emailVerified: true,
+    });
+    const again = await upsertAccount(db, {
+      email: "spoofed@evil.test",
+      name: "Admin",
+      microsoftSub: "m-admin",
+      emailVerified: false,
+    });
+    expect(again.id).toBe(ms.id);
+    expect(again.email).toBe("admin@beacon.test");
+  });
+
+  it("reads Microsoft ID-token verification from xms_edov", () => {
+    const payload = Buffer.from(JSON.stringify({ email: "a@b.com", xms_edov: true }), "utf8").toString("base64url");
+    const jwt = `hdr.${payload}.sig`;
+    expect(decodeJwtPayload(jwt)).toMatchObject({ email: "a@b.com", xms_edov: true });
   });
 });

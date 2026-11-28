@@ -7,17 +7,34 @@ import { canCreateAccount, EarlyAccessError, recordSignInLead } from "./early-ac
 export const SESSION_COOKIE = "beacon_session";
 const SESSION_DAYS = 30;
 
+export class UnverifiedEmailError extends Error {
+  constructor() {
+    super("unverified_email");
+    this.name = "UnverifiedEmailError";
+  }
+}
+
 export async function upsertAccount(
   db: Db,
-  input: { email: string; name?: string; googleSub?: string; microsoftSub?: string },
+  input: {
+    email: string;
+    name?: string;
+    googleSub?: string;
+    microsoftSub?: string;
+    /** False when the IdP did not verify the address. Defaults to true for magic-link / trusted callers. */
+    emailVerified?: boolean;
+  },
 ): Promise<Row> {
   const email = input.email.trim().toLowerCase();
   if (!email.includes("@")) throw new Error("A valid email is required");
+  const emailVerified = input.emailVerified !== false;
   let account: Row | null = null;
   if (input.googleSub) account = await db.one(`select * from account where google_sub = $1`, [input.googleSub]);
   if (!account && input.microsoftSub) account = await db.one(`select * from account where microsoft_sub = $1`, [input.microsoftSub]);
-  if (!account) account = await db.one(`select * from account where email = $1`, [email]);
+  // Never link (or grant admin) by an address the provider has not verified.
+  if (!account && emailVerified) account = await db.one(`select * from account where email = $1`, [email]);
   if (!account) {
+    if (!emailVerified) throw new UnverifiedEmailError();
     // New accounts need early access: an approved lead, a pending invite (T-33), or an admin email.
     if (!(await canCreateAccount(db, email))) {
       await recordSignInLead(db, email, input.name);
@@ -34,9 +51,9 @@ export async function upsertAccount(
       `update account set name = coalesce(nullif($2, ''), name),
         google_sub = coalesce($3, google_sub),
         microsoft_sub = coalesce($4, microsoft_sub),
-        email = $5
+        email = case when $6 then $5 else email end
        where id = $1`,
-      [account.id, input.name?.trim() ?? "", input.googleSub ?? null, input.microsoftSub ?? null, email],
+      [account.id, input.name?.trim() ?? "", input.googleSub ?? null, input.microsoftSub ?? null, email, emailVerified],
     );
     account = (await db.one(`select * from account where id = $1`, [account.id]))!;
   }
