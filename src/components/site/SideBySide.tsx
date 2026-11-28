@@ -17,9 +17,8 @@ const PEOPLE = [
 ];
 
 const GUARDS = [
-  { t: "Never more than you can see", d: "An agent answering you reads only what you're allowed to read." },
-  { t: "Sources on every point", d: "Confirmed, learned, seen in a tool or inferred, with a date and a link." },
   { t: "Private answers stay private", d: "A reply goes to the people who asked. Only the general fact becomes team context." },
+  { t: "People approve ownership claims", d: "Anything about what the team owns or can take on waits for one teammate." },
   { t: "Every read on the record", d: "Each read and answer is logged, with the person the agent acted for." },
 ];
 
@@ -44,10 +43,10 @@ export function SideBySide() {
     <section className="section band" id="agents" aria-labelledby="agents-title">
       <div className="wrap">
         <Reveal className="section-head">
-          <span className="eyebrow">People and agents</span>
+          <span className="eyebrow">Agents</span>
           <h2 id="agents-title" className="h2">The team&apos;s agent answers. The team&apos;s people decide.</h2>
           <p className="lede">
-            Every team has an agent as its first point of contact. People on the team stay in charge of what gets said on its behalf.
+            Every team has an agent as its first point of contact. People stay in charge of what gets said on the team&apos;s behalf.
           </p>
         </Reveal>
         <div className="sbs">

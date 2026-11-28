@@ -99,19 +99,19 @@ const CASES = [
 export default function Home() {
   return (
     <>
-      {/* Hero */}
+      {/* Hero: brand + one pitch. Detail lives in the sections below. */}
       <section className="hero">
         <Topography />
         <div className="wrap">
           <div className="hero-copy">
-            <span className="eyebrow">Team context, answers and routing</span>
+            <span className="eyebrow">Beacon</span>
             <h1 className="h1">
               Know what every team does.
               <span className="second">Ask the ones who know.</span>
             </h1>
             <p className="lede">
-              Beacon learns what each team does, owns and knows from its conversations and work. Every team gets an agent that answers
-              questions with sources and sends the rest to the right person, so nobody has to chase contacts or keep a profile up to date.
+              Beacon builds a living picture of each team from its work, answers questions with sources, and sends what it can&apos;t
+              answer to someone who can.
             </p>
             <div className="hero-ctas">
               <Link className="btn btn-primary" href="/early-access">Request early access <Arrow /></Link>
@@ -135,8 +135,7 @@ export default function Home() {
             <p>Every department has its own systems, priorities and workflows.</p>
             <p>Product lives in roadmaps. Engineering lives in code and tickets. Sales lives in the CRM. Operations lives in its own processes.</p>
             <p>But most questions are about another team. Who owns this? Can they help? Is this still true? How do they want to be asked?</p>
-            <p>Today the answer means searching docs, scanning channels and messaging whoever might know, and still not being sure it&apos;s current.</p>
-            <p className="pull">Beacon gives every team a picture others can understand, and a way to ask it.</p>
+            <p className="pull">Today that means searching docs, scanning channels and messaging whoever might know — and still not being sure it&apos;s current.</p>
           </Reveal>
           <Reveal delay={120}>
             <GapVisual />
@@ -146,17 +145,17 @@ export default function Home() {
 
       <div className="wrap"><div className="divider" /></div>
 
-      {/* What Beacon does */}
+      {/* Product (#product): three capabilities. */}
       <section className="section" id="product" aria-labelledby="product-title">
         <div className="wrap">
           <Reveal className="section-head">
-            <span className="eyebrow">What Beacon does</span>
-            <h2 id="product-title" className="h2">Understand any team, get a sourced answer, reach the right person.</h2>
+            <span className="eyebrow">Product</span>
+            <h2 id="product-title" className="h2">Three things Beacon does for every team.</h2>
           </Reveal>
           <div className="pillars">
             {[
-              { n: "01", k: "Team context", t: "Learned, not maintained.", p: "Beacon builds each team's picture from its conversations, answers and work: what it owns, knows, runs and how to ask it. Teams only fix what's wrong.", g: "context" as const },
-              { n: "02", k: "Grounded answers", t: "Every point shows its source.", p: "Each team's agent answers from that picture, at your level of access, and says whether a point was confirmed, learned, seen in a tool or inferred.", g: "coordinate" as const },
+              { n: "01", k: "Team context", t: "Learned, not maintained.", p: "Each team's picture comes from its conversations, answers and work: what it owns, knows, runs and how to ask it. Teams only fix what's wrong.", g: "context" as const },
+              { n: "02", k: "Grounded answers", t: "Every point shows its source.", p: "The team's agent answers from that picture, at your level of access, and tags each point as confirmed, learned, seen in a tool or inferred.", g: "coordinate" as const },
               { n: "03", k: "Routing", t: "The rest reaches someone who knows.", p: "What the agent can't answer goes to the owner or the team's queue. You see where it went, and the answer comes back to you.", g: "execute" as const },
             ].map((x, i) => (
               <Reveal key={x.n} className="pillar" delay={i * 90}>
@@ -174,16 +173,15 @@ export default function Home() {
 
       <Integrations />
 
-      {/* How it works */}
+      {/* How it works (#how-it-works): one scenario, step by step. */}
       <section className="section" id="how-it-works" aria-labelledby="flow-title">
         <div className="wrap flow">
           <div className="flow-sticky">
             <span className="eyebrow">How it works</span>
-            <h2 id="flow-title" className="h2" style={{ marginTop: 16 }}>From a question to an answer you can trust.</h2>
+            <h2 id="flow-title" className="h2" style={{ marginTop: 16 }}>One question, from ask to answer.</h2>
             <p className="lede" style={{ marginTop: 18 }}>
-              Follow one question from Product to the Platform team and back, and see what Beacon keeps from the answer.
+              Follow a real cross-team question through Beacon. Illustrative scenario.
             </p>
-            <p className="muted" style={{ fontSize: 13.5, marginTop: 14 }}>Illustrative scenario.</p>
           </div>
           <StepBeam count={STEPS.length}>
             {STEPS.map((s, i) => (
@@ -202,11 +200,11 @@ export default function Home() {
 
       <div className="wrap"><div className="divider" /></div>
 
-      {/* Who it's for */}
+      {/* Use cases (#use-cases) */}
       <section className="section" id="use-cases" aria-labelledby="cases-title">
         <div className="wrap">
           <Reveal className="section-head">
-            <span className="eyebrow">Who it&apos;s for</span>
+            <span className="eyebrow">Use cases</span>
             <h2 id="cases-title" className="h2">For anyone who needs something from another team.</h2>
           </Reveal>
           <div className="cases">
@@ -255,7 +253,7 @@ export default function Home() {
         <div className="wrap" style={{ position: "relative" }}>
           <span className="eyebrow">Early access</span>
           <h2 id="final-title" className="h2">Make every team easy to understand.</h2>
-          <p>See what happens when anyone can ask any team, and get an answer with its sources.</p>
+          <p>Request early access, or try the interactive demo.</p>
           <div className="hero-ctas">
             <Link className="btn btn-primary" href="/early-access">Request early access <Arrow /></Link>
             <Link className="btn btn-ghost" href="/feed">Try the interactive demo</Link>
