@@ -268,9 +268,9 @@ other questions. Then GitHub, then the planned tools.
   repositories to teams; feed merged PRs and reviews to `learnFrom`; respect repository access when
   showing sources. Acceptance: installing on the northwind org and merging a PR updates the owning
   team's page. Depends: T-11. L.
-- [ ] **T-45 Claude Code tokens per person.** Mock: M6. Real per-person tokens issued from
+- [~] **T-45 Claude Code tokens per person.** Mock: M6. Real per-person tokens issued from
   settings (replacing `rly_demo_*`), revocable, with the hook install command shown. Depends:
-  T-31. S.
+  T-31. S. (Cursor)
 - [ ] **T-46 Jira or Linear (pick one).** Mock: M2. Read issues for the teams that own projects,
   into `learnFrom` and as sources. Depends: T-11. L.
 - [ ] **T-47 Google Meet or Zoom transcripts.** Mock: M2. Read transcripts of meetings the team
