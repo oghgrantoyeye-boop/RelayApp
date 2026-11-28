@@ -81,6 +81,9 @@ describe("claim-by-claim answers", () => {
     const learned = got.claims.find((c) => c.tag === "learned");
     expect(learned?.text).toMatch(/load-test/i);
     expect(learned?.source?.label).toBe("Learned");
-    expect((await publishedSourcesFor(db, sid("platform"), priya)).length).toBeGreaterThan(0);
+    const sources = await publishedSourcesFor(db, sid("platform"), priya);
+    expect(sources.length).toBeGreaterThan(0);
+    // Every source links somewhere the reader can open it: the team page, or the meeting.
+    for (const src of sources) expect(src.href).toMatch(src.ref.startsWith("meeting:") ? /^\/meetings\// : /^\/teams\/platform/);
   });
 });
