@@ -104,7 +104,7 @@ export async function ensureMembership(
   db: Db,
   accountId: string,
   orgId: string,
-  opts: { name: string; email: string; role?: string } = { name: "", email: "" },
+  opts: { name: string; email: string; role?: string; unitId?: string | null } = { name: "", email: "" },
 ): Promise<Row> {
   const existing = await db.one(`select * from org_membership where account_id = $1 and org_id = $2`, [accountId, orgId]);
   if (existing) return existing;
@@ -119,16 +119,24 @@ export async function ensureMembership(
     userId,
     opts.role === "owner" || opts.role === "admin" ? opts.role : "member",
   ]);
-  // Put them on a team so loadViewer works; T-33 will let owners pick teams on invite.
-  const unit = await db.one(
-    `select id from unit where org_id = $1 order by (how_to_ask = '{}'::jsonb), name limit 1`,
-    [orgId],
-  );
-  if (unit) {
+  // Prefer the invite's team; otherwise put them on the first real team so loadViewer works.
+  let unitId = opts.unitId ?? null;
+  if (unitId) {
+    const unit = await db.one(`select id from unit where id = $1 and org_id = $2`, [unitId, orgId]);
+    if (!unit) unitId = null;
+  }
+  if (!unitId) {
+    const unit = await db.one(
+      `select id from unit where org_id = $1 order by (how_to_ask = '{}'::jsonb), name limit 1`,
+      [orgId],
+    );
+    unitId = unit?.id ?? null;
+  }
+  if (unitId) {
     await db.query(`insert into member (id, org_id, unit_id, user_id, role) values ($1, $2, $3, $4, 'member')`, [
-      `m_${userId}_${unit.id}`,
+      `m_${userId}_${unitId}`,
       orgId,
-      unit.id,
+      unitId,
       userId,
     ]);
   }
