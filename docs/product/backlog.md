@@ -163,7 +163,7 @@ The model adapter supports Claude only. An OpenAI key would need a second provid
   `learnFrom` from `publishDraft`, `summarizeMeeting`, `ingestPullRequest` and
   `ingestCodingSession`. Acceptance: a merged PR touching a new repository adds a "Runs" entry
   tagged Seen in GitHub. Depends: T-11. M.
-- [~] **T-14 Seed by learning.** (Claude) Mock: M2. The sample workspaces build their team context by
+- [x] **T-14 Seed by learning.** (Claude) Mock: M2. The sample workspaces build their team context by
   running `learnFrom` over their seeded updates, answers, meetings and documents. Acceptance:
   Platform's page in Northwind looks like M2 without hand-written context. Depends: T-12, T-13. S.
 - [x] **T-15 "What Beacon knows about us" section.** (Claude) Mock: M2. Entries grouped by kind with
@@ -174,7 +174,7 @@ The model adapter supports Claude only. An OpenAI key would need a second provid
 - [x] **T-16 Pending questions.** (Claude) Mock: M2. Show at most three pending claims as yes, no or not
   sure questions at the top of the team page, and add them to each member's batch of asks.
   Acceptance: one confirmation makes the claim active. Depends: T-11, T-15. S.
-- [~] **T-17 What Beacon can see.** (Claude) Mock: M2, M6. Per team: sources with Live or Planned, last
+- [x] **T-17 What Beacon can see.** (Claude) Mock: M2, M6. Per team: sources with Live or Planned, last
   sync, and gaps. Adds `connector.mode`. Acceptance: matches M2's card; planned tools never show as
   Live. S.
 - [x] **T-18 Sources carry provenance and freshness.** (Claude) Mock: M3. `publishedSources` includes
@@ -189,7 +189,7 @@ The model adapter supports Claude only. An OpenAI key would need a second provid
   suggested replies; `question.outcome` gains `clarify`; the reply continues the question. The
   general Beacon agent asks which team when two match. Acceptance: the M3 exchange works end to
   end in the demo. Depends: T-19. M.
-- [~] **T-21 Answer feedback.** (Claude) Mock: M3. Thumbs up or down with an optional note; a thumbs down
+- [x] **T-21 Answer feedback.** (Claude) Mock: M3. Thumbs up or down with an optional note; a thumbs down
   lowers confidence in the entries used. S.
 
 ## M4 and M5: routing, the team queue and request status
@@ -201,14 +201,14 @@ The model adapter supports Claude only. An OpenAI key would need a second provid
 - [x] **T-23 Team queue page.** (Claude) Mock: M4. For you and Team queue tabs, I'll take it
   (`request.claimed_by`), Pass to a teammate, answer once for everyone who asked, Ask them for more
   detail. Acceptance: matches M4; any Platform member can answer. Depends: T-22. M.
-- [~] **T-24 Answers feed learning.** (Claude) Mock: M4. Remove the Publish checkbox; after an answer,
+- [x] **T-24 Answers feed learning.** (Claude) Mock: M4. Remove the Publish checkbox; after an answer,
   show what Beacon learned and whether it needs confirming, as in M4. Depends: T-12, T-23. S.
-- [~] **T-25 Request lifecycle.** (Claude) Mock: M5. Statuses awaiting team, needs your input, answered,
+- [x] **T-25 Request lifecycle.** (Claude) Mock: M5. Statuses awaiting team, needs your input, answered,
   resolved, declined, unresolved; unresolved after 3 business days with Send to the lead or Ask
   again; every change audited. Acceptance: status tests for each transition. Depends: T-22. M.
-- [~] **T-26 My questions page.** (Claude) Mock: M5. The progress steps, the reply, That answers it and
+- [x] **T-26 My questions page.** (Claude) Mock: M5. The progress steps, the reply, That answers it and
   Ask a follow-up, and the table of past questions with where they went. Depends: T-25. M.
-- [~] **T-27 Multi-team questions.** (Claude) Mock: M3. When several teams match, list them and let the
+- [x] **T-27 Multi-team questions.** (Claude) Mock: M3. When several teams match, list them and let the
   person send to one or more, linked by one question. Depends: T-22. M.
 
 ## M1 and M6: workspaces and sign-in
@@ -285,6 +285,66 @@ other questions. Then GitHub, then the planned tools.
   Update `types.ts`, `tests/demos.test.ts`, `/guide`. Hide the other demos until rewritten. L.
 - [ ] **T-52 Marketing follow-ups.** Anything T-00 leaves, plus `marketing/launch-campaign.md`. S.
 - [x] **T-53 Docs.** (Claude) README and HANDOFF point to the new spec; `SPEC.md` marked historical. S.
+
+## Phase 2: real integrations and the product experience
+
+Sign-in, workspaces and the answer engine are in. Phase 2 makes Beacon something a real team runs
+every day: Slack, GitHub and Claude Code connected end to end, and every screen brought up to the
+mocks with one consistent design. Integrations need real accounts, so each one says what Ovo has
+to create first.
+
+**Batching builds.** Vercel builds every push to the default branch and every PR. Docs-only commits
+(like claims) skip the build (see `vercel.json`). Keep one PR per task, and merge reviewed PRs in
+batches: put the approved ones together on a local branch, run the three checks once, and push once.
+
+### Integrations
+
+- [ ] **T-40 to T-43 (Slack), T-34 (workspace settings).** As above, Cursor lane. Ovo creates the
+  Slack app first (api.slack.com/apps, from the manifest T-40 adds at `integrations/slack/manifest.json`)
+  and sets `SLACK_CLIENT_ID`, `SLACK_CLIENT_SECRET`, `SLACK_SIGNING_SECRET`. T-43 moves to the
+  Claude lane, because it reuses the answer and routing code.
+- [ ] **T-48 Claude Code: one-line install and live status.** (Claude) Mock: M6. Settings shows a
+  copyable one-line install (`curl -fsSL <site>/install/claude-code | sh -s -- <token>`) that adds
+  the hook to `~/.claude/settings.json`; the hook script is served by the app, not copied from the
+  repo; the connector row shows the last session received and a "Send a test" check. A session's
+  draft, once published, feeds the owning team's page. Acceptance: on a fresh machine the one line
+  plus one Claude Code session produces a draft in /write. Depends: T-45. M.
+- [ ] **T-49 GitHub: repository mapping and backfill.** (Cursor) Mock: M2, M6. After install, a
+  screen that maps each repository to a team (suggested from CODEOWNERS and past PR authors),
+  backfills the last 30 days of merged PRs into `learnFrom`, and shows install health (last event,
+  errors). Acceptance: install, map one repository, and its team page shows what was learned with
+  links to the PRs. Depends: T-44. M.
+
+### Product experience (UI/UX)
+
+- [~] **T-70 Design system.** (Claude) Mock: all. One set of tokens (color, type scale, spacing,
+  radius) in `globals.css` and the components in `src/components/ui.tsx`: buttons, inputs, cards,
+  tabs, badges, empty, loading and error states. Replace one-off styles on the app pages with them.
+  Acceptance: no inline colors or font sizes left on app pages; every list has an empty state.
+  Touches `globals.css`, `ui.tsx`, app pages (style only). M.
+- [ ] **T-71 App shell and navigation.** (Claude) Mock: M2 to M6. Sidebar with the workspace
+  switcher, the five destinations and the signed-in person; a mobile layout with a bottom bar;
+  page headers with one primary action. Depends: T-70. M.
+- [ ] **T-72 Ask flow.** (Claude) Mock: M3. Composer, streaming feel, claims with their tags,
+  "what I couldn't find", the clarifying question and the route card, all matching M3 on desktop
+  and mobile. Depends: T-70. M.
+- [ ] **T-73 Team page.** (Claude) Mock: M2. "What Beacon knows about us", pending questions,
+  how to work with the team and what Beacon can see, matching M2. Depends: T-70. M.
+- [ ] **T-74 Team queue and My questions.** (Claude) Mock: M4, M5. Tabs, item cards, answer once,
+  the learned-entry confirmation, and status steps, matching M4 and M5. Depends: T-70. M.
+- [ ] **T-75 First-run onboarding.** (Cursor) Mock: M1, M6. A new real workspace walks through:
+  name it, connect Slack or GitHub, invite teammates, ask a first question. Skippable, and it
+  resumes where it stopped. Depends: T-33, T-70. M.
+- [ ] **T-76 Sign-in, workspace and settings screens.** (Cursor) Mock: M1, M6. Bring /signin,
+  the workspace picker, /workspace/* and /connect up to the design system and the mocks.
+  Depends: T-70. M.
+- [ ] **T-77 Screen check.** (Claude) A Playwright script that signs into a sample workspace and
+  screenshots every app screen at desktop and phone widths, plus an accessibility pass (labels,
+  focus, contrast) on each. Run it before each batch merge. Depends: T-71. S.
+
+**Order.** Claude: T-70 first (Cursor's screen work builds on it), then T-71, T-48, T-72, T-73,
+T-74, T-43, T-77. Cursor: T-40, T-49 and T-34 now (no dependency on T-70), then T-41, T-42, then
+T-76 and T-75 once T-70 is in.
 
 ## Later
 
