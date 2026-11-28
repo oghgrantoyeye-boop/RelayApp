@@ -51,10 +51,10 @@ export default async function FeedPage({ searchParams }: { searchParams: Promise
         </div>
 
         {feed.alerts.length > 0 && (
-          <section className="card" aria-label="Commitments at risk" style={{ marginBottom: 20, borderColor: "#fde68a" }}>
+          <section className="card" aria-label="Dates that are changing" style={{ marginBottom: 20 }}>
             <div className="row">
-              <span className="ai-head" style={{ color: "#92400e" }}><Icon name="commitments" size={14} />Needs your attention</span>
-              <span className="small muted">Commitments your team owns or waits on that have slipped, or depend on something that has</span>
+              <span className="ai-head"><Icon name="commitments" size={14} />Dates that are changing</span>
+              <span className="small muted">Promises your team made or is waiting on, where a date is being worked out</span>
             </div>
             <ul className="list" style={{ marginTop: 6 }}>
               {feed.alerts.map((c) => (

@@ -183,7 +183,7 @@ const STORY: StoryItem[] = [
 const REQS: Req[] = [
   ["rq_energy", "civic", "sustain", "tobias", "Rebuild the Riverside Library energy and daylight model for the terracotta facade",
     "The client approved terracotta fins. The design package goes out Dec 12. Can Sustainability rerun the model by Dec 5?", "2026-11-20", "2026-12-05", "accepted", "own_energy", "priya", null, "form"],
-  ["rq_when_1", "civic", "sustain", "laura", "When will the energy model be ready now that Dec 5 is at risk?",
+  ["rq_when_1", "civic", "sustain", "laura", "When will the energy model be ready now that the date is moving?",
     "Asked the Sustainability agent. The client's consultant is waiting on it.", "2026-12-04", null, "open", "own_energy", "priya", "ck_model_date", "agent"],
   ["rq_when_2", "viz", "sustain", "elise", "Is the library energy model still landing this week? Our board renders depend on the facade.",
     "Asked the Sustainability agent.", "2026-12-05", null, "open", "own_energy", "priya", "ck_model_date", "agent"],
@@ -217,7 +217,7 @@ const QS: Qn[] = [
   ["qn_2", "zara", "civic", "Is the library facade terracotta or glass?", "answered",
     "The client chose terracotta fins over the glass facade after the November review.", [], null, "2026-11-30"],
   ["qn_3", "ryan", "dtech", "Which Revit version should new projects use?", "answered", "Revit 2027 becomes the firm standard for new projects starting in January.", [], null, "2026-11-19"],
-  ["qn_4", "laura", "sustain", "When will the energy model be ready now that Dec 5 is at risk?", "routed",
+  ["qn_4", "laura", "sustain", "When will the energy model be ready now that the date is moving?", "routed",
     "Sustainability hasn't published a new date. I asked Priya Venkat, who owns Energy modeling.", [], "rq_when_1", "2026-12-04"],
   ["qn_5", "elise", "sustain", "Is the library energy model still landing this week?", "routed",
     "Sustainability hasn't published a new date. I asked Priya Venkat, who owns Energy modeling.", [], "rq_when_2", "2026-12-05"],
@@ -289,7 +289,7 @@ Priya Venkat: One more thing: Workplace wants a daylight study for Calder. That 
 
 const T2 = `Elise Martin: This is prep for the Riverside Library board presentation on Dec 15.
 Marco Bianchi: Interior stills are underway. Exterior shots wait on the final fins.
-Laura Chen: The facade is at risk. Sustainability's model slipped, so the package date depends on it.
+Laura Chen: The facade is waiting on a new date. Sustainability's model moved, so the package date depends on it.
 Elise Martin: Then let's decide now: if the facade isn't final by Dec 11 we show interiors and one exterior, and send the rest after.
 Rebecca Stone: Agreed, that's the decision. Zara, can you have the reading room walkthrough ready either way?
 Zara Ahmed: Yes, I'll have the walkthrough ready by Dec 13.
@@ -307,9 +307,9 @@ Nathan Cole: We still need the Q4 fee forecast before we can model the combined 
 const MEETINGS: Mtg[] = [
   ["mt_facade", "sustain", "cn_sus_zoom", "Sustainability × Civic: Riverside facade and energy model", "2026-12-04T16:00:00Z", 30, ["hugo", "priya", "tobias", "laura", "ines"], T1, "recorded", null, null],
   ["mt_board", "viz", "cn_viz_zoom", "Riverside board presentation prep", "2026-12-05T17:00:00Z", 25, ["elise", "marco", "zara", "laura", "rebecca"], T2, "summarized", null, {
-    summary: "The board presentation is on track except for exterior renders, which wait on the final facade and Sustainability's slipped energy model. If the facade isn't final by Dec 11, the board sees interiors and one exterior.",
+    summary: "The board presentation is on track except for exterior renders, which wait on the final facade and Sustainability's energy model rerun. If the facade isn't final by Dec 11, the board sees interiors and one exterior.",
     decisions: ["If the facade isn't final by Dec 11, show the board interiors and one exterior, and send the rest after."],
-    risks: ["Exterior renders depend on Sustainability's energy model; Dec 12 is at risk."],
+    risks: ["Exterior renders depend on Sustainability's energy model; Dec 12 may move."],
     action_items: [
       { owner: "zara", text: "Finish the reading room walkthrough", due: "2026-12-13" },
       { owner: "rebecca", text: "Brief the board chair on energy performance", due: "2026-12-10" },
@@ -333,7 +333,7 @@ export const haldenMoss: DemoPack = {
   audience: "Architecture firm",
   org: { name: "Halden & Moss Architects", short: "Halden & Moss", headcount: 200, domain: "haldenmoss", about: "a fictional 200-person architecture firm with civic, workplace and healthcare studios" },
   summary:
-    "A facade change makes the energy model late, and the board presentation that depends on it is the last to know.",
+    "Sustainability reruns the energy model for a new facade, and the visualization team two teams away hears the new date the same day.",
   defaultPersona: "zara",
   teams: TEAMS,
   people: PEOPLE,
@@ -420,10 +420,10 @@ export const haldenMoss: DemoPack = {
   },
   intro: {
     problem:
-      "The client switched the Riverside Library facade to terracotta fins, so Sustainability has to redo its energy model, and it missed Dec 5. The design package due Dec 12 needs that model, and the renders for the library board on Dec 15 need the package.",
+      "The client chose terracotta fins for the Riverside Library facade, so Sustainability is rerunning its energy model. The design package due Dec 12 uses that model, and the renders for the library board on Dec 15 use the package. Here's how the firm stays in step.",
     cast: [
-      { as: "zara", note: "Makes the board renders due Dec 15, and is waiting on work two teams away." },
-      { as: "priya", note: "Owns the energy model that's running late." },
+      { as: "zara", note: "Makes the board renders due Dec 15, and builds on work from two other teams." },
+      { as: "priya", note: "Owns the energy model and its new date." },
       { as: "claire", note: "Wants the firm's week on one page." },
     ],
   },
@@ -435,11 +435,11 @@ export const haldenMoss: DemoPack = {
     actions: ["research", "documents", "draft_update"],
   },
   guide: [
-    { title: "See what's at risk", as: "zara", href: "/feed",
-      text: "Under Needs your attention, the board renders are marked At risk. Beacon shows why: they wait on Civic studio's design package, which waits on the energy model, which missed Dec 5.",
-      why: "Zara hears about a delay two teams away the day it happens, not the week of the presentation." },
-    { title: "Ask your agent instead of chasing", as: "zara", href: "/feed?agent=When+will+the+library+energy+model+be+ready%3F&to=me",
-      text: "The agent panel on the right has the question filled in. Press Send. Your agent sees that Sustainability owns it and asks Sustainability's agent. There's no new date yet, so it goes to Priya, and 3 others asked too.",
+    { title: "Start the day in your feed", as: "zara", href: "/feed",
+      text: "Under Dates that are changing, the board renders show Waiting on a change. Beacon traces them to the energy model, which is being rerun for the new facade. Below are decisions from teams Zara follows.",
+      why: "Zara sees what changed for the renders the day it changes, without asking around." },
+    { title: "Ask your agent", as: "zara", href: "/feed?agent=When+will+the+library+energy+model+be+ready%3F&to=me",
+      text: "The agent panel on the right has the question filled in. Press Send. Your agent sees that Sustainability owns it and asks Sustainability's agent. The new date isn't posted yet, so it goes to Priya, and 3 others asked too.",
       why: "Nobody has to find the right analyst, and Priya gets one question instead of four separate messages." },
     { title: "Add an agent teammate", as: "priya", href: "/agents/new?template=demo",
       text: "Priya adds Energy code researcher, a Worker for Sustainability. It's filled in: what it can read, what it can do and what needs Priya's OK. Click Add, then click \"Review the energy model inputs for the terracotta facade\" in the chat and Approve.",
@@ -447,11 +447,11 @@ export const haldenMoss: DemoPack = {
     { title: "Post the new date", as: "priya", href: "/write?example=1",
       text: "Priya's notes are filled in. Click Split into items. At the top, Beacon flags that one line moves the Dec 5 promise to Dec 9. Scroll down and click Publish.",
       why: "Priya writes the notes once. Beacon works out who's affected and updates the promise." },
-    { title: "Everyone waiting hears about it", as: "zara", href: "/feed?agent=When+will+the+library+energy+model+be+ready%3F&to=me",
+    { title: "Everyone gets the new date", as: "zara", href: "/feed?agent=When+will+the+library+energy+model+be+ready%3F&to=me",
       text: "Back as Zara, the panel has the same question ready. Send it. This time your agent answers straight from Priya's update, with the source. The Inbox in the sidebar has the new date too.",
       why: "Civic studio and Visualization both get the news without a coordination meeting." },
     { title: "See the week on one page", as: "claire", href: "/digest", compare: "zara",
-      text: "Claire sees one short paragraph per team, plus every commitment that slipped. The Operations paragraph mentions a possible acquisition, so it's marked confidential. Open the page as Zara: that paragraph isn't there.",
+      text: "Claire sees one short paragraph per team, plus every date that is changing. The Operations paragraph mentions a possible acquisition, so it's marked confidential. Open the page as Zara: that paragraph isn't there.",
       why: "Principals get the whole picture, and confidential work stays with the people cleared to see it." },
   ],
   explore: [

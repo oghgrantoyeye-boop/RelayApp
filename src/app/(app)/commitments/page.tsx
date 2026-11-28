@@ -61,8 +61,8 @@ export default async function CommitmentsPage({ searchParams }: { searchParams: 
         <div className="metrics">
           <div><div className="k">{team.name} owes</div><div className="v">{owedBy.filter((c) => c.state !== "done").length}</div></div>
           <div><div className="k">Owed to {team.name}</div><div className="v">{owedTo.filter((c) => c.state !== "done").length}</div></div>
-          <div><div className="k">Slipped</div><div className="v" style={{ color: slipped ? "#991b1b" : undefined }}>{slipped}</div></div>
-          <div><div className="k">At risk from a dependency</div><div className="v" style={{ color: atRisk ? "#92400e" : undefined }}>{atRisk}</div></div>
+          <div><div className="k">New date coming</div><div className="v">{slipped}</div></div>
+          <div><div className="k">Waiting on a change</div><div className="v">{atRisk}</div></div>
         </div>
 
         {drafts.length > 0 && (

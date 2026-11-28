@@ -59,9 +59,9 @@ export default async function DigestPage({ searchParams }: { searchParams: Promi
           )}
         </section>
         <section>
-          <h2>Slipped commitments ({d.slipped.length})</h2>
+          <h2>Dates that are changing ({d.slipped.length})</h2>
           {d.slipped.length === 0 ? (
-            <div className="card empty">Nothing has slipped.</div>
+            <div className="card empty">Every date is holding.</div>
           ) : (
             <ul className="list card tight">
               {d.slipped.map((c) => (

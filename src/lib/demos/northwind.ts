@@ -207,7 +207,7 @@ const STORY: StoryItem[] = [
 const REQS: Req[] = [
       ["rq_limits", "payments", "platform", "priya", "Per-merchant burst limits so webhook retries can't trip global limits",
         "Webhook retries (shipping Dec 12) need per-merchant burst limits first. Can Platform land them by Dec 5?", "2026-11-20", "2026-12-05", "accepted", "own_limits", "aisha", null, "form"],
-      ["rq_when_1", "payments", "platform", "hannah", "When will per-merchant burst limits land now that Dec 5 is at risk?",
+      ["rq_when_1", "payments", "platform", "hannah", "When will per-merchant burst limits land now that the date is moving?",
         "Asked the Platform agent. We need the new date to replan webhook retries.", "2026-12-04", null, "open", "own_limits", "aisha", "ck_limits_date", "agent"],
       ["rq_when_2", "growth", "platform", "maya", "Is the rate-limit change still landing this week? Our Dec 15 launch depends on it.",
         "Asked the Platform agent.", "2026-12-05", null, "open", "own_limits", "aisha", "ck_limits_date", "agent"],
@@ -245,7 +245,7 @@ const QS: Qn[] = [
         "Webhook retries ship Dec 12, on by default for every account.", ["update_item:ui_retries_decision"], null, "2026-11-30"],
       ["qn_3", "liam", "platform", "Are rate limits per API key or per merchant?", "answered",
         "Rate limits are moving from per-API-key to per-merchant buckets.", [], null, "2026-11-19"],
-      ["qn_4", "hannah", "platform", "When will per-merchant burst limits land now that Dec 5 is at risk?", "routed",
+      ["qn_4", "hannah", "platform", "When will per-merchant burst limits land now that the date is moving?", "routed",
         "Platform hasn't published a new date. I asked Aisha Bello, who owns Rate limits.", [], "rq_when_1", "2026-12-04"],
       ["qn_5", "maya", "platform", "Is the rate-limit change still landing this week?", "routed",
         "Platform hasn't published a new date. I asked Aisha Bello, who owns Rate limits.", [], "rq_when_2", "2026-12-05"],
@@ -341,7 +341,7 @@ Priya Raman: One more thing: Mobile wants retry statuses in the events API. That
 
 const T2 = `Maya Chen: This is the launch review for 'Reliable payments' on Dec 15.
 Jordan Ellis: The landing page and webinar are ready. 640 developers have registered for the webinar.
-Priya Raman: Retries are at risk. Platform's rate-limit change slipped, so Dec 12 depends on their soak test.
+Priya Raman: Retries are waiting on a new date. Platform's rate-limit change moved, so Dec 12 depends on their soak test.
 Jordan Ellis: Then let's decide now: if retries aren't live by Dec 12 we move the email to Dec 17 but keep the webinar on Dec 15.
 Maya Chen: Agreed, that's the decision. Chloe, can you prepare both versions of the landing page?
 Chloe Martin: Yes, I'll have both versions ready by Dec 10.
@@ -350,7 +350,7 @@ Maya Chen: Sales needs to know before their enterprise calls next week. I'll tel
 
 const T3 = `Elena Vasquez: Two topics: the board deck and the Halcyon Bank deal.
 Olivia Park: Halcyon Bank is our largest open deal at $1.2M ARR. They need 3x burst limits on payouts before a Jan 11 pilot.
-Raj Patel: That depends on Platform's per-merchant limits, which slipped to around Dec 9. Payments estimates three days of work after that.
+Raj Patel: That depends on Platform's per-merchant limits, which moved to around Dec 9. Payments estimates three days of work after that.
 Elena Vasquez: Decision: we offer Halcyon per-account overrides, but only after Platform's burst limits are live. No commitments to them before then.
 Olivia Park: I'll update Halcyon by Dec 10 with that position.
 Sam Okafor: I'll put reliability first in the board deck and send the draft to team leads by Dec 10.
@@ -360,9 +360,9 @@ Peter Lindqvist: Finance still needs the headcount plan to finish Q1 budgets.`;
 const MEETINGS: Mtg[] = [
   ["mt_limits", "platform", "cn_plat_meet", "Platform × Payments: rate-limit dependency", "2026-12-04T16:00:00Z", 30, ["marcus", "aisha", "priya", "hannah"], T1, "recorded", null, null],
   ["mt_launch", "growth", "cn_growth_zoom", "'Reliable payments' launch review", "2026-12-05T17:00:00Z", 25, ["maya", "jordan", "chloe", "ravi", "priya"], T2, "summarized", null, {
-    summary: "The Dec 15 launch is ready except for webhook retries, which depend on Platform's slipped rate-limit change. If retries aren't live by Dec 12, the email moves to Dec 17 and the webinar stays on Dec 15.",
+    summary: "The Dec 15 launch is ready except for webhook retries, which depend on Platform's rate-limit change and its new date. If retries aren't live by Dec 12, the email moves to Dec 17 and the webinar stays on Dec 15.",
     decisions: ["If webhook retries aren't live by Dec 12, move the launch email to Dec 17 and keep the webinar on Dec 15."],
-    risks: ["Retries depend on Platform's soak test; Dec 12 is at risk."],
+    risks: ["Retries depend on Platform's soak test; Dec 12 may move."],
     action_items: [
       { owner: "chloe", text: "Prepare both versions of the landing page", due: "2026-12-10" },
       { owner: "maya", text: "Tell Sales (Victor) about the launch plan", due: "2026-12-08" },
@@ -386,7 +386,7 @@ export const northwind: DemoPack = {
   audience: "Mid-size software company",
   org: { name: "Northwind Labs", short: "Northwind", headcount: 300, domain: "northwind", about: "a fictional 300-person company that sells a payments API" },
   summary:
-    "A slipped infrastructure change quietly puts a marketing launch at risk, two teams away.",
+    "Platform moves the date on a rate-limit change, and the launch team two teams away hears about it the same day, without chasing anyone.",
   defaultPersona: "jordan",
   teams: TEAMS,
   people: PEOPLE,
@@ -480,10 +480,10 @@ export const northwind: DemoPack = {
   },
   intro: {
     problem:
-      "Growth marketing's Dec 15 launch needs Payments API's webhook retries, and the retries need Platform's rate-limit change. Load testing found a memory leak, so that change missed Dec 5. Nobody has told the launch team yet.",
+      "Growth marketing is planning a Dec 15 launch built on Payments API's webhook retries, which build on Platform's rate-limit change. Load testing turned up a fix Platform wants to make first, so that change will land a few days after Dec 5. Here's how everyone stays in step.",
     cast: [
-      { as: "jordan", note: "Runs the Dec 15 launch, and is waiting on work two teams away." },
-      { as: "aisha", note: "Owns the rate-limit change that's running late." },
+      { as: "jordan", note: "Runs the Dec 15 launch, and builds on work from two other teams." },
+      { as: "aisha", note: "Owns the rate-limit change and its new date." },
       { as: "elena", note: "Wants the whole company's week on one page." },
     ],
   },
@@ -495,11 +495,11 @@ export const northwind: DemoPack = {
     actions: ["code", "draft_update", "answer"],
   },
   guide: [
-    { title: "See what's at risk", as: "jordan", href: "/feed",
-      text: "Under Needs your attention, the Dec 15 launch is marked At risk. Beacon shows why: it waits on Payments API's retries, which wait on Platform's rate-limit change, which missed Dec 5.",
-      why: "Jordan hears about a delay two teams away the day it happens, not the week of the launch." },
-    { title: "Ask your agent instead of chasing", as: "jordan", href: "/feed?agent=When+will+the+rate-limit+change+land%3F&to=me",
-      text: "The agent panel on the right has the question filled in. Press Send. Your agent sees that Platform owns it and asks Platform's agent. There's no new date yet, so it goes to Aisha, and 3 others asked too.",
+    { title: "Start the day in your feed", as: "jordan", href: "/feed",
+      text: "Under Dates that are changing, the launch shows Waiting on a change. Beacon traces it to Platform's rate-limit change, which needs a new date after load testing. Below are decisions from teams Jordan follows.",
+      why: "Jordan sees what changed for the launch the day it changes, without asking around." },
+    { title: "Ask your agent", as: "jordan", href: "/feed?agent=When+will+the+rate-limit+change+land%3F&to=me",
+      text: "The agent panel on the right has the question filled in. Press Send. Your agent sees that Platform owns it and asks Platform's agent. The new date isn't posted yet, so it goes to Aisha, and 3 others asked too.",
       why: "Nobody has to find the right person, and Aisha gets one question instead of four separate messages." },
     { title: "Add an agent teammate", as: "aisha", href: "/agents/new?template=demo",
       text: "Aisha adds Platform coding agent, a Worker for Platform. It's filled in: what it can read, what it can do and what needs Aisha's OK. Click Add, then click \"Fix the memory leak in the per-merchant limiter\" in the chat and Approve.",
@@ -507,11 +507,11 @@ export const northwind: DemoPack = {
     { title: "Post the new date", as: "aisha", href: "/write?example=1",
       text: "Aisha's notes are filled in. Click Split into items. At the top, Beacon flags that one line moves the Dec 5 promise to Dec 9. Scroll down and click Publish.",
       why: "Aisha writes the notes once. Beacon works out who's affected and updates the promise." },
-    { title: "Everyone waiting hears about it", as: "jordan", href: "/feed?agent=When+will+the+rate-limit+change+land%3F&to=me",
+    { title: "Everyone gets the new date", as: "jordan", href: "/feed?agent=When+will+the+rate-limit+change+land%3F&to=me",
       text: "Back as Jordan, the panel has the same question ready. Send it. This time your agent answers straight from Aisha's update, with the source. The Inbox in the sidebar has the new date too.",
       why: "Payments API and Growth marketing both get the news without a meeting or a reply-all thread." },
     { title: "See the week on one page", as: "elena", href: "/digest", compare: "jordan",
-      text: "Elena sees one short paragraph per team, plus every commitment that slipped. The Sales paragraph mentions the Halcyon Bank deal, so it's marked confidential. Open the page as Jordan: that paragraph isn't there.",
+      text: "Elena sees one short paragraph per team, plus every date that is changing. The Sales paragraph mentions the Halcyon Bank deal, so it's marked confidential. Open the page as Jordan: that paragraph isn't there.",
       why: "Leaders get the whole picture, and confidential work stays with the people cleared to see it." },
   ],
   explore: [

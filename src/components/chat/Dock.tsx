@@ -16,7 +16,7 @@ import { TargetPicker } from "./TargetPicker";
 export function suggestionsFor(agent: AgentRow | null, viewer: Viewer, demo: DemoPack): string[] {
   if (!agent) {
     const first = Object.values(demo.ui.askExamples)[0];
-    return ["What needs my attention?", first, "What do we owe other teams?"].filter(Boolean) as string[];
+    return ["What changed for me this week?", first, "What do we owe other teams?"].filter(Boolean) as string[];
   }
   const mine = viewer.reader.unitIds.includes(agent.team.id);
   const out: string[] = [];

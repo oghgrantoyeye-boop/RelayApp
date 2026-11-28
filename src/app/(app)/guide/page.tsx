@@ -66,7 +66,7 @@ export default async function GuidePage({ searchParams }: { searchParams: Promis
         </div>
 
         <section className="card" style={{ marginBottom: 16 }}>
-          <div className="small muted" style={{ marginBottom: 4 }}>The problem</div>
+          <div className="small muted" style={{ marginBottom: 4 }}>The story</div>
           <p style={{ margin: 0, fontSize: 15, lineHeight: 1.55 }}>{demo.intro.problem}</p>
         </section>
 

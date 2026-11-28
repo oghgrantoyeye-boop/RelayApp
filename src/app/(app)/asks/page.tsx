@@ -22,7 +22,7 @@ export default async function AsksPage({ searchParams }: { searchParams: Promise
           <div>
             <h1>Asks for you</h1>
             <p>
-              What people want from you, in one place instead of separate emails and messages. Questions about the same thing are merged, and urgent ones come first.
+              What people want from you, in one place instead of separate emails and messages. Questions about the same thing are merged, and the soonest ones come first.
               Your batch goes out {viewer.user.ask_cadence}, next at {fmtDateTime(nextBatch)} UTC.
             </p>
           </div>
@@ -38,7 +38,7 @@ export default async function AsksPage({ searchParams }: { searchParams: Promise
           {clusters.map((c) => (
             <section key={c.key} className="card">
               <div className="row">
-                {c.urgent && <Pill tone="red">Urgent</Pill>}
+                {c.urgent && <Pill tone="amber">Soon</Pill>}
                 {c.askers.length > 1 && <Pill tone="blue">{c.askers.length} people asked</Pill>}
                 {c.ownership && <span className="small muted">About {c.ownership}</span>}
                 {c.neededBy && <span className="small muted">· needed by {fmt(c.neededBy)}</span>}

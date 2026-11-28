@@ -180,7 +180,7 @@ const STORY: StoryItem[] = [
 const REQS: Req[] = [
   ["rq_wool", "production", "sourcing", "lucia", "Recycled wool for the coat capsule in the sample room by Dec 5",
     "Coat samples are booked in the Porto atelier from Dec 8. Can Sourcing get the wool to the sample room by Dec 5?", "2026-11-20", "2026-12-05", "accepted", "own_fabrics", "matteo", null, "form"],
-  ["rq_when_1", "production", "sourcing", "tiago", "When will the recycled wool arrive now that Dec 5 is at risk?",
+  ["rq_when_1", "production", "sourcing", "tiago", "When will the recycled wool arrive now that the date is moving?",
     "Asked the Sourcing agent. We need the date to keep the atelier slot.", "2026-12-04", null, "open", "own_fabrics", "matteo", "ck_wool_date", "agent"],
   ["rq_when_2", "brand", "sourcing", "camille", "Is the recycled wool still arriving this week? The lookbook shoot depends on it.",
     "Asked the Sourcing agent.", "2026-12-05", null, "open", "own_fabrics", "matteo", "ck_wool_date", "agent"],
@@ -214,7 +214,7 @@ const QS: Qn[] = [
   ["qn_2", "leo", "production", "When are the coat samples ready?", "answered",
     "Coat capsule samples are made Dec 8 to 11, ready for buyers Dec 12 and the shoot Dec 15.", ["update_item:ui_samples_decision"], null, "2026-11-30"],
   ["qn_3", "aiko", "merch", "What's the price range for Pre-Fall '27 coats?", "answered", "Pre-Fall '27 coats are priced between €690 and €1,150.", [], null, "2026-11-19"],
-  ["qn_4", "tiago", "sourcing", "When will the recycled wool arrive now that Dec 5 is at risk?", "routed",
+  ["qn_4", "tiago", "sourcing", "When will the recycled wool arrive now that the date is moving?", "routed",
     "Sourcing hasn't published a new date. I asked Matteo Ricci, who owns Fabric mills.", [], "rq_when_1", "2026-12-04"],
   ["qn_5", "camille", "sourcing", "Is the recycled wool still arriving this week?", "routed",
     "Sourcing hasn't published a new date. I asked Matteo Ricci, who owns Fabric mills.", [], "rq_when_2", "2026-12-05"],
@@ -289,7 +289,7 @@ Matteo Ricci: One more thing: Merchandising wants swatch cards for the showroom.
 
 const T2 = `Camille Roux: This is prep for the Pre-Fall '27 lookbook shoot in Lisbon on Dec 15.
 Jules Bernard: Photographer, models and studio are confirmed. The eight coats open the lookbook.
-Lucía Herrera: The coats are at risk. Sourcing's wool slipped, so the samples depend on Monday's retest.
+Lucía Herrera: The coats are waiting on a new date. Sourcing's wool moved, so the samples depend on Monday's retest.
 Jules Bernard: Then let's decide now: if the coats aren't on set Dec 15, we shoot everything else and do the coats in a half day in January.
 Camille Roux: Agreed, that's the decision. Leo, can you plan social content that works either way?
 Leo Fontaine: Yes, I'll have both content plans ready by Dec 11.
@@ -309,7 +309,7 @@ const MEETINGS: Mtg[] = [
   ["mt_shoot", "brand", "cn_brd_zoom", "Pre-Fall '27 lookbook shoot prep", "2026-12-05T17:00:00Z", 25, ["camille", "jules", "leo", "lucia", "yara"], T2, "summarized", null, {
     summary: "The Lisbon shoot is ready except for the eight coats, which wait on Sourcing's delayed wool. If the coats aren't on set Dec 15, the rest is shot as planned and the coats get a half day in January.",
     decisions: ["If the coats aren't on set Dec 15, shoot everything else and do the coats in a half day in January."],
-    risks: ["The coat samples depend on Monday's wool retest; Dec 11 is at risk."],
+    risks: ["The coat samples depend on Monday's wool retest; Dec 11 may move."],
     action_items: [
       { owner: "leo", text: "Plan social content for both outcomes", due: "2026-12-11" },
       { owner: "camille", text: "Tell Merchandising about the shoot plan", due: "2026-12-08" },
@@ -333,7 +333,7 @@ export const maisonVerel: DemoPack = {
   audience: "Mid-size fashion house",
   org: { name: "Maison Verel", short: "Verel", headcount: 400, domain: "maisonverel", about: "a fictional 400-person fashion house with a Porto sample atelier and eight boutiques" },
   summary:
-    "A failed dye test makes the coat wool late, and the lookbook shoot that depends on it is the last to know.",
+    "The mill re-dyes the coat wool, and the lookbook team two teams away hears the new date the same day.",
   defaultPersona: "jules",
   teams: TEAMS,
   people: PEOPLE,
@@ -420,10 +420,10 @@ export const maisonVerel: DemoPack = {
   },
   intro: {
     problem:
-      "The Pre-Fall '27 coats can't be sampled until the recycled wool arrives, and the Dec 15 lookbook shoot needs the samples. The first dye lot failed its color test, so the wool missed Dec 5 while the mill re-dyes it.",
+      "The Pre-Fall '27 coats are sampled once the recycled wool arrives, and the Dec 15 lookbook shoot features the samples. The mill is re-dyeing the first lot after a color test, so the wool needs a new date. Here's how the house stays in step.",
     cast: [
-      { as: "jules", note: "Produces the Dec 15 lookbook shoot, and is waiting on work two teams away." },
-      { as: "matteo", note: "Owns the wool order with the mill." },
+      { as: "jules", note: "Produces the Dec 15 lookbook shoot, and builds on work from two other teams." },
+      { as: "matteo", note: "Owns the wool order with the mill and its new date." },
       { as: "isabelle", note: "Wants the house's week on one page." },
     ],
   },
@@ -435,11 +435,11 @@ export const maisonVerel: DemoPack = {
     actions: ["research", "documents", "draft_update"],
   },
   guide: [
-    { title: "See what's at risk", as: "jules", href: "/feed",
-      text: "Under Needs your attention, the lookbook shoot is marked At risk. Beacon shows why: it waits on Production's coat samples, which wait on the recycled wool, which missed Dec 5.",
-      why: "Jules hears about a delay two teams away the day it happens, before the photographer's cancellation deadline." },
-    { title: "Ask your agent instead of chasing", as: "jules", href: "/feed?agent=When+will+the+recycled+wool+arrive%3F&to=me",
-      text: "The agent panel on the right has the question filled in. Press Send. Your agent sees that Sourcing owns it and asks Sourcing's agent. There's no new date yet, so it goes to Matteo, and 3 others asked too.",
+    { title: "Start the day in your feed", as: "jules", href: "/feed",
+      text: "Under Dates that are changing, the lookbook shoot shows Waiting on a change. Beacon traces it to the recycled wool, which needs a new date while the mill re-dyes. Below are decisions from teams Jules follows.",
+      why: "Jules sees what changed for the shoot the day it changes, without asking around." },
+    { title: "Ask your agent", as: "jules", href: "/feed?agent=When+will+the+recycled+wool+arrive%3F&to=me",
+      text: "The agent panel on the right has the question filled in. Press Send. Your agent sees that Sourcing owns it and asks Sourcing's agent. The new date isn't posted yet, so it goes to Matteo, and 3 others asked too.",
       why: "Nobody has to find who's talking to the mill, and Matteo gets one question instead of four separate messages." },
     { title: "Add an agent teammate", as: "matteo", href: "/agents/new?template=demo",
       text: "Matteo adds Materials researcher, a Worker for Sourcing. It's filled in: what it can read, what it can do and what needs Matteo's OK. Click Add, then click \"Review the color-fastness report for lot 1\" in the chat and Approve.",
@@ -447,11 +447,11 @@ export const maisonVerel: DemoPack = {
     { title: "Post the new date", as: "matteo", href: "/write?example=1",
       text: "Matteo's notes are filled in. Click Split into items. At the top, Beacon flags that one line moves the Dec 5 promise to Dec 9. Scroll down and click Publish.",
       why: "Matteo writes the notes once. Beacon works out who's affected and updates the promise." },
-    { title: "Everyone waiting hears about it", as: "jules", href: "/feed?agent=When+will+the+recycled+wool+arrive%3F&to=me",
+    { title: "Everyone gets the new date", as: "jules", href: "/feed?agent=When+will+the+recycled+wool+arrive%3F&to=me",
       text: "Back as Jules, the panel has the same question ready. Send it. This time your agent answers straight from Matteo's update, with the source. The Inbox in the sidebar has the new date too.",
       why: "Production, Marketing and Merchandising all get the news at once, so nobody plans around an old date." },
     { title: "See the week on one page", as: "isabelle", href: "/digest", compare: "jules",
-      text: "Isabelle sees one short paragraph per team, plus every commitment that slipped. The Design paragraph mentions an unannounced collaboration, so it's marked confidential. Open the page as Jules: that paragraph isn't there.",
+      text: "Isabelle sees one short paragraph per team, plus every date that is changing. The Design paragraph mentions an unannounced collaboration, so it's marked confidential. Open the page as Jules: that paragraph isn't there.",
       why: "Leaders get the whole picture, and embargoed work stays with the people cleared to see it." },
   ],
   explore: [

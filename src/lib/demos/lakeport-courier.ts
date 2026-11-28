@@ -268,7 +268,7 @@ Renée Gagnon: One more thing: Audience wants to post the operator's letter. Let
 
 const T2 = `Raj Malhotra: Afternoon news meeting. Saturday first.
 Gord Patterson: A1 is held for the care home investigation, with the spread on A4 and A5.
-Hugh Barlow: It's at risk. Legal slipped after the operator's letter, so the final edit waits on Legal.
+Hugh Barlow: It's waiting on a new date. Legal needs more time after the operator's letter, so the final edit waits on Legal.
 Gord Patterson: Then let's decide now: if the story isn't cleared by Dec 10, the council budget explainer leads Saturday and care homes move a week.
 Raj Malhotra: Agreed, that's the decision. Hannah, can the launch work either way?
 Hannah Choi: Yes, I'll have both launch plans ready by Dec 9.
@@ -288,7 +288,7 @@ const MEETINGS: Mtg[] = [
   ["mt_news", "desk", "cn_desk_zoom", "Afternoon news meeting", "2026-12-05T19:00:00Z", 25, ["raj", "gord", "hugh", "hannah", "marco"], T2, "summarized", null, {
     summary: "Saturday's front page is held for the care home investigation, which waits on the delayed legal read. If it isn't cleared by Dec 10, the council budget explainer leads and care homes move a week.",
     decisions: ["If the care home story isn't cleared by Dec 10, the council budget explainer leads Saturday's front page."],
-    risks: ["The final edit depends on the legal read; Dec 10 is at risk."],
+    risks: ["The final edit depends on the legal read; Dec 10 may move."],
     action_items: [
       { owner: "hannah", text: "Prepare launch plans for both front pages", due: "2026-12-09" },
       { owner: "raj", text: "Brief the editor-in-chief", due: "2026-12-08" },
@@ -312,7 +312,7 @@ export const lakeportCourier: DemoPack = {
   audience: "Regional daily newspaper",
   org: { name: "The Lakeport Courier", short: "the Courier", headcount: 140, domain: "lakeportcourier", about: "a fictional regional daily newspaper in a mid-size Canadian city, with about 140 staff" },
   summary:
-    "A lawyer's letter delays the legal read on a big investigation, and the reporter spends the week answering \"is it still running?\"",
+    "The legal read on a big investigation needs a few more days, and everyone planning Saturday gets the new date without asking the reporter.",
   defaultPersona: "lena",
   teams: TEAMS,
   people: PEOPLE,
@@ -390,9 +390,9 @@ export const lakeportCourier: DemoPack = {
   },
   intro: {
     problem:
-      "Lena's care home investigation is set for Saturday's front page, but it can't run until Legal clears it. The operator's lawyer sent a letter disputing four points, so the legal read missed Dec 5, and everyone planning Saturday is asking Lena if it's still on.",
+      "Lena's care home investigation is planned for Saturday's front page once Legal clears it. The operator's lawyer sent a letter with questions, so Renée is taking a few more days on the legal read. Here's how the desk, Audience and Photo stay in step without chasing Lena.",
     cast: [
-      { as: "lena", note: "The reporter. Waiting on Legal, and getting asked \"is it still running?\" all week." },
+      { as: "lena", note: "The reporter, whose story is planned for Saturday's front page." },
       { as: "renee", note: "The paper's lawyer, doing the legal read." },
       { as: "fiona", note: "The editor-in-chief, who wants the newsroom's week on one page." },
     ],
@@ -405,11 +405,11 @@ export const lakeportCourier: DemoPack = {
     actions: ["documents", "research", "draft_update"],
   },
   guide: [
-    { title: "See what's at risk", as: "lena", href: "/feed",
-      text: "Under Needs your attention, Lena's final edit is marked At risk. Beacon shows why: it waits on the legal read, which missed Dec 5. Below, the desk's decision to lead Saturday's front page with it.",
-      why: "Lena sees the whole chain in one place: Legal, her story, the front page and the Saturday launch." },
-    { title: "Ask your agent instead of chasing", as: "lena", href: "/feed?agent=When+will+the+legal+read+be+done%3F&to=me",
-      text: "The agent panel on the right has the question filled in. Press Send. Your agent sees that Standards and legal owns it and asks Standards and legal's agent. There's no new date yet, so it goes to Renée, and 3 others asked too.",
+    { title: "Start the day in your feed", as: "lena", href: "/feed",
+      text: "Under Dates that are changing, Lena's final edit shows Waiting on a change. Beacon traces it to the legal read, which needs a few more days. Below, the desk's decision to lead Saturday's front page with the story.",
+      why: "Lena sees the whole plan in one place: Legal, her story, the front page and the Saturday launch." },
+    { title: "Ask your agent", as: "lena", href: "/feed?agent=When+will+the+legal+read+be+done%3F&to=me",
+      text: "The agent panel on the right has the question filled in. Press Send. Your agent sees that Standards and legal owns it and asks Standards and legal's agent. The new date isn't posted yet, so it goes to Renée, and 3 others asked too.",
       why: "The desk, Audience and Photo were asking too. Renée gets one question instead of four messages, and nobody has to chase Lena." },
     { title: "Add an agent teammate", as: "renee", href: "/agents/new?template=demo",
       text: "Renée adds Legal read prep, a Worker for Standards and legal. It's filled in: what it can read, what it can do and what needs Renée's OK. Click Add, then click \"Review the letter from Linden Care Group's lawyer\" in the chat and Approve.",
@@ -417,11 +417,11 @@ export const lakeportCourier: DemoPack = {
     { title: "Post the new date", as: "renee", href: "/write?example=1",
       text: "Renée's notes are filled in. Click Split into items. At the top, Beacon flags that one line moves the Dec 5 promise to Dec 9. Scroll down and click Publish.",
       why: "Renée writes her notes once. Beacon works out who's waiting and updates the promise." },
-    { title: "Everyone waiting hears about it", as: "lena", href: "/feed?agent=When+will+the+legal+read+be+done%3F&to=me",
+    { title: "Everyone gets the new date", as: "lena", href: "/feed?agent=When+will+the+legal+read+be+done%3F&to=me",
       text: "Back as Lena, the panel has the same question ready. Send it. This time your agent answers straight from Renée's update, with the source. The Inbox in the sidebar has the new date too.",
       why: "The desk, Audience and Photo get the news at the same moment, so nobody draws a backup front page for nothing." },
     { title: "See the week on one page", as: "fiona", href: "/digest", compare: "lena",
-      text: "Fiona sees one short paragraph per desk, plus every deadline that slipped. The business office paragraph covers a print schedule change, so it's confidential. Open the page as Lena: that paragraph isn't there.",
+      text: "Fiona sees one short paragraph per desk, plus every date that is changing. The business office paragraph covers a print schedule change, so it's confidential. Open the page as Lena: that paragraph isn't there.",
       why: "The editor-in-chief gets the whole newsroom at a glance, and sensitive business plans stay with the people cleared to see them." },
   ],
   explore: [

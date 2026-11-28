@@ -24,8 +24,8 @@ export function KindPill({ kind }: { kind: string }) {
 
 const STATE: Record<CommitmentState, [Tone, string]> = {
   on_track: ["green", "On track"],
-  at_risk: ["amber", "At risk"],
-  slipped: ["red", "Slipped"],
+  at_risk: ["blue", "Waiting on a change"],
+  slipped: ["amber", "New date coming"],
   done: ["gray", "Done"],
   draft: ["violet", "Draft: confirm"],
   rejected: ["gray", "Rejected"],
@@ -33,7 +33,7 @@ const STATE: Record<CommitmentState, [Tone, string]> = {
 
 export function StatePill({ state, daysLate }: { state: CommitmentState; daysLate?: number }) {
   const [tone, label] = STATE[state];
-  return <Pill tone={tone}>{state === "slipped" && daysLate ? `Slipped ${daysLate}d` : label}</Pill>;
+  return <Pill tone={tone}>{label}</Pill>;
 }
 
 /** Shows which disclosure level the reader is seeing, so the boundaries are visible in the demo. */

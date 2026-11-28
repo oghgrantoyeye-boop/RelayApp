@@ -53,9 +53,9 @@ for (const pack of DEMOS) {
 
     it("tells you what needs your attention", async () => {
       const d = await v(c.feed.as);
-      await sendChat(db, d, { target: "me", text: "What needs my attention?" });
+      await sendChat(db, d, { target: "me", text: "What changed for me this week?" });
       const [, reply] = await conversation(db, d, "me");
-      expect(reply.text).toMatch(/at risk|slipped/);
+      expect(reply.text).toMatch(/waiting on|new date/);
     });
 
     it("a team creates an agent teammate, @mentions it and approves its draft", async () => {

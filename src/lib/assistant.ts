@@ -83,7 +83,7 @@ export async function resolveMention(db: Db, text: string): Promise<{ agent: Age
   return best ? { agent: best.agent, rest: m[1].slice(best.len).replace(/^[\s,:]+/, "") } : null;
 }
 
-const ATTENTION = /(needs? my attention|at risk|what('?s| is) (new|late|slipping)|catch me up|my week|anything i should know|what should i (look at|know))/i;
+const ATTENTION = /(needs? my attention|at risk|what changed|what('?s| is) (new|late|slipping|changing)|catch me up|my week|anything i should know|what should i (look at|know))/i;
 const OWED = /(what do (i|we) owe|my commitments|our commitments|what('?s| is) due)/i;
 const DRAFT = /(draft|write).*(update|weekly)/i;
 const WHO = /^who (owns|handles|knows|is responsible for|should i ask about)\s+(.+?)\??$/i;
@@ -191,7 +191,7 @@ async function replyTo(db: Db, viewer: Viewer, agent: AgentRow | null, text: str
     [q.question.request_id],
   );
   const actions = req && req.urgency !== "blocking"
-    ? [action("nudge", `Tell ${String(req.assignee).split(" ")[0]} it's urgent`, `Marks your question blocking and notifies ${req.assignee} now instead of in their next batch.`, { requestId: req.id })]
+    ? [action("nudge", `Ask ${String(req.assignee).split(" ")[0]} to look sooner`, `Marks your question blocking and notifies ${req.assignee} now instead of in their next batch.`, { requestId: req.id })]
     : [];
   return { text: `${via}${q.question.answer_text}`, refs: [...refs, { label: "Your asks", href: "/asks" }], actions };
 }
@@ -200,13 +200,15 @@ async function attention(db: Db, viewer: Viewer): Promise<Reply> {
   const feed = await getFeed(db, viewer);
   const lines: string[] = [];
   for (const a of feed.alerts.slice(0, 4)) {
-    const why = a.state === "slipped" ? `slipped${a.shown.reason ? `: ${a.shown.reason}` : ""}` : `at risk${a.blockedBy ? `, because it waits on ${a.blockedBy.ownerUnit.name}'s "${a.blockedBy.shown.title}"` : ""}`;
-    lines.push(`- **${a.shown.title}** (${a.ownerUnit.name}, due ${fmt(a.due)}) is ${why}.`);
+    const why = a.state === "slipped"
+      ? `was due ${fmt(a.due)}, and ${a.ownerUnit.name} is working out a new date${a.shown.reason ? ` (${a.shown.reason.replace(/\.$/, "")})` : ""}`
+      : `is waiting on ${a.blockedBy ? `${a.blockedBy.ownerUnit.name}'s "${a.blockedBy.shown.title}"` : "another team"}, so its date may move`;
+    lines.push(`- **${a.shown.title}** (${a.ownerUnit.name}) ${why}.`);
   }
-  for (const r of feed.risks.slice(0, 2)) lines.push(`- ${r.team.name} flagged: ${r.text}`);
   for (const k of feed.asksForYou.slice(0, 2)) lines.push(`- ${k.team.name} asked your team: ${k.text}`);
-  if (lines.length === 0) return { text: "Nothing needs you right now. Nothing your teams depend on has slipped.", refs: [{ label: "My feed", href: "/feed" }], actions: [] };
-  return { text: `Here's what needs you:\n${lines.join("\n")}`, refs: [{ label: "My feed", href: "/feed" }, { label: "Commitments", href: "/commitments" }], actions: [] };
+  for (const d of feed.decisions.slice(0, 2)) lines.push(`- ${d.team.name} decided: ${d.text}`);
+  if (lines.length === 0) return { text: "Nothing has changed for you. Every date your teams depend on is holding.", refs: [{ label: "My feed", href: "/feed" }], actions: [] };
+  return { text: `Here's what changed for you this week:\n${lines.join("\n")}`, refs: [{ label: "My feed", href: "/feed" }, { label: "Commitments", href: "/commitments" }], actions: [] };
 }
 
 async function owed(db: Db, viewer: Viewer): Promise<Reply> {
