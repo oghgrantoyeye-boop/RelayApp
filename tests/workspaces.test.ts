@@ -107,3 +107,30 @@ describe("workspace isolation", () => {
     expect(globexSearch.teams[0].why).not.toContain("Acme");
   });
 });
+
+describe("sample workspaces side by side (T-32)", () => {
+  it("seeds two demos together and reset leaves the other intact", async () => {
+    const { seed } = await import("@/lib/seed");
+    const { resetWorkspace } = await import("@/lib/workspace-reset");
+    const { scoped } = await import("@/lib/scoped");
+    setNow("2026-12-06T09:00:00Z");
+    const db = await openDb({});
+    await migrate(db);
+    await seed(db, "software");
+    await seed(db, "cityhall");
+
+    const orgs = await db.query(`select id from org order by id`);
+    expect(orgs.map((o) => o.id)).toEqual(["cityhall", "software"]);
+
+    const softPlat = await db.one(`select name from unit where id = $1`, [scoped("software", "platform")]);
+    const cityPw = await db.one(`select name from unit where id = $1`, [scoped("cityhall", "publicworks")]);
+    expect(softPlat?.name).toBe("Platform");
+    expect(cityPw?.name).toBeTruthy();
+
+    const cityPeopleBefore = (await db.one(`select count(*)::int n from app_user where org_id = 'cityhall'`))!.n;
+    await resetWorkspace(db, "software");
+    expect((await db.one(`select count(*)::int n from app_user where org_id = 'cityhall'`))!.n).toBe(cityPeopleBefore);
+    expect((await db.one(`select id from org where id = 'software'`))!.id).toBe("software");
+    expect(await db.one(`select id from unit where id = $1`, [scoped("software", "platform")])).not.toBeNull();
+  });
+});

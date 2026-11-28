@@ -8,10 +8,12 @@ import { setNow } from "@/lib/clock";
 import { FakeLLM, setLLM } from "@/lib/ai/llm";
 import { learnFrom } from "@/lib/context-learn";
 import { extractContext } from "@/lib/ai/offline";
+import { sid } from "./helpers";
 
 describe("learning team context", () => {
   let db: Db;
-  const entries = (unit = "platform") => db.query(`select * from context_entry where unit_id = $1 order by first_seen_at, title`, [unit]);
+  const entries = (unit = "platform") =>
+    db.query(`select * from context_entry where unit_id = $1 order by first_seen_at, title`, [sid(unit)]);
 
   beforeEach(async () => {
     setNow("2026-12-06T09:00:00Z");
@@ -33,13 +35,13 @@ describe("learning team context", () => {
 
   it("applies low-risk claims, holds ownership and capabilities for confirmation, and audits it", async () => {
     const r = await learnFrom(db, {
-      unitId: "platform",
+      unitId: sid("platform"),
       kind: "answer",
       ref: "rq_test1",
       label: "Lena Fischer's answer",
       question: "How do I load-test a new endpoint?",
       text: "We own the staging cluster. We can help with load testing before a launch. Book a review in #platform-asks.",
-      actorId: "lena",
+      actorId: sid("lena"),
     });
     expect(r.signals).toBe(4);
     const rows = await entries();
@@ -55,7 +57,14 @@ describe("learning team context", () => {
   });
 
   it("never counts the same source twice, and a second source strengthens the entry", async () => {
-    const src = { unitId: "platform", kind: "pr" as const, ref: "platform/deploy#120", label: "PR #120", repo: "platform/deploy", text: "Cache build layers." };
+    const src = {
+      unitId: sid("platform"),
+      kind: "pr" as const,
+      ref: "platform/deploy#120",
+      label: "PR #120",
+      repo: "platform/deploy",
+      text: "Cache build layers.",
+    };
     await learnFrom(db, src);
     await learnFrom(db, src);
     let sys = (await entries()).filter((e) => e.kind === "system");
@@ -70,23 +79,50 @@ describe("learning team context", () => {
   });
 
   it("anything learned from a marked source waits for confirmation and inherits the marking", async () => {
-    await learnFrom(db, { unitId: "sales", kind: "agent_chat", ref: "msg_1", label: "Sales chat", text: "Book a review in #sales-deals.", markingIds: ["mk_conf"] });
+    await learnFrom(db, {
+      unitId: sid("sales"),
+      kind: "agent_chat",
+      ref: "msg_1",
+      label: "Sales chat",
+      text: "Book a review in #sales-deals.",
+      markingIds: [sid("mk_conf")],
+    });
     const [e] = await entries("sales");
     expect(e.status).toBe("pending");
-    expect(e.marking_ids).toEqual(["mk_conf"]);
+    expect(e.marking_ids).toEqual([sid("mk_conf")]);
   });
 
   it("something the team removed is not learned again", async () => {
-    await learnFrom(db, { unitId: "platform", kind: "pr", ref: "a#1", label: "PR #1", repo: "platform/legacy-cron", text: "Bump deps." });
-    await db.query(`update context_entry set status = 'retired' where unit_id = 'platform'`);
-    const r = await learnFrom(db, { unitId: "platform", kind: "pr", ref: "a#2", label: "PR #2", repo: "platform/legacy-cron", text: "Bump more deps." });
+    await learnFrom(db, {
+      unitId: sid("platform"),
+      kind: "pr",
+      ref: "a#1",
+      label: "PR #1",
+      repo: "platform/legacy-cron",
+      text: "Bump deps.",
+    });
+    await db.query(`update context_entry set status = 'retired' where unit_id = $1`, [sid("platform")]);
+    const r = await learnFrom(db, {
+      unitId: sid("platform"),
+      kind: "pr",
+      ref: "a#2",
+      label: "PR #2",
+      repo: "platform/legacy-cron",
+      text: "Bump more deps.",
+    });
     expect(r.created).toEqual([]);
     expect((await entries()).every((e) => e.status === "retired")).toBe(true);
   });
 
   it("uses the model's claims when it answers", async () => {
     setLLM(new FakeLLM({ extract_context: { claims: [{ kind: "system", title: "Edge proxy", body: "Platform runs the edge proxy." }] } }));
-    const r = await learnFrom(db, { unitId: "platform", kind: "update", ref: "up_1", label: "Platform update", text: "Moved the edge proxy to the new cluster." });
+    const r = await learnFrom(db, {
+      unitId: sid("platform"),
+      kind: "update",
+      ref: "up_1",
+      label: "Platform update",
+      text: "Moved the edge proxy to the new cluster.",
+    });
     expect(r.by).toBe("Fake model");
     expect((await entries()).map((e) => e.title)).toContain("Edge proxy");
   });
