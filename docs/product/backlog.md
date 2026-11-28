@@ -48,18 +48,31 @@ Shared files and how to handle them:
 
 ## Claiming and shipping a task
 
-No pull requests per task: both lanes commit straight to the default branch,
-`claude/dazzling-archimedes-x7233q`.
+One pull request per task, reviewed by the other lane. Claude reviews Cursor's PRs and Cursor
+reviews Claude's. The base branch is the default branch, `claude/dazzling-archimedes-x7233q`.
 
 1. **Claim it.** Change the task's box to `[~]` and add your lane, for example
-   `- [~] **T-40 ...** (Cursor)`. Commit that line alone and push it right away, so the other lane
-   sees it before starting.
-2. **Build it** in small commits on your local copy of the default branch. Commit messages start
-   with the task id: `T-40: Slack OAuth install`.
-3. **Before every push:** `git pull --rebase`, then `npm run typecheck`, `npm test` and
-   `npm run build`. Push only when all three pass. Never force-push.
-4. **Finish it.** Change `[~]` to `[x]` in the last commit of the task.
-5. **If a push breaks the build** (Vercel shows it on the default branch), the lane that pushed it
+   `- [~] **T-40 ...** (Cursor)`. Commit that line alone and push it straight to the default
+   branch right away, so the other lane sees it before starting. Claims are the only straight
+   pushes.
+2. **Build it** on a branch named for the task, `<lane>/t-NN-short-name` (for example
+   `cursor/t-40-slack-install`). Commit messages start with the task id: `T-40: Slack OAuth install`.
+   Change `[~]` to `[x]` in the PR's last commit.
+3. **Before every push:** rebase on the default branch, then `npm run typecheck`, `npm test` and
+   `npm run build`. Push only when all three pass. Never force-push the default branch; a
+   `--force-with-lease` push to your own task branch after a rebase is fine.
+4. **Open the PR** with the title `T-NN: <task name>`. The body says what changed, how it was
+   tested, and anything the reviewer should look at closely.
+5. **Review the other lane's PRs** before starting your next task. Check the diff against the
+   task's acceptance and mock, the permission rules (one `visibleLevel` check, markings carried
+   into derived outputs, `org_id` on new tables) and that tests cover the change and never call a
+   real model or API. Pull the branch and run the three checks yourself. Both lanes push as the
+   same GitHub account, so GitHub won't accept a formal approval: post the review as a comment
+   review that starts with **Approved** or **Changes requested**, with line comments for each issue.
+6. **Merge your own PR** (squash) once the other lane has posted **Approved** and the Vercel check
+   is green. Address requested changes with new commits on the branch and reply to each comment.
+   If the other lane hasn't reviewed within a few hours, ask Ovo rather than merging unreviewed.
+7. **If a merge breaks the build** (Vercel shows it on the default branch), the lane that merged it
    fixes it next, before anything else.
 
 ## The goal screens
