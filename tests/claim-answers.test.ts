@@ -9,12 +9,13 @@ import { loadViewer, type Viewer } from "@/lib/data";
 import { askTeam, claimViews, getQuestion, publishedSourcesFor, type Source } from "@/lib/agent";
 import { answerFromPublished } from "@/lib/ai/tasks";
 import { learnFrom } from "@/lib/context-learn";
+import { sid } from "./helpers";
 
 const src = (ref: string, text: string, provenance: Source["provenance"], lastSeen: string): Source => ({ ref, text, provenance, lastSeen, label: ref, level: "summary", markingIds: [] });
 
 describe("claim-by-claim answers", () => {
   let db: Db;
-  const v = async (id: string): Promise<Viewer> => (await loadViewer(db, id))!;
+  const v = async (id: string): Promise<Viewer> => (await loadViewer(db, sid(id), "software"))!;
 
   beforeEach(async () => {
     setNow("2026-12-06T09:00:00Z");
@@ -72,14 +73,14 @@ describe("claim-by-claim answers", () => {
   });
 
   it("the asker sees the answer claim by claim, with learned context tagged as learned", async () => {
-    await learnFrom(db, { unitId: "platform", kind: "answer", ref: "rq_lt", label: "Lena's answer", question: "How do I load-test a new endpoint?", text: "Use the k6 harness in platform/loadtest." });
+    await learnFrom(db, { unitId: sid("platform"), kind: "answer", ref: "rq_lt", label: "Lena's answer", question: "How do I load-test a new endpoint?", text: "Use the k6 harness in platform/loadtest." });
     const priya = await v("priya");
-    const { questionId } = await askTeam(db, priya, "platform", "How do I load-test a new endpoint?");
+    const { questionId } = await askTeam(db, priya, sid("platform"), "How do I load-test a new endpoint?");
     const got = (await getQuestion(db, priya, questionId))!;
     expect(got.question.outcome).toBe("answered");
     const learned = got.claims.find((c) => c.tag === "learned");
     expect(learned?.text).toMatch(/load-test/i);
     expect(learned?.source?.label).toBe("Learned");
-    expect((await publishedSourcesFor(db, "platform", priya)).length).toBeGreaterThan(0);
+    expect((await publishedSourcesFor(db, sid("platform"), priya)).length).toBeGreaterThan(0);
   });
 });
