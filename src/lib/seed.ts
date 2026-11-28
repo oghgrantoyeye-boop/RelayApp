@@ -57,10 +57,23 @@ async function seedPack(t: Db, pack: DemoPack) {
     );
   }
 
+  const { hashToken } = await import("./auth/crypto");
+  const { apiTokenPrefix, demoApiToken } = await import("./auth/api-tokens");
   for (const [id, name, title, team, role] of PEOPLE) {
+    const demo = demoApiToken(s(id));
     await q(
-      `insert into app_user (id, org_id, kind, name, title, email, github_login, api_token) values ($1, $2, 'human', $3, $4, $5, $6, $7)`,
-      [s(id), orgId, name, title, `${id}@${pack.org.domain}.example`, name.toLowerCase().replace(/[^a-z]+/g, "-"), `rly_demo_${s(id)}`],
+      `insert into app_user (id, org_id, kind, name, title, email, github_login, api_token, api_token_hash, api_token_prefix)
+       values ($1, $2, 'human', $3, $4, $5, $6, null, $7, $8)`,
+      [
+        s(id),
+        orgId,
+        name,
+        title,
+        `${id}@${pack.org.domain}.example`,
+        name.toLowerCase().replace(/[^a-z]+/g, "-"),
+        hashToken(demo),
+        apiTokenPrefix(demo),
+      ],
     );
     await q(`insert into member (id, org_id, unit_id, user_id, role) values ($1, $2, $3, $4, $5)`, [
       memberId(id, team), orgId, s(team), s(id), role,
