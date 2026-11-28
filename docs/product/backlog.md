@@ -194,7 +194,7 @@ The model adapter supports Claude only. An OpenAI key would need a second provid
 
 ## M4 and M5: routing, the team queue and request status
 
-- [ ] **T-22 Route to the team queue.** Mock: M3, M4. `chooseRoute()` sends a confident ownership
+- [~] **T-22 Route to the team queue.** (Claude) Mock: M3, M4. `chooseRoute()` sends a confident ownership
   match to the owner (and shows it in the team queue), anything else to the team queue, and says
   why (`request.destination`, `request.route_reason`). Acceptance: "merchant sign-on" goes to
   Platform's queue with the reason shown. M.
