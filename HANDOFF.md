@@ -4,7 +4,7 @@ Paste this into a new chat or add it to a project's knowledge.
 
 ## Where things stand (Nov 27, 2026)
 
-Relay pivoted from city permitting to knowledge sharing for tech companies of 200 to 2,000 people. The current spec is [`SPEC.md`](SPEC.md), exported from the claude.ai doc "Relay v1 build brief: team pages and updates" (https://claude.ai/artifact/72jJUjVxZsWiAqXrJFbVMS). The permitting brief is kept in `docs/permitting-brief.md`.
+Relay pivoted from city permitting to knowledge sharing for tech companies of 200 to 2,000 people. The current spec is [`docs/product/team-context-answers-routing.md`](docs/product/team-context-answers-routing.md) (adopted Nov 28, 2026). The build plan is [`docs/product/roadmap.md`](docs/product/roadmap.md), the goal screens are [`docs/product/mocks/`](docs/product/mocks/index.html), and the task list, split between the Claude and Cursor lanes, is [`docs/product/backlog.md`](docs/product/backlog.md). [`SPEC.md`](SPEC.md), the v1 build brief, is historical: it describes what was built first, and the new spec wins wherever they differ. The permitting brief is kept in `docs/permitting-brief.md`.
 
 **v1 is built**, on branch `claude/dazzling-archimedes-x7233q`, and runs with `npm install && npm run dev`. See [`README.md`](README.md) for the demo script. It includes:
 

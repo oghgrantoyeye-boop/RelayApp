@@ -1,3 +1,5 @@
+> **Historical.** This is the v1 build brief that the first version was built from. The current product spec is [`docs/product/team-context-answers-routing.md`](docs/product/team-context-answers-routing.md), and it wins wherever the two differ. See [`docs/product/roadmap.md`](docs/product/roadmap.md) and [`docs/product/backlog.md`](docs/product/backlog.md) for the work in progress.
+
 # Relay v1 build brief: team pages and updates
 
 Nov 26, 2026 · @Ovo

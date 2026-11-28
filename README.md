@@ -5,7 +5,7 @@
 This repository holds two things, deployed together:
 
 - **The marketing site** at `/`, with an early-access form at `/early-access`. Launch images and captions are in [`marketing/`](marketing/launch-campaign.md).
-- **The working prototype** at `/feed` and the pages around it, running inside one of four fictional customer organizations (see "Customer demos" below). The default is a 300-person software company, Northwind Labs. It's the v1 product described in [`SPEC.md`](SPEC.md). (The code still uses the working name "Relay" internally.) The earlier city-permitting brief is in [`docs/permitting-brief.md`](docs/permitting-brief.md).
+- **The working prototype** at `/feed` and the pages around it, running inside one of four fictional customer organizations (see "Customer demos" below). The default is a 300-person software company, Northwind Labs. The current product spec is [`docs/product/team-context-answers-routing.md`](docs/product/team-context-answers-routing.md), with the build plan in [`roadmap.md`](docs/product/roadmap.md), the goal screens in [`mocks/`](docs/product/mocks/index.html) and the task list in [`backlog.md`](docs/product/backlog.md). [`SPEC.md`](SPEC.md) is the earlier v1 build brief, kept for history. (The code still uses the working name "Relay" internally.) The earlier city-permitting brief is in [`docs/permitting-brief.md`](docs/permitting-brief.md).
 
 ## Early-access signups
 

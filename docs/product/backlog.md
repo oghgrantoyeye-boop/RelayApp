@@ -284,7 +284,7 @@ other questions. Then GitHub, then the planned tools.
   whether Platform can support merchant sign-on; clarify; team queue; Ken answers; Beacon learns.
   Update `types.ts`, `tests/demos.test.ts`, `/guide`. Hide the other demos until rewritten. L.
 - [ ] **T-52 Marketing follow-ups.** Anything T-00 leaves, plus `marketing/launch-campaign.md`. S.
-- [ ] **T-53 Docs.** README and HANDOFF point to the new spec; `SPEC.md` marked historical. S.
+- [x] **T-53 Docs.** (Claude) README and HANDOFF point to the new spec; `SPEC.md` marked historical. S.
 
 ## Later
 
