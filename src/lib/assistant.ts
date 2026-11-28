@@ -123,7 +123,13 @@ const REVIEW = /\b(review|redline|check the draft|go through)\b/i;
 const CODE = /\b(fix|bug|pull request|refactor|implement|patch|code)\b/i;
 
 /** Send a message to an agent and get its reply. */
-export async function sendChat(db: Db, viewer: Viewer, input: { target: ChatTarget; text: string; replyTo?: string }): Promise<string> {
+export async function sendChat(
+  db: Db,
+  viewer: Viewer,
+  input: { target: ChatTarget; text: string; replyTo?: string },
+  /** Receives the reply as it's written, when a model is talking. */
+  onDelta: (text: string) => void = () => {},
+): Promise<string> {
   let text = input.text.trim().slice(0, 2000);
   if (!text) throw new Error("Type a message first.");
   let target = input.target || "me";
@@ -139,14 +145,24 @@ export async function sendChat(db: Db, viewer: Viewer, input: { target: ChatTarg
   // team asking a question is not, so Beacon only learns from members of the agent's team.
   if (agent && viewer.reader.unitIds.includes(agent.team.id))
     await learnQuietly(db, { unitId: agent.team.id, kind: "agent_chat", ref: userMsgId, label: `${viewer.user.name} in ${agent.name}`, text, actorId: viewer.user.id });
-  const pending = await pendingClarify(db, viewer, target, text, input.replyTo);
-  const reply = pending ? await replyToClarify(db, viewer, pending, text) : await replyTo(db, viewer, agent, text);
+  // A real conversation when a model is configured. A tap on an earlier follow-up's button
+  // (replyTo) finishes that follow-up, and work-performing agents keep their proposals.
+  let reply: Reply | Reply[] | null = null;
+  if (!input.replyTo && !workersEnabled()) {
+    const { agentTurn } = await import("./agent-chat");
+    reply = await agentTurn(db, viewer, agent, target, onDelta);
+  }
+  if (!reply) {
+    const pending = await pendingClarify(db, viewer, target, text, input.replyTo);
+    reply = pending ? await replyToClarify(db, viewer, pending, text) : await replyTo(db, viewer, agent, text);
+    for (const r of Array.isArray(reply) ? reply : [reply]) onDelta(r.text);
+  }
   let last = "";
   for (const r of Array.isArray(reply) ? reply : [reply]) last = await save(db, viewer, { role: "agent", target, agentLabel: agent ? agent.name : MY_AGENT, ...r });
   return last;
 }
 
-type Reply = { text: string; refs: ChatRef[]; actions: ChatAction[]; answer?: ChatMsg["answer"] };
+export type Reply = { text: string; refs: ChatRef[]; actions: ChatAction[]; answer?: ChatMsg["answer"] };
 const action = (kind: ChatAction["kind"], label: string, detail: string, args: Record<string, string>): ChatAction => ({ id: newId("act"), kind, label, detail, args, status: "proposed" });
 
 async function replyTo(db: Db, viewer: Viewer, agent: AgentRow | null, text: string): Promise<Reply> {
@@ -342,7 +358,7 @@ export function pickedTeams<T extends { name: string }>(teams: T[], text: string
 }
 
 /** How an agent's answer, follow-up or routing reads in the chat. */
-async function replyForQuestion(db: Db, viewer: Viewer, questionId: string, via: string): Promise<Reply> {
+export async function replyForQuestion(db: Db, viewer: Viewer, questionId: string, via: string): Promise<Reply> {
   const q = await getQuestion(db, viewer, questionId);
   if (!q) return { text: `${via}The answer draws on something you aren't cleared to see, so I can't share it.`, refs: [], actions: [] };
   const unit = (await db.one(`select name, slug from unit where id = $1`, [q.question.unit_id]))!;
@@ -408,7 +424,7 @@ async function replyToClarify(db: Db, viewer: Viewer, pending: { messageId: stri
   return replyForQuestion(db, viewer, questionId, "Thanks. ");
 }
 
-async function attention(db: Db, viewer: Viewer): Promise<Reply> {
+export async function attention(db: Db, viewer: Viewer): Promise<Reply> {
   const feed = await getFeed(db, viewer);
   const lines: string[] = [];
   for (const k of feed.asksForYou.slice(0, 3)) lines.push(`- ${k.team.name} asked your team: ${k.text}`);
@@ -423,7 +439,7 @@ async function attention(db: Db, viewer: Viewer): Promise<Reply> {
   return { text: `Here's what changed for you this week:\n${lines.join("\n")}`, refs: [{ label: "What's changing", href: "/feed" }], actions: [] };
 }
 
-async function owed(db: Db, viewer: Viewer): Promise<Reply> {
+export async function owed(db: Db, viewer: Viewer): Promise<Reply> {
   const mine = await commitmentViews(db, viewer.reader, (r) => r.status === "open" && viewer.reader.unitIds.includes(r.owner_unit_id));
   if (mine.length === 0) return { text: "Your teams have no open commitments.", refs: [], actions: [] };
   const lines = mine.slice(0, 6).map((c) => `- **${c.shown.title}**, due ${fmt(c.due)}${c.waitingUnit ? ` for ${c.waitingUnit.name}` : ""} (${c.state.replace("_", " ")})`);

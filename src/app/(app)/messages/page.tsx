@@ -68,12 +68,13 @@ export default async function MessagesPage({ searchParams }: { searchParams: Pro
           </div>
           <div className="chat-scroll page">
             <ChatThread
+          scope="page"
               messages={messages}
               me={viewer.user.name}
               empty={<p className="muted" style={{ margin: 0 }}>No messages yet. Try one of the suggestions below, or type @ and an agent&apos;s name.</p>}
             />
           </div>
-          <Composer action={chatSend} target={target} from="page" placeholder={`Message ${name}`} suggestions={suggestionsFor(agent, viewer, demo)} />
+          <Composer agentLabel={name} action={chatSend} target={target} from="page" placeholder={`Message ${name}`} suggestions={messages.length === 0 ? suggestionsFor(agent, viewer, demo) : undefined} />
         </section>
       </div>
     </>

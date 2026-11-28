@@ -52,7 +52,7 @@ function fail(message: string) {
  * The workspace this call is for has reached its monthly AI budget (T-35): the call isn't made and
  * the offline writer answers, with a note saying why.
  */
-async function overBudget(task: string): Promise<boolean> {
+export async function overBudget(task: string): Promise<boolean> {
   const scope = getAiScope();
   if (!scope?.db || !scope.orgId) return false;
   const { monthSpend, capResetsAt } = await import("./spend");
@@ -63,7 +63,7 @@ async function overBudget(task: string): Promise<boolean> {
 }
 
 /** Count a call against the workspace it was for. Never blocks the answer if recording fails. */
-async function record(task: string, inputTokens: number, outputTokens: number) {
+export async function record(task: string, inputTokens: number, outputTokens: number) {
   const scope = getAiScope();
   if (!scope?.db) return;
   try {
