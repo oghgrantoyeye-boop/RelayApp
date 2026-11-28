@@ -26,8 +26,8 @@ export interface MapEdge {
 
 const STATE: Record<CState, { label: string; color: string }> = {
   on_track: { label: "On track", color: "#16a34a" },
-  at_risk: { label: "At risk", color: "#d97706" },
-  slipped: { label: "Slipped", color: "#dc2626" },
+  at_risk: { label: "Waiting on a change", color: "#3b82f6" },
+  slipped: { label: "New date coming", color: "#d97706" },
 };
 const ASK = "#7c3aed";
 const SHARE = "#a1a1aa";

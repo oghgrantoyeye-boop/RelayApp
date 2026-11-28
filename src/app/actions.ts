@@ -5,7 +5,7 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { after } from "next/server";
-import { currentViewer, PERSONA_COOKIE } from "@/lib/session";
+import { currentViewer, DOCK_COOKIE, GUIDE_COOKIE, PERSONA_COOKIE } from "@/lib/session";
 import { ALL_KINDS, audit, loadViewer } from "@/lib/data";
 import { analyzeUpdate, publishDraft, type PublishForm } from "@/lib/updates";
 import { confirmCommitment, markDone, rejectCommitment } from "@/lib/commitments";
@@ -38,6 +38,16 @@ export async function setPersona(form: FormData) {
   const { db } = await currentViewer();
   const v = await loadViewer(db, id);
   if (v && v.user.kind === "human") (await cookies()).set(PERSONA_COOKIE, id, { path: "/", sameSite: "lax", httpOnly: true });
+  // Guide buttons carry their step number, so the guide bar can follow along on every page.
+  const step = str(form, "step");
+  if (step === "off") (await cookies()).delete(GUIDE_COOKIE);
+  else if (step) (await cookies()).set(GUIDE_COOKIE, step, { path: "/", sameSite: "lax", httpOnly: true });
+  revalidatePath("/", "layout");
+  redirect(safePath(str(form, "path")));
+}
+
+export async function hideGuideBar(form: FormData) {
+  (await cookies()).delete(GUIDE_COOKIE);
   revalidatePath("/", "layout");
   redirect(safePath(str(form, "path")));
 }
@@ -51,6 +61,7 @@ async function loadDemo(db: Db, demoId: string) {
 export async function resetDemo(form: FormData) {
   const { db, demo } = await currentViewer();
   await loadDemo(db, demo.id);
+  (await cookies()).delete(GUIDE_COOKIE);
   revalidatePath("/", "layout");
   redirect(withMsg(safePath(str(form, "path")), "Demo data reset to the Dec 6 story."));
 }
@@ -61,6 +72,7 @@ export async function switchDemo(form: FormData) {
   const { db } = await currentViewer();
   await loadDemo(db, pack.id);
   (await cookies()).set(PERSONA_COOKIE, pack.defaultPersona, { path: "/", sameSite: "lax", httpOnly: true });
+  (await cookies()).delete(GUIDE_COOKIE);
   revalidatePath("/", "layout");
   redirect(withMsg("/guide", `Loaded the ${pack.org.name} demo.`));
 }
@@ -292,8 +304,9 @@ export async function startTaskAction(form: FormData) {
   return run(`/agents/${slug}`, async () => {
     const { db, viewer } = await currentViewer();
     const { startTask, runTask } = await import("@/lib/work");
-    const kind = str(form, "kind") === "draft_update" ? "draft_update" : "research";
-    const id = await startTask(db, viewer, str(form, "unitId"), { kind, instructions: str(form, "instructions") });
+    const k = str(form, "kind");
+    const kind = k === "draft_update" || k === "review_doc" || k === "code" ? k : "research";
+    const id = await startTask(db, viewer, str(form, "unitId"), { kind, instructions: str(form, "instructions"), agentId: str(form, "agentId") || undefined });
     after(() => runTask(db, id));
     return `/agents/${slug}/tasks/${id}`;
   });
@@ -313,5 +326,63 @@ export async function taskAction(form: FormData) {
       after(() => w.runTask(db, id));
     } else if (op === "takeover") await w.takeOverTask(db, viewer, id);
     return back;
+  });
+}
+
+// ---- Talking to agents, and adding agent teammates ----
+
+export async function chatSend(form: FormData) {
+  const path = safePath(str(form, "path"));
+  return run(path, async () => {
+    const { db, viewer } = await currentViewer();
+    const { sendChat, resolveMention } = await import("@/lib/assistant");
+    let target = str(form, "target") || "me";
+    const text = str(form, "text");
+    const mention = await resolveMention(db, text);
+    if (mention) target = mention.agent.id;
+    await sendChat(db, viewer, { target, text });
+    if (form.get("from") === "dock") (await cookies()).set(DOCK_COOKIE, target, { path: "/", sameSite: "lax", httpOnly: true });
+    // The full chat view follows the conversation the message went to.
+    if (path.startsWith("/messages")) return `/messages?with=${encodeURIComponent(target)}`;
+    return path;
+  });
+}
+
+export async function chatDecide(form: FormData) {
+  const path = safePath(str(form, "path"));
+  return run(path, async () => {
+    const { db, viewer } = await currentViewer();
+    const { decideAction } = await import("@/lib/assistant");
+    const out = await decideAction(db, viewer, str(form, "messageId"), str(form, "actionId"), str(form, "op") === "approve");
+    if (out.taskId) {
+      const { runTask } = await import("@/lib/work");
+      after(() => runTask(db, out.taskId!));
+    }
+    return path;
+  });
+}
+
+export async function setDockTarget(form: FormData) {
+  (await cookies()).set(DOCK_COOKIE, str(form, "target") || "me", { path: "/", sameSite: "lax", httpOnly: true });
+  revalidatePath("/", "layout");
+  redirect(safePath(str(form, "path")));
+}
+
+export async function createAgentAction(form: FormData) {
+  return run("/agents/new", async () => {
+    const { db, viewer } = await currentViewer();
+    const { createAgent } = await import("@/lib/agents");
+    const id = await createAgent(db, viewer, {
+      unitId: str(form, "unitId"),
+      name: str(form, "name"),
+      purpose: str(form, "purpose"),
+      connectorIds: form.getAll("connectors").map(String),
+      actions: form.getAll("actions").map(String),
+      approval: str(form, "approval"),
+      schedule: str(form, "schedule"),
+      budget: Number(str(form, "budget")) || 50,
+    });
+    (await cookies()).set(DOCK_COOKIE, id, { path: "/", sameSite: "lax", httpOnly: true });
+    return withMsg(`/messages?with=${id}`, "Your new teammate is ready. Say hello, or give it its first job.");
   });
 }

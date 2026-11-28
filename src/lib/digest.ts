@@ -80,7 +80,7 @@ export async function sendLeadershipDigest(db: Db, viewer: Viewer) {
     const body = [
       ...d.paragraphs.map((p) => `${p.team.name}${p.markingLabels.length ? ` [${p.markingLabels.join(", ")}]` : ""}: ${p.text}`),
       "",
-      `Slipped commitments (${d.slipped.length}):`,
+      `Dates that are changing (${d.slipped.length}):`,
       ...d.slipped.map((c) => `• ${c.ownerUnit.name}: ${c.shown.title}, due ${fmt(c.due)}${c.shown.reason ? `. ${c.shown.reason}` : ""}`),
     ].join("\n");
     sent += await deliver(db, [m.id], { kind: "leadership_digest", subject: `Leadership digest, week of ${fmt(d.weekOf)}`, body, refs: [{ type: "digest", id: d.weekOf, href: "/digest" }] });

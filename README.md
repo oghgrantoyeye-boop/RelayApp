@@ -35,16 +35,30 @@ Open http://localhost:3000 for the site, or http://localhost:3000/feed for the p
 
 ## Customer demos
 
-Open **Choose a demo** (`/demos`, also at the bottom of the sidebar) to load one of four fictional organizations. Each runs the same product and the same walkthrough, with its own teams, people, tools, meetings and story, all set on Dec 6, 2026. Loading a demo resets the demo data. **Demo guide** (`/guide`) lists the steps for the loaded demo, and each step's Open button switches you to the right person and page.
+Open **Choose a demo** (`/demos`, also at the bottom of the sidebar) to load one of five fictional organizations. Each runs the same product and the same walkthrough, with its own teams, people, tools, meetings and story, all set on Dec 6, 2026. Loading a demo resets the demo data. **Demo guide** (`/guide`) opens with the problem in two sentences and the three people you'll play, then six steps, each with one line on why it matters: see what's at risk, ask your agent, add an agent teammate and give it a first job, post the new date, see everyone hear about it, and read the week on one page. Each step's button switches you to the right person and page, and a bar at the top of every page shows the current step with a Next button.
 
 | Demo | Who it's for | The story |
 | --- | --- | --- |
 | Northwind Labs | Mid-size software company | Platform's rate-limit change slips, which blocks Payments API's webhook retries, which puts Growth's Dec 15 launch at risk. Confidential: the Halcyon Bank deal. |
 | City of Harborview | City hall | The Elm Street water main misses Dec 5 (damaged valves), which blocks Transportation's repaving, which puts the Winter Lights festival on Dec 18 at risk. Confidential: a flood-damage claim. |
 | Halden & Moss Architects | Architecture firm | The Riverside Library energy model misses Dec 5 after a facade change, which holds up the client design package on Dec 12 and the board renders on Dec 15. Confidential: an acquisition. |
-| Maison Verel | Mid-size fashion house | Recycled wool for the Spring '27 coats fails a dye test, which delays the samples for buyers on Dec 12 and the lookbook shoot on Dec 15. Confidential: an unannounced collaboration. |
+| Maison Verel | Mid-size fashion house | Recycled wool for the Pre-Fall '27 coats fails a dye test, which delays the samples for buyers on Dec 12 and the lookbook shoot on Dec 15. Confidential: an unannounced collaboration. |
+| The Lakeport Courier | Regional daily newspaper | A lawyer's letter delays the legal read on a care home investigation, which puts the final edit, the Dec 12 front page and the Saturday launch at risk. Confidential: a print schedule change. |
 
-Each demo is one file in [`src/lib/demos/`](src/lib/demos/), in the format described in [`types.ts`](src/lib/demos/types.ts). [`tests/demos.test.ts`](tests/demos.test.ts) runs the key walkthrough steps against every demo, so a new demo is checked the moment it's added to `DEMOS` in [`index.ts`](src/lib/demos/index.ts). To start a server on a demo other than Northwind, set `RELAY_DEMO` to its id (`software`, `cityhall`, `architecture` or `fashion`).
+## Agent teammates
+
+Agents are teammates, not a search box. **New teammate** (top of the sidebar, `/agents/new`) offers ready-made teammates and a "Build your own" path. Each agent belongs to one team; you pick the tools it may read (only that team's), what it may do, what needs a person's approval, when it runs and a monthly budget.
+
+- **Q&A teammates** answer from what teams published, at the asker's level, and route the rest to the owner. Every team has one built in (its front desk).
+- **Workers** do jobs in their own sandbox: draft the weekly update, summarize meetings, research the web, review and draft documents, change code (a pull request a person reviews), or post in the team's tools. People approve anything that leaves the team.
+
+Talk to agents in the **agent panel** on every page (Cmd/Ctrl+J), or in **Messages** (`/messages`), which lists every agent like a person. **Your Beacon agent** works out which team owns a question and asks that team's agent for you. Type `@` and an agent's name to talk to one directly. When an agent wants to act (start a draft, run a review, open a pull request, notify someone now), it proposes the action and waits for your OK.
+
+Document review works without an API key (a first-pass checklist of names, money, deadlines and disputed points, cross-checked against related documents). Research needs `ANTHROPIC_API_KEY`. The demo has no live code sandbox, so code jobs replay a recorded session and say so. Agent faces are DiceBear's Bottts Neutral style (Bottts by Pablo Stanley, free for personal and commercial use), so an agent never looks like a person.
+
+People's headshots are illustrations drawn locally from each name by [`/api/avatar`](src/app/api/avatar/[seed]/route.ts), using DiceBear's Notionists style (CC0 1.0, a remix of work by Zoish). They aren't photos of real people, and no outside service is called.
+
+Each demo is one file in [`src/lib/demos/`](src/lib/demos/), in the format described in [`types.ts`](src/lib/demos/types.ts). [`tests/demos.test.ts`](tests/demos.test.ts) runs the key walkthrough steps against every demo, so a new demo is checked the moment it's added to `DEMOS` in [`index.ts`](src/lib/demos/index.ts). To start a server on a demo other than Northwind, set `RELAY_DEMO` to its id (`software`, `cityhall`, `architecture`, `fashion` or `newsroom`).
 
 ## The five-minute demo (Northwind Labs)
 

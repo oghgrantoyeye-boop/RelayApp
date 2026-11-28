@@ -24,7 +24,7 @@ export function CommitmentLine({ c, showWaiting = true }: { c: CommitmentView; s
         </span>
         {c.ownerName && <span>· owner {c.ownerName}</span>}
       </div>
-      {c.shown.reason && <div className="small" style={{ marginTop: 4, color: "#92400e" }}>{c.shown.reason}</div>}
+      {c.shown.reason && <div className="small muted" style={{ marginTop: 4 }}>{c.shown.reason}</div>}
       {c.blockedBy && (
         <div className="small muted" style={{ marginTop: 6, paddingLeft: 10, borderLeft: "2px solid var(--line)" }}>
           Depends on: {c.blockedBy.shown.title} ({c.blockedBy.ownerUnit.name}, due {fmt(c.blockedBy.due)}){" "}

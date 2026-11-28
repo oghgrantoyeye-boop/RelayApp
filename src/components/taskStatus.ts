@@ -7,4 +7,5 @@ export const TASK_STATUS: Record<string, [Tone, string]> = {
   failed: ["red", "Failed"],
   stopped: ["gray", "Taken over"],
   needs_key: ["amber", "Needs an API key"],
+  needs_sandbox: ["amber", "Needs a code sandbox"],
 };

@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { currentViewer } from "@/lib/session";
-import { getTask, fmtCost, type Step } from "@/lib/work";
+import { getTask, fmtCost, TASK_KIND_LABEL, type Step } from "@/lib/work";
 import { fmtDateTime } from "@/lib/clock";
 import { Flash, Pill, Topbar } from "@/components/ui";
 import { Markdown } from "@/components/Markdown";
@@ -36,7 +36,7 @@ export default async function TaskPage({ params, searchParams }: { params: Promi
           <div>
             <div className="row"><h1>{t.title}</h1><Pill tone={tone}>{label}</Pill></div>
             <p>
-              {t.kind === "research" ? "Research" : "Draft update"} for {requester} · started {fmtDateTime(t.created_at)} UTC
+              {TASK_KIND_LABEL[t.kind] ?? t.kind} for {requester} · started {fmtDateTime(t.created_at)} UTC
               {takenOverBy && ` · taken over by ${takenOverBy}`}
             </p>
           </div>
@@ -46,6 +46,11 @@ export default async function TaskPage({ params, searchParams }: { params: Promi
             {t.status === "needs_key" && (
               <div className="notice warn">
                 Research runs on Claude with web search, and this deployment has no ANTHROPIC_API_KEY. Add it to the environment and start the task again. Nothing was sent anywhere.
+              </div>
+            )}
+            {t.status === "needs_sandbox" && (
+              <div className="notice warn">
+                Code jobs run in an isolated sandbox with a fresh copy of the repository. This demo doesn&apos;t have one connected, so nothing was checked out or changed. The steps below show what it would do.
               </div>
             )}
             {t.status === "failed" && <div className="notice err">The agent stopped: {t.error}</div>}

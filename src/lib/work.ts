@@ -12,6 +12,10 @@ import { firstSentence, overlap, tokens } from "./ai/offline";
 import { PermissionError, visibleLevel } from "./permissions";
 import { CONNECTOR_LABEL } from "./integrations";
 
+export type TaskKind = "research" | "draft_update" | "review_doc" | "code";
+const JOB: Record<TaskKind, string> = { research: "research", draft_update: "draft_update", review_doc: "documents", code: "code" };
+export const TASK_KIND_LABEL: Record<string, string> = { research: "Research", draft_update: "Draft update", review_doc: "Document review", code: "Code change" };
+
 export interface Step {
   at: string;
   kind: string;
@@ -21,9 +25,15 @@ export interface Step {
 }
 
 async function agentOf(db: Db, unitId: string): Promise<Row> {
-  const a = await db.one(`select a.* from app_user a join member m on m.user_id = a.id where m.unit_id = $1 and a.kind = 'agent'`, [unitId]);
+  const a = await db.one(`select a.* from app_user a join member m on m.user_id = a.id where m.unit_id = $1 and a.kind = 'agent' and a.id = 'agent_' || $1`, [unitId]);
   if (!a) throw new Error("This team has no agent");
   return a;
+}
+
+/** The tools an agent may read: all of its team's, unless the team picked some for it. */
+async function connectorFilter(db: Db, agentId: string): Promise<string[] | null> {
+  const p = await db.one(`select connector_ids from agent_profile where agent_id = $1`, [agentId]);
+  return p && (p.connector_ids as string[]).length ? (p.connector_ids as string[]) : null;
 }
 
 async function addStep(db: Db, id: string, step: Omit<Step, "at">) {
@@ -34,11 +44,21 @@ function assertMember(viewer: Viewer, unitId: string, what: string) {
   if (!viewer.reader.unitIds.includes(unitId)) throw new PermissionError(`Only members of this team can ${what}.`);
 }
 
-export async function startTask(db: Db, viewer: Viewer, unitId: string, input: { kind: "research" | "draft_update"; instructions: string; title?: string }) {
+export async function startTask(db: Db, viewer: Viewer, unitId: string, input: { kind: TaskKind; instructions: string; title?: string; agentId?: string }) {
   assertMember(viewer, unitId, "give its agent work");
   const instructions = input.instructions.trim();
-  if (input.kind === "research" && !instructions) throw new Error("Say what to research.");
-  const agent = await agentOf(db, unitId);
+  if (input.kind !== "draft_update" && !instructions) throw new Error(input.kind === "research" ? "Say what to research." : "Say what it should work on.");
+  let agent = await agentOf(db, unitId);
+  if (input.agentId && input.agentId !== agent.id) {
+    // An agent teammate the team created: it must be on this team, and the job must be one of its jobs.
+    const custom = await db.one(
+      `select a.*, p.actions from app_user a join agent_profile p on p.agent_id = a.id where a.id = $1 and p.unit_id = $2`,
+      [input.agentId, unitId],
+    );
+    if (!custom) throw new PermissionError("That agent isn't on this team.");
+    if (!(custom.actions as string[]).includes(JOB[input.kind])) throw new Error(`${custom.name} isn't set up for ${TASK_KIND_LABEL[input.kind].toLowerCase()}.`);
+    agent = custom;
+  }
   if (Number(agent.spent_usd) >= Number(agent.monthly_budget_usd ?? Infinity))
     throw new Error(`The ${agent.name} has used its $${agent.monthly_budget_usd} monthly budget. A manager can raise it.`);
   const id = newId("tr");
@@ -58,6 +78,8 @@ export async function runTask(db: Db, id: string) {
   await db.query(`update task_run set status = 'running', updated_at = $2 where id = $1`, [id, now()]);
   try {
     if (task.kind === "draft_update") await runDraftUpdate(db, task);
+    else if (task.kind === "review_doc") await runReview(db, task);
+    else if (task.kind === "code") await runCode(db, task);
     else await runResearch(db, task);
   } catch (e) {
     await db.query(`update task_run set status = 'failed', error = $2, updated_at = $3 where id = $1`, [id, (e as Error).message.slice(0, 500), now()]);
@@ -74,10 +96,11 @@ async function runDraftUpdate(db: Db, task: Row) {
   const requester = await loadViewer(db, task.requested_by);
   if (!requester) throw new Error("Requester not found");
   const since = addDays(today(), -7);
-  const docs = await db.query(
+  const allowed = await connectorFilter(db, task.agent_id);
+  const docs = (await db.query(
     `select d.*, c.kind as connector_kind from source_doc d join connector c on c.id = d.connector_id where d.unit_id = $1 and d.occurred_at >= $2 order by d.occurred_at`,
     [task.unit_id, since],
-  );
+  )).filter((d) => !allowed || allowed.includes(d.connector_id));
   const meetings = await db.query(`select * from meeting where unit_id = $1 and starts_at >= $2 and summary is not null`, [task.unit_id, since]);
   const byKind = (k: string) => docs.filter((d) => d.kind === k).length;
   await addStep(db, task.id, { kind: "read", text: `Read ${byKind("ticket")} tickets, ${byKind("pr")} pull requests, ${byKind("message")} messages and ${byKind("doc")} docs from the last 7 days.` });
@@ -104,6 +127,88 @@ async function runDraftUpdate(db: Db, task: Row) {
   await audit(db, { actorId: task.agent_id, onBehalfOfId: task.requested_by, action: "task_done", targetKind: "task", targetId: task.id, detail: { output: updateId } });
 }
 
+/** A first-pass review of a document from the team's tools: names, claims and points to check. */
+async function runReview(db: Db, task: Row) {
+  const allowed = await connectorFilter(db, task.agent_id);
+  const docs = (await db.query(
+    `select d.*, c.kind as connector_kind, c.name as connector_name from source_doc d join connector c on c.id = d.connector_id where d.unit_id = $1 and d.kind = 'doc' and d.marking_id is null order by d.occurred_at desc`,
+    [task.unit_id],
+  )).filter((d) => !allowed || allowed.includes(d.connector_id));
+  if (docs.length === 0) throw new Error("There are no documents in the tools this agent may read.");
+  const q = tokens(task.instructions);
+  const doc = docs.map((d) => ({ d, s: overlap(q, tokens(`${d.title} ${d.body}`)) })).sort((a, b) => b.s - a.s)[0].d;
+  await addStep(db, task.id, { kind: "read", text: `Opened "${doc.title}" from ${CONNECTOR_LABEL[doc.connector_kind] ?? doc.connector_kind} (${doc.connector_name}) in its sandbox.` });
+  const sentences = String(doc.body).split(/(?<=[.!?])\s+/).filter(Boolean);
+  const text = `${doc.title}. ${doc.body}`;
+  const names = [...new Set((text.match(/\b[A-Z][a-z]+(?: (?:[A-Z][a-z]+|&|of))+\b/g) ?? []).filter((n) => !/^(The|This|From|If|Two|One|Needs|Asks|Lot|Early|Supplier|Contractor) /.test(n)))];
+  const money = sentences.filter((x) => /[$€£]\s?\d|\d+(?:,\d{3})* (?:dollars|euros)/.test(x));
+  const deadlines = sentences.filter((x) => /\b(by|until|after|before|due)\b[^.]*\b(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\b/i.test(x));
+  const below = sentences.filter((x) => /(against a minimum|below|short of|fail|exceed|over budget|damages|penalt)/i.test(x));
+  const disputed = sentences.filter((x) => /(disput|accus|alleg|ban\b|breach|neglect|claim|exclusiv|terminat|not to publish|quote|second source|recording|asks? (?:for|the))/i.test(x));
+  const figures = sentences.filter((x) => /\d/.test(x) && !money.includes(x) && !deadlines.includes(x));
+  // Other documents in the same tools that touch the same subject, to check against.
+  const subject = tokens(`${doc.title} ${doc.body}`);
+  const related = docs.filter((d) => d.id !== doc.id).map((d) => ({ d, s: overlap(subject, tokens(`${d.title} ${d.body}`)) })).filter((x) => x.s >= 3).sort((x, y) => y.s - x.s).slice(0, 3);
+  await addStep(db, task.id, { kind: "read", text: `Checked ${sentences.length} sentences for names, money, deadlines and disputed points${related.length ? `, and compared it with ${related.length} related ${related.length === 1 ? "document" : "documents"}` : ""}.` });
+  const owner = await db.one(`select a.name from member m join app_user a on a.id = m.user_id where m.unit_id = $1 and m.role = 'lead'`, [task.unit_id]);
+  const requester = await db.one(`select name from app_user where id = $1`, [task.requested_by]);
+  const section = (title: string, xs: string[]) => (xs.length ? ["", `### ${title}`, ...xs.map((x) => `- ${x}`)] : []);
+  const md = [
+    `## First-pass review: ${doc.title}`,
+    "",
+    `For ${requester?.name ?? "the team"}${owner && owner.name !== requester?.name ? ` (${owner.name} leads the team)` : ""}. A checklist to speed up the person who signs off. It flags things to check and makes no final calls.`,
+    ...section("Below the bar, or at risk", below),
+    ...section("Disputed or sensitive points", disputed.filter((x) => !below.includes(x))),
+    ...section("Money", money.filter((x) => !below.includes(x) && !disputed.includes(x))),
+    ...section("Deadlines", deadlines.filter((x) => !below.includes(x) && !money.includes(x))),
+    ...section("Other figures to verify", figures.filter((x) => !below.includes(x) && !disputed.includes(x))),
+    ...section("Names and organizations to check", names.slice(0, 10)),
+    ...section("Check it against", related.map((x) => `${x.d.title}: ${firstSentence(x.d.body)}`)),
+  ].join("\n");
+  const flagged = new Set([...below, ...disputed, ...money, ...deadlines]).size;
+  await addStep(db, task.id, { kind: "done", text: `Flagged ${flagged} points and ${names.length} names to check. Nothing was sent outside the team.` });
+  await db.query(`update task_run set status = 'done', result_md = $2, sources = $3, updated_at = $4 where id = $1`, [
+    task.id, md, JSON.stringify([{ title: `${CONNECTOR_LABEL[doc.connector_kind] ?? doc.connector_kind}: ${doc.title}` }]), now(),
+  ]);
+  await audit(db, { actorId: task.agent_id, onBehalfOfId: task.requested_by, action: "task_done", targetKind: "task", targetId: task.id, detail: { reviewed: doc.id } });
+}
+
+/**
+ * Code changes run in an isolated sandbox with a fresh copy of the repository. This demo has no
+ * sandbox, so when the demo includes a recorded session for the team it replays that (and says so);
+ * otherwise it shows the plan and stops.
+ */
+async function runCode(db: Db, task: Row) {
+  const repo = await db.one(`select name from connector where unit_id = $1 and kind = 'github' order by name limit 1`, [task.unit_id]);
+  if (!repo) throw new Error("This team hasn't connected a GitHub repository.");
+  await addStep(db, task.id, { kind: "note", text: `Plan: check out ${repo.name} in a fresh sandbox (network limited to GitHub and the package registry), work on a new branch, run the tests and open a pull request. It can't merge.` });
+  const session = (await activeDemo(db)).ui.sampleSessions[task.unit_id];
+  if (!session) {
+    await db.query(`update task_run set status = 'needs_sandbox', updated_at = $2 where id = $1`, [task.id, now()]);
+    await addStep(db, task.id, { kind: "note", text: "This demo has no code sandbox connected, so nothing was checked out or changed." });
+    return;
+  }
+  await addStep(db, task.id, { kind: "note", text: "Demo replay: this demo has no live sandbox, so these steps replay a recorded session." });
+  await addStep(db, task.id, { kind: "read", text: `Checked out ${session.repo} on a new branch, ${session.branch}.` });
+  for (const n of session.notes) await addStep(db, task.id, { kind: "read", text: n });
+  await addStep(db, task.id, { kind: "done", text: `Opened a pull request from ${session.branch} for review. Nothing was merged.` });
+  const md = [
+    `## Pull request ready for review`,
+    "",
+    `**${session.repo}**, branch \`${session.branch}\` (${session.diffstat}).`,
+    "",
+    "### What changed",
+    ...session.notes.map((n) => `- ${n}`),
+    "",
+    "### Commits",
+    ...session.commits.map((c) => `- \`${c}\``),
+    "",
+    "An engineer on the team reviews and merges it. _Demo replay of a recorded session._",
+  ].join("\n");
+  await db.query(`update task_run set status = 'done', result_md = $2, sources = $3, updated_at = $4 where id = $1`, [task.id, md, JSON.stringify([{ title: `GitHub: ${session.repo}` }]), now()]);
+  await audit(db, { actorId: task.agent_id, onBehalfOfId: task.requested_by, action: "task_done", targetKind: "task", targetId: task.id, detail: { branch: session.branch, replay: true } });
+}
+
 async function runResearch(db: Db, task: Row) {
   const llm = getLLM();
   if (!llm.research) {
@@ -116,7 +221,9 @@ async function runResearch(db: Db, task: Row) {
   const unit = await db.one(`select * from unit where id = $1`, [task.unit_id]);
   const demo = await activeDemo(db);
   // Internal context: the team's own tools, which the requester (a member) may read in full.
-  const docs = await db.query(`select d.*, c.kind as connector_kind from source_doc d join connector c on c.id = d.connector_id where d.unit_id = $1 order by d.occurred_at desc limit 60`, [task.unit_id]);
+  const allowed = await connectorFilter(db, task.agent_id);
+  const docs = (await db.query(`select d.*, c.kind as connector_kind from source_doc d join connector c on c.id = d.connector_id where d.unit_id = $1 order by d.occurred_at desc limit 60`, [task.unit_id]))
+    .filter((d) => !allowed || allowed.includes(d.connector_id));
   const q = tokens(task.instructions);
   const relevant = docs
     .map((d) => ({ d, s: overlap(q, tokens(`${d.title} ${d.body}`)) }))
@@ -128,7 +235,7 @@ async function runResearch(db: Db, task: Row) {
   const result = await llm.research(
     {
       system:
-        `You are the ${unit!.name} team's agent at ${demo.org.name}, ${demo.org.about}. ` +
+        `You are ${agent!.name}, an agent on the ${unit!.name} team at ${demo.org.name}, ${demo.org.about}. ` +
         "A teammate asked you to research something. Use web search for anything external and cite sources inline as markdown links. " +
         "Use the internal context only as background; never invent internal facts. Write a brief for the team: a one-paragraph answer first, " +
         "then findings as bullets, then what you'd recommend and what you couldn't confirm. Use markdown headings sparingly. Under 450 words.",

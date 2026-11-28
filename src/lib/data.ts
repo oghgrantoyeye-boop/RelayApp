@@ -63,7 +63,7 @@ export async function loadViewer(db: Db, userId: string): Promise<Viewer | null>
 /** The team's agent, reading for someone: it never sees more than that person. */
 export async function agentReader(db: Db, unitId: string, onBehalfOf: Reader): Promise<{ agent: Row; reader: Reader }> {
   const agent = await db.one(
-    `select a.* from app_user a join member m on m.user_id = a.id where m.unit_id = $1 and a.kind = 'agent'`,
+    `select a.* from app_user a join member m on m.user_id = a.id where m.unit_id = $1 and a.kind = 'agent' and a.id = 'agent_' || $1`,
     [unitId],
   );
   if (!agent) throw new Error(`Team ${unitId} has no agent`);

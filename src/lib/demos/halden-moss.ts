@@ -183,7 +183,7 @@ const STORY: StoryItem[] = [
 const REQS: Req[] = [
   ["rq_energy", "civic", "sustain", "tobias", "Rebuild the Riverside Library energy and daylight model for the terracotta facade",
     "The client approved terracotta fins. The design package goes out Dec 12. Can Sustainability rerun the model by Dec 5?", "2026-11-20", "2026-12-05", "accepted", "own_energy", "priya", null, "form"],
-  ["rq_when_1", "civic", "sustain", "laura", "When will the energy model be ready now that Dec 5 is at risk?",
+  ["rq_when_1", "civic", "sustain", "laura", "When will the energy model be ready now that the date is moving?",
     "Asked the Sustainability agent. The client's consultant is waiting on it.", "2026-12-04", null, "open", "own_energy", "priya", "ck_model_date", "agent"],
   ["rq_when_2", "viz", "sustain", "elise", "Is the library energy model still landing this week? Our board renders depend on the facade.",
     "Asked the Sustainability agent.", "2026-12-05", null, "open", "own_energy", "priya", "ck_model_date", "agent"],
@@ -217,7 +217,7 @@ const QS: Qn[] = [
   ["qn_2", "zara", "civic", "Is the library facade terracotta or glass?", "answered",
     "The client chose terracotta fins over the glass facade after the November review.", [], null, "2026-11-30"],
   ["qn_3", "ryan", "dtech", "Which Revit version should new projects use?", "answered", "Revit 2027 becomes the firm standard for new projects starting in January.", [], null, "2026-11-19"],
-  ["qn_4", "laura", "sustain", "When will the energy model be ready now that Dec 5 is at risk?", "routed",
+  ["qn_4", "laura", "sustain", "When will the energy model be ready now that the date is moving?", "routed",
     "Sustainability hasn't published a new date. I asked Priya Venkat, who owns Energy modeling.", [], "rq_when_1", "2026-12-04"],
   ["qn_5", "elise", "sustain", "Is the library energy model still landing this week?", "routed",
     "Sustainability hasn't published a new date. I asked Priya Venkat, who owns Energy modeling.", [], "rq_when_2", "2026-12-05"],
@@ -289,7 +289,7 @@ Priya Venkat: One more thing: Workplace wants a daylight study for Calder. That 
 
 const T2 = `Elise Martin: This is prep for the Riverside Library board presentation on Dec 15.
 Marco Bianchi: Interior stills are underway. Exterior shots wait on the final fins.
-Laura Chen: The facade is at risk. Sustainability's model slipped, so the package date depends on it.
+Laura Chen: The facade is waiting on a new date. Sustainability's model moved, so the package date depends on it.
 Elise Martin: Then let's decide now: if the facade isn't final by Dec 11 we show interiors and one exterior, and send the rest after.
 Rebecca Stone: Agreed, that's the decision. Zara, can you have the reading room walkthrough ready either way?
 Zara Ahmed: Yes, I'll have the walkthrough ready by Dec 13.
@@ -307,9 +307,9 @@ Nathan Cole: We still need the Q4 fee forecast before we can model the combined 
 const MEETINGS: Mtg[] = [
   ["mt_facade", "sustain", "cn_sus_zoom", "Sustainability × Civic: Riverside facade and energy model", "2026-12-04T16:00:00Z", 30, ["hugo", "priya", "tobias", "laura", "ines"], T1, "recorded", null, null],
   ["mt_board", "viz", "cn_viz_zoom", "Riverside board presentation prep", "2026-12-05T17:00:00Z", 25, ["elise", "marco", "zara", "laura", "rebecca"], T2, "summarized", null, {
-    summary: "The board presentation is on track except for exterior renders, which wait on the final facade and Sustainability's slipped energy model. If the facade isn't final by Dec 11, the board sees interiors and one exterior.",
+    summary: "The board presentation is on track except for exterior renders, which wait on the final facade and Sustainability's energy model rerun. If the facade isn't final by Dec 11, the board sees interiors and one exterior.",
     decisions: ["If the facade isn't final by Dec 11, show the board interiors and one exterior, and send the rest after."],
-    risks: ["Exterior renders depend on Sustainability's energy model; Dec 12 is at risk."],
+    risks: ["Exterior renders depend on Sustainability's energy model; Dec 12 may move."],
     action_items: [
       { owner: "zara", text: "Finish the reading room walkthrough", due: "2026-12-13" },
       { owner: "rebecca", text: "Brief the board chair on energy performance", due: "2026-12-10" },
@@ -333,7 +333,7 @@ export const haldenMoss: DemoPack = {
   audience: "Architecture firm",
   org: { name: "Halden & Moss Architects", short: "Halden & Moss", headcount: 200, domain: "haldenmoss", about: "a fictional 200-person architecture firm with civic, workplace and healthcare studios" },
   summary:
-    "The Riverside Library facade changed to terracotta fins, so Sustainability's energy model misses Dec 5. That holds up the design package to the client on Dec 12, which puts the renders for the library board on Dec 15 at risk. The principals are quietly in talks to acquire a landscape firm.",
+    "Sustainability reruns the energy model for a new facade, and the visualization team two teams away hears the new date the same day.",
   defaultPersona: "zara",
   teams: TEAMS,
   people: PEOPLE,
@@ -401,7 +401,7 @@ export const haldenMoss: DemoPack = {
 - If the facade isn't final by Dec 11 we'll show interiors and one exterior, and send the rest after.`,
     },
     askExamples: {
-      sustain: "When will the Riverside Library energy model be ready?",
+      sustain: "When will the library energy model be ready?",
       civic: "Is the library facade terracotta or glass?",
       viz: "How far ahead should we book the render farm?",
     },
@@ -418,26 +418,56 @@ export const haldenMoss: DemoPack = {
       },
     },
   },
+  intro: {
+    problem:
+      "The client chose terracotta fins for the Riverside Library facade, so Sustainability is rerunning its energy model. The design package due Dec 12 uses that model, and the renders for the library board on Dec 15 use the package. Here's how the firm stays in step.",
+    cast: [
+      { as: "zara", note: "Makes the board renders due Dec 15, and builds on work from two other teams." },
+      { as: "priya", note: "Owns the energy model and its new date." },
+      { as: "claire", note: "Wants the firm's week on one page." },
+    ],
+  },
+  agentTemplate: {
+    team: "sustain",
+    name: "Energy code researcher",
+    firstJob: "Review the energy model inputs for the terracotta facade",
+    purpose: "Research energy code and LEED requirements for each project, check model inputs against the targets, and draft the weekly Sustainability update.",
+    actions: ["research", "documents", "draft_update"],
+  },
   guide: [
-    { title: "Find who owns what", as: "zara", href: "/directory?q=energy+modeling", text: "Search \"energy modeling\" and land on Sustainability's page: what it owns, who owns each area, and its open commitments." },
-    { title: "See the chain of risk in the feed", as: "zara", href: "/feed", text: "As Zara Ahmed (Visualization), the Civic studio's package decision appears at Summary. The board renders are flagged at risk because they depend on the package, which depends on the energy model, which slipped." },
-    { title: "Spot the slipped commitment", as: "laura", href: "/commitments", text: "As Laura Chen (Civic studio), Sustainability's Dec 5 commitment shows as slipped, with the reason: the facade changed to terracotta." },
-    { title: "Write an update that moves the date", as: "hugo", href: "/write?example=1", text: "As Hugo Berg (Sustainability director), click \"Split into items\". Beacon finds \"we'll deliver the Riverside Library energy model by Dec 9\" as a revision of the Dec 5 commitment. Publish, and Civic studio and Visualization are notified." },
-    { title: "Read the principals' digest", as: "claire", href: "/digest", text: "As Claire Halden (Founding principal): one paragraph per team, plus slipped commitments. The Operations paragraph mentions Fernhill Landscape, so it's marked confidential. Switch to Zara Ahmed and it's hidden." },
-    { title: "Ask a team's agent", as: "marco", href: "/teams/sustain#agent", text: "As Marco Bianchi (Visualization), ask Sustainability's agent \"When will the Riverside Library energy model be ready?\". Before step 4 it routes the question to Priya Venkat and says 3 others asked the same thing. After step 4 it answers from Sustainability's update." },
-    { title: "Answer once for everyone", as: "priya", href: "/asks", text: "As Priya Venkat, the four questions about the model date are merged into one. Answer once, and Civic studio, Visualization and Business development all get the reply." },
-    { title: "Meetings become updates", as: "hugo", href: "/meetings/mt_facade", text: "Summarize the Sustainability × Civic meeting, then route it: a draft update for Hugo and a draft commitment for each action item's owner." },
-    { title: "Put the agent to work", as: "hugo", href: "/agents/sustain", text: "Start a research task or a draft update from the team's models and messages. Anyone in Sustainability can steer it, within a monthly budget." },
-    { title: "See how teams depend on each other", as: "claire", href: "/map", text: "Who owes whom, who is asking whom, and what each team shares, all at your level of access." },
-    { title: "Check the audit log", as: "claire", href: "/audit", text: "Every read, agent read (with the person it acted for), share, answer and digest send." },
+    { title: "Start the day in your feed", as: "zara", href: "/feed",
+      text: "Under Dates that are changing, the board renders show Waiting on a change. Beacon traces them to the energy model, which is being rerun for the new facade. Below are decisions from teams Zara follows.",
+      why: "Zara sees what changed for the renders the day it changes, without asking around." },
+    { title: "Ask your agent", as: "zara", href: "/feed?agent=When+will+the+library+energy+model+be+ready%3F&to=me",
+      text: "The agent panel on the right has the question filled in. Press Send. Your agent sees that Sustainability owns it and asks Sustainability's agent. The new date isn't posted yet, so it goes to Priya, and 3 others asked too.",
+      why: "Nobody has to find the right analyst, and Priya gets one question instead of four separate messages." },
+    { title: "Add an agent teammate", as: "priya", href: "/agents/new?template=demo",
+      text: "Priya adds Energy code researcher, a Worker for Sustainability. It's filled in: what it can read, what it can do and what needs Priya's OK. Click Add, then click \"Review the energy model inputs for the terracotta facade\" in the chat and Approve.",
+      why: "Priya's team gets a researcher that checks model inputs against the targets, so reruns start from the right numbers." },
+    { title: "Post the new date", as: "priya", href: "/write?example=1",
+      text: "Priya's notes are filled in. Click Split into items. At the top, Beacon flags that one line moves the Dec 5 promise to Dec 9. Scroll down and click Publish.",
+      why: "Priya writes the notes once. Beacon works out who's affected and updates the promise." },
+    { title: "Everyone gets the new date", as: "zara", href: "/feed?agent=When+will+the+library+energy+model+be+ready%3F&to=me",
+      text: "Back as Zara, the panel has the same question ready. Send it. This time your agent answers straight from Priya's update, with the source. The Inbox in the sidebar has the new date too.",
+      why: "Civic studio and Visualization both get the news without a coordination meeting." },
+    { title: "See the week on one page", as: "claire", href: "/digest", compare: "zara",
+      text: "Claire sees one short paragraph per team, plus every date that is changing. The Operations paragraph mentions a possible acquisition, so it's marked confidential. Open the page as Zara: that paragraph isn't there.",
+      why: "Principals get the whole picture, and confidential work stays with the people cleared to see it." },
+  ],
+  explore: [
+    { title: "Answer four people at once", as: "priya", href: "/asks", text: "Four questions about the same date, merged into one. Answer once and everyone who asked gets the reply." },
+    { title: "Turn a meeting into updates", as: "priya", href: "/meetings/mt_facade", text: "Summarize the Sustainability × Civic meeting. Beacon writes the decisions and turns each action item into a commitment for its owner." },
+    { title: "Meet every agent teammate", as: "priya", href: "/agents", text: "Every team's built-in agent plus the teammates teams added: Q&A agents that answer, and Workers that research, review documents or change code. Message any of them." },
+    { title: "See how teams depend on each other", as: "claire", href: "/map", text: "Who owes whom, and who is asking whom, across the firm." },
+    { title: "Check who saw what", as: "claire", href: "/audit", text: "Every read, share and answer, including what each agent read and for whom." },
   ],
   checks: {
     search: { q: "energy modeling", team: "sustain", owns: "Energy modeling" },
     feed: { as: "zara", decision: "ui_dd_decision", atRisk: "cm_renders" },
     slipped: { as: "laura", team: "civic", commitment: "cm_energy", reason: "terracotta" },
-    revise: { as: "hugo", team: "sustain", commitment: "cm_energy", due: "2026-12-09", notify: ["laura", "zara"] },
+    revise: { as: "priya", team: "sustain", commitment: "cm_energy", due: "2026-12-09", notify: ["laura", "zara"] },
     digest: { allowed: "claire", denied: "zara", marking: "mk_conf", slipped: ["cm_energy", "cm_fees"] },
-    route: { as: "marco", team: "sustain", question: "When will the Riverside Library energy model be ready?", owner: "priya", cluster: "ck_model_date", askers: 4 },
+    route: { as: "zara", team: "sustain", question: "When will the library energy model be ready?", owner: "priya", cluster: "ck_model_date", askers: 4 },
     answer: { as: "kwame", team: "sustain", question: "What LEED rating is the Riverside Library targeting?", contains: "LEED Gold", source: "update_item:ui_answer_leed" },
     leak: { as: "felix", team: "ops", question: "Is the firm acquiring Fernhill Landscape?", secret: "Fernhill" },
   },

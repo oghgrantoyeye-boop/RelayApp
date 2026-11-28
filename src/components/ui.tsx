@@ -24,8 +24,8 @@ export function KindPill({ kind }: { kind: string }) {
 
 const STATE: Record<CommitmentState, [Tone, string]> = {
   on_track: ["green", "On track"],
-  at_risk: ["amber", "At risk"],
-  slipped: ["red", "Slipped"],
+  at_risk: ["blue", "Waiting on a change"],
+  slipped: ["amber", "New date coming"],
   done: ["gray", "Done"],
   draft: ["violet", "Draft: confirm"],
   rejected: ["gray", "Rejected"],
@@ -33,7 +33,7 @@ const STATE: Record<CommitmentState, [Tone, string]> = {
 
 export function StatePill({ state, daysLate }: { state: CommitmentState; daysLate?: number }) {
   const [tone, label] = STATE[state];
-  return <Pill tone={tone}>{state === "slipped" && daysLate ? `Slipped ${daysLate}d` : label}</Pill>;
+  return <Pill tone={tone}>{label}</Pill>;
 }
 
 /** Shows which disclosure level the reader is seeing, so the boundaries are visible in the demo. */
@@ -65,16 +65,31 @@ export function initials(name: string): string {
     .toUpperCase();
 }
 
-export function Avatar({ name, agent }: { name: string; agent?: boolean }) {
+/** An illustrated headshot (see /api/avatar). Agents get their own face and an "AI" badge. */
+export function Avatar({ name, agent, size }: { name: string; agent?: boolean; size?: number }) {
+  const style = size ? { width: size, height: size } : undefined;
+  if (agent || / agent$/.test(name)) {
+    return (
+      <span className="av-wrap" title={name} aria-hidden="true" style={style}>
+        <span className="av photo bot" style={style}>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={`/api/avatar/${encodeURIComponent(`bot:${name}`)}`} alt="" loading="lazy" />
+        </span>
+        <span className="bot-badge">AI</span>
+      </span>
+    );
+  }
   return (
-    <span className={`av${agent ? " agent" : ""}`} title={name} aria-hidden="true">
-      {agent ? "AI" : initials(name)}
+    <span className="av photo" title={name} aria-hidden="true" style={style}>
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img src={`/api/avatar/${encodeURIComponent(name)}`} alt="" loading="lazy" />
     </span>
   );
 }
 
 const PATHS: Record<string, ReactNode> = {
   feed: <path d="M4 6h16M4 12h16M4 18h10" />,
+  chat: <path d="M4 5h16v11H9l-5 4z" />,
   asks: (<><path d="M4 13l2-8h12l2 8v6H4z" /><path d="M4 13h5l1 2h4l1-2h5" /></>),
   commitments: (<><circle cx="12" cy="12" r="8" /><path d="M12 8v4l3 2" /></>),
   write: (<><path d="M4 20h4L19 9l-4-4L4 16z" /><path d="M14 6l4 4" /></>),

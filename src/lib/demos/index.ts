@@ -4,8 +4,9 @@ import { northwind } from "./northwind";
 import { harborview } from "./harborview";
 import { haldenMoss } from "./halden-moss";
 import { maisonVerel } from "./maison-verel";
+import { lakeportCourier } from "./lakeport-courier";
 
-export const DEMOS: DemoPack[] = [northwind, harborview, haldenMoss, maisonVerel];
+export const DEMOS: DemoPack[] = [northwind, harborview, haldenMoss, maisonVerel, lakeportCourier];
 export const DEFAULT_DEMO = process.env.RELAY_DEMO && DEMOS.some((d) => d.id === process.env.RELAY_DEMO) ? process.env.RELAY_DEMO : northwind.id;
 
 export function getDemo(id: string | null | undefined): DemoPack {

@@ -2,9 +2,13 @@ import type { Metadata } from "next";
 import { GeistSans } from "geist/font/sans";
 import { GeistMono } from "geist/font/mono";
 import "../globals.css";
-import { currentViewer } from "@/lib/session";
+import { cookies } from "next/headers";
+import { currentViewer, GUIDE_COOKIE } from "@/lib/session";
+import { GuideBar } from "@/components/GuideBar";
+import { Dock } from "@/components/chat/Dock";
+import { Suspense } from "react";
 import { NavLink, PathInput, PersonaSwitcher } from "@/components/Nav";
-import { Icon, initials } from "@/components/ui";
+import { Avatar, Icon } from "@/components/ui";
 import { BeaconMark } from "@/components/site/Brand";
 import { resetDemo, setPersona } from "@/app/actions";
 
@@ -37,6 +41,9 @@ export default async function RootLayout({ children }: { children: React.ReactNo
     g.people.push({ id: p.id, name: p.name, title: p.title });
   }
   const isLeadership = viewer.reader.unitIds.includes("leadership");
+  const guideStep = Number((await cookies()).get(GUIDE_COOKIE)?.value ?? NaN);
+  const firstName = Object.fromEntries(people.map((p) => [p.id, String(p.name).split(" ")[0]]));
+  const fullName = Object.fromEntries(people.map((p) => [p.id, String(p.name)]));
 
   return (
     <html lang="en" className={`${GeistSans.variable} ${GeistMono.variable}`}>
@@ -53,6 +60,9 @@ export default async function RootLayout({ children }: { children: React.ReactNo
               <input type="search" name="q" placeholder="Search teams, people, what they own" aria-label="Search the directory" />
             </form>
             <NavLink href="/guide"><Icon name="spark" />Demo guide</NavLink>
+            <a href="/agents/new" className="b bp sm nv-new"><Icon name="agent" />New teammate</a>
+            <NavLink href="/messages"><Icon name="chat" />Messages</NavLink>
+            <NavLink href="/agents"><Icon name="agent" />Agents</NavLink>
             <NavLink href="/feed"><Icon name="feed" />My feed</NavLink>
             <NavLink href="/asks">
               <Icon name="asks" />Asks for you{asks!.n > 0 && <span className="count hot">{asks!.n}</span>}
@@ -62,9 +72,6 @@ export default async function RootLayout({ children }: { children: React.ReactNo
               <Icon name="write" />Write update{drafts!.n > 0 && <span className="count">{drafts!.n} draft{drafts!.n > 1 ? "s" : ""}</span>}
             </NavLink>
             <NavLink href="/meetings"><Icon name="meetings" />Meetings</NavLink>
-            {Object.keys(viewer.team.how_to_ask ?? {}).length > 0 && (
-              <NavLink href={`/agents/${viewer.team.slug}`}><Icon name="agent" />{viewer.team.name} agent</NavLink>
-            )}
             <NavLink href="/map"><Icon name="map" />Team map</NavLink>
             <NavLink href="/directory"><Icon name="directory" />Directory</NavLink>
             <NavLink href="/digest"><Icon name="digest" />Leadership digest{!isLeadership && <span className="count">view</span>}</NavLink>
@@ -83,7 +90,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
             ))}
             <div className="persona">
               <div className="row" style={{ gap: 9 }}>
-                <span className="av" style={{ width: 26, height: 26 }}>{initials(viewer.user.name)}</span>
+                <Avatar name={viewer.user.name} size={30} />
                 <div style={{ display: "flex", flexDirection: "column", lineHeight: 1.3, minWidth: 0 }}>
                   <span style={{ fontWeight: 500 }}>{viewer.user.name}</span>
                   <span className="small muted">{viewer.user.title}, {viewer.team.name}</span>
@@ -97,7 +104,8 @@ export default async function RootLayout({ children }: { children: React.ReactNo
               <a href="/demos" className="b sm" style={{ width: "100%", justifyContent: "center", marginTop: 6 }}>Choose a demo</a>
             </div>
           </nav>
-          <main className="main">{children}</main>
+          <main className="main">{Number.isInteger(guideStep) && <GuideBar demo={demo} step={guideStep} firstName={firstName} fullName={fullName} />}{children}</main>
+          <Suspense fallback={null}><Dock db={db} viewer={viewer} demo={demo} /></Suspense>
         </div>
       </body>
     </html>

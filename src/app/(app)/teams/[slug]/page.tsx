@@ -13,9 +13,9 @@ import { CommitmentLine } from "@/components/Commitment";
 import { askAgent, sendRequest, toggleFollow } from "@/app/actions";
 import { teamConnectors, CONNECTOR_LABEL } from "@/lib/integrations";
 
-export default async function TeamPage({ params, searchParams }: { params: Promise<{ slug: string }>; searchParams: Promise<{ msg?: string; q?: string }> }) {
+export default async function TeamPage({ params, searchParams }: { params: Promise<{ slug: string }>; searchParams: Promise<{ msg?: string; q?: string; ask?: string }> }) {
   const { slug } = await params;
-  const { msg, q } = await searchParams;
+  const { msg, q, ask } = await searchParams;
   const { db, viewer, demo } = await currentViewer();
   const team = await db.one(`select * from unit where slug = $1`, [slug]);
   if (!team) notFound();
@@ -104,7 +104,7 @@ export default async function TeamPage({ params, searchParams }: { params: Promi
                 <form action={askAgent} style={{ marginTop: 12, display: "flex", flexDirection: "column", gap: 8 }}>
                   <input type="hidden" name="unitId" value={team.id} />
                   <input type="hidden" name="slug" value={team.slug} />
-                  <textarea name="question" rows={2} required placeholder={`For example: ${demo.ui.askExamples[team.id] ?? "What did you decide about this?"}`} aria-label="Your question" />
+                  <textarea name="question" rows={2} required defaultValue={ask ?? ""} placeholder={`For example: ${demo.ui.askExamples[team.id] ?? "What did you decide about this?"}`} aria-label="Your question" />
                   <div className="row">
                     <label className="check small"><input type="checkbox" name="blocking" /> This is blocking me</label>
                     <label className="row small muted">Needed by <input type="date" name="neededBy" aria-label="Needed by" /></label>

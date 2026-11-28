@@ -205,9 +205,9 @@ const STORY: StoryItem[] = [
 const REQS: Req[] = [
   ["rq_main", "transport", "publicworks", "helen", "Finish the Elm Street water main and restore the trench before repaving",
     "Repaving is booked for Dec 10 to 12, ahead of Winter Lights. Can Public works finish the main and restore the trench by Dec 5?", "2026-11-20", "2026-12-05", "accepted", "own_mains", "nadia", null, "form"],
-  ["rq_when_1", "transport", "publicworks", "ruth", "When will the Elm Street water main be finished now that Dec 5 is at risk?",
+  ["rq_when_1", "transport", "publicworks", "ruth", "When will the Elm Street water main be finished now that the date is moving?",
     "Asked the Public works agent. We need the new date to hold or move the paving crew.", "2026-12-04", null, "open", "own_mains", "nadia", "ck_main_date", "agent"],
-  ["rq_when_2", "parks", "publicworks", "eli", "Is the Elm Street water main still finishing this week? Winter Lights depends on it.",
+  ["rq_when_2", "parks", "publicworks", "monica", "Is the Elm Street water main still finishing this week? Winter Lights depends on it.",
     "Asked the Public works agent.", "2026-12-05", null, "open", "own_mains", "nadia", "ck_main_date", "agent"],
   ["rq_when_3", "service311", "publicworks", "denise", "Residents keep calling about Elm Street. When will the water main work be done?",
     "Asked the Public works agent.", "2026-12-05", null, "open", "own_mains", "nadia", "ck_main_date", "agent"],
@@ -241,9 +241,9 @@ const QS: Qn[] = [
   ["qn_2", "hana", "transport", "Is Elm Street getting new crosswalks?", "answered",
     "Elm Street repaving is set for Dec 10 to 12, with raised crosswalks at 4th and 6th.", ["update_item:ui_paving_decision"], null, "2026-11-30"],
   ["qn_3", "amina", "publicworks", "Is the snow route map published?", "answered", "The snow route map is published with the new priorities.", [], null, "2026-11-26"],
-  ["qn_4", "ruth", "publicworks", "When will the Elm Street water main be finished now that Dec 5 is at risk?", "routed",
+  ["qn_4", "ruth", "publicworks", "When will the Elm Street water main be finished now that the date is moving?", "routed",
     "Public works hasn't published a new date. I asked Nadia Kowalski, who owns Water mains.", [], "rq_when_1", "2026-12-04"],
-  ["qn_5", "eli", "publicworks", "Is the Elm Street water main still finishing this week?", "routed",
+  ["qn_5", "monica", "publicworks", "Is the Elm Street water main still finishing this week?", "routed",
     "Public works hasn't published a new date. I asked Nadia Kowalski, who owns Water mains.", [], "rq_when_2", "2026-12-05"],
   ["qn_6", "denise", "publicworks", "When will the water main work be done?", "routed",
     "Public works hasn't published a new date. I asked Nadia Kowalski, who owns Water mains.", [], "rq_when_3", "2026-12-05"],
@@ -281,6 +281,7 @@ const DOCS: SourceDoc[] = [
   ["cn_pw_teams", "message", null, "Nadia Kowalski in Public works", "The block 5 valves came in cracked. Supplier says replacements ship Monday after they inspect them. Without them we can't close the trench.", null, "Nadia Kowalski", "2026-12-04T16:10:00Z"],
   ["cn_pw_teams", "message", null, "Owen Fletcher in Public works", "If the valves arrive Monday, we can install Tuesday and have the trench restored Thursday. That's Dec 10.", null, "Owen Fletcher", "2026-12-05T08:40:00Z"],
   ["cn_pw_teams", "message", null, "Tomás Reyes in Public works", "Let's not give Transportation a date until the valves pass inspection at the supplier. Tentatively Dec 10.", null, "Tomás Reyes", "2026-12-05T09:05:00Z"],
+  ["cn_pw_jira", "doc", "CO-14", "Change order CO-14: replacement gate valves, Elm Street", "Supplier replaces the two damaged 12-inch gate valves at no charge; delivery Dec 8. Contractor Ridgeline Utilities asks for 2 extra crew days at $9,400 and moves substantial completion of the Elm Street main to Dec 10. Liquidated damages of $1,500 a day still apply after Dec 12. Needs the project manager's signature by Dec 7.", null, "Nadia Kowalski", "2026-12-05T10:00:00Z"],
   ["cn_pw_conf", "doc", null, "Planned water shutoff procedure", "Door hangers go out 48 hours ahead. Shutoffs last up to four hours per block. 311 gets the schedule the same day the door hangers go out.", null, "Owen Fletcher", "2026-11-10T10:00:00Z"],
   // Transportation
   ["cn_tr_jira", "ticket", "CP-118", "Elm Street repaving, 3rd to 7th Avenue", "Mill and pave Dec 10 to 12, then paint raised crosswalks and bike lanes. Can't start until Public works restores the trench (WO-2231).", "Blocked", "Ruth Adeyemi", "2026-12-05T09:00:00Z"],
@@ -323,7 +324,7 @@ Nadia Kowalski: One more thing: Parks asked to fill the ice rink from the Elm Pl
 
 const T2 = `Monica Bell: This is the Winter Lights planning check-in for Dec 18.
 Eli Navarro: Forty vendors are confirmed, and the ice rink is booked for Elm Plaza.
-Ruth Adeyemi: Repaving is at risk. Public works' water main slipped, so Dec 12 depends on their valves.
+Ruth Adeyemi: Repaving is waiting on a new date. Public works' water main moved, so Dec 12 depends on their valves.
 Eli Navarro: Then let's decide now: if Elm Street isn't repaved by Dec 13 we move Winter Lights to Harbor Park and keep the date.
 Monica Bell: Agreed, that's the decision. Yusuf, can you have Harbor Park ready as a fallback?
 Yusuf Ali: Yes, I'll have the Harbor Park layout ready by Dec 11.
@@ -343,7 +344,7 @@ const MEETINGS: Mtg[] = [
   ["mt_lights", "parks", "cn_pk_teams", "Winter Lights planning check-in", "2026-12-05T17:00:00Z", 25, ["monica", "eli", "yusuf", "ben", "ruth"], T2, "summarized", null, {
     summary: "Winter Lights is ready except for Elm Street, whose repaving depends on Public works' delayed water main. If Elm Street isn't repaved by Dec 13, the festival moves to Harbor Park on the same date.",
     decisions: ["If Elm Street isn't repaved by Dec 13, move Winter Lights to Harbor Park and keep Dec 18."],
-    risks: ["Repaving depends on Public works' replacement valves; Dec 12 is at risk."],
+    risks: ["Repaving depends on Public works' replacement valves; Dec 12 may move."],
     action_items: [
       { owner: "yusuf", text: "Have the Harbor Park fallback layout ready", due: "2026-12-11" },
       { owner: "monica", text: "Brief 311 on what to tell callers", due: "2026-12-08" },
@@ -367,7 +368,7 @@ export const harborview: DemoPack = {
   audience: "City hall",
   org: { name: "City of Harborview", short: "Harborview", headcount: 1100, domain: "harborview", about: "a fictional mid-size city government with about 1,100 staff" },
   summary:
-    "The Elm Street water main misses Dec 5 because replacement valves arrived damaged. That blocks Transportation's repaving on Dec 10 to 12, which puts the Winter Lights festival on Dec 18 at risk. The City attorney is quietly negotiating a flood-damage claim.",
+    "Public works sets a new date for the Elm Street water main, and the festival team two departments away hears about it the same day.",
   defaultPersona: "eli",
   teams: TEAMS,
   people: PEOPLE,
@@ -452,26 +453,56 @@ export const harborview: DemoPack = {
       },
     },
   },
+  intro: {
+    problem:
+      "Transportation repaves Elm Street once Public works finishes the water main under it, and the Winter Lights festival on Dec 18 uses the repaved street. The valves for the last block arrived damaged, so the water main needs a new date. Here's how every department stays in step.",
+    cast: [
+      { as: "eli", note: "Runs Winter Lights on Dec 18, and builds on work from two other departments." },
+      { as: "nadia", note: "Owns the Elm Street water main and its new date." },
+      { as: "angela", note: "Wants every department's week on one page." },
+    ],
+  },
+  agentTemplate: {
+    team: "publicworks",
+    name: "Change order reviewer",
+    firstJob: "Review change order CO-14 for the valves",
+    purpose: "Review contractor change orders and supplier documents against the contract and specs, flag cost and schedule changes for the project manager, and draft Public works' weekly field update.",
+    actions: ["documents", "draft_update", "answer"],
+  },
   guide: [
-    { title: "Find who owns what", as: "eli", href: "/directory?q=water+mains", text: "Search \"water mains\" and land on Public works' page: what it owns, who owns each area, and its open commitments." },
-    { title: "See the chain of risk in the feed", as: "eli", href: "/feed", text: "As Eli Navarro (Parks and events), Transportation's repaving decision appears at Summary. Winter Lights is flagged at risk because it depends on the repaving, which depends on the water main, which slipped." },
-    { title: "Spot the slipped commitment", as: "ruth", href: "/commitments", text: "As Ruth Adeyemi (Transportation), Public works' Dec 5 commitment shows as slipped, with the reason: the valves arrived damaged." },
-    { title: "Write an update that moves the date", as: "tomas", href: "/write?example=1", text: "As Tomás Reyes (Public works director), click \"Split into items\". Beacon finds \"we'll finish the Elm Street water main by Dec 10\" as a revision of the Dec 5 commitment. Publish, and Transportation and Parks are notified." },
-    { title: "Read the leadership digest", as: "angela", href: "/digest", text: "As Angela Ruiz (City manager): one paragraph per department, plus slipped commitments. The City attorney's paragraph mentions the Bayside Lofts claim, so it's marked confidential. Switch to Eli Navarro and it's hidden." },
-    { title: "Ask a department's agent", as: "ben", href: "/teams/publicworks#agent", text: "As Ben Ortiz (Communications), ask Public works' agent \"When will the Elm Street water main be done?\". Before step 4 it routes the question to Nadia Kowalski and says 3 others asked the same thing. After step 4 it answers from Public works' update." },
-    { title: "Answer once for everyone", as: "nadia", href: "/asks", text: "As Nadia Kowalski, the four questions about the Elm Street date are merged into one. Answer once, and Transportation, Parks, 311 and Communications all get the reply." },
-    { title: "Meetings become updates", as: "tomas", href: "/meetings/mt_elm", text: "Summarize the Public works × Transportation meeting, then route it: a draft update for Tomás and a draft commitment for each action item's owner." },
-    { title: "Put the agent to work", as: "tomas", href: "/agents/publicworks", text: "Start a research task or a draft update from the department's work orders. Anyone in Public works can steer it, within a monthly budget." },
-    { title: "See how departments depend on each other", as: "angela", href: "/map", text: "Who owes whom, who is asking whom, and what each department shares, all at your level of access." },
-    { title: "Check the audit log", as: "angela", href: "/audit", text: "Every read, agent read (with the person it acted for), share, answer and digest send. Useful for public records requests." },
+    { title: "Start the day in your feed", as: "eli", href: "/feed",
+      text: "Under Dates that are changing, Winter Lights shows Waiting on a change. Beacon traces it to the water main, which needs a new date after the valves arrived damaged. Below are decisions from departments Eli follows.",
+      why: "Eli sees what changed for the festival the day it changes, without calling around." },
+    { title: "Ask your agent", as: "eli", href: "/feed?agent=When+will+the+Elm+Street+water+main+be+done%3F&to=me",
+      text: "The agent panel on the right has the question filled in. Press Send. Your agent sees that Public works owns it and asks Public works's agent. The new date isn't posted yet, so it goes to Nadia, and 3 others asked too.",
+      why: "Nobody has to find the right engineer, and Nadia gets one question instead of four separate calls." },
+    { title: "Add an agent teammate", as: "nadia", href: "/agents/new?template=demo",
+      text: "Nadia adds Change order reviewer, a Worker for Public works. It's filled in: what it can read, what it can do and what needs Nadia's OK. Click Add, then click \"Review change order CO-14 for the valves\" in the chat and Approve.",
+      why: "Nadia gets a first pass on every contractor document, so cost and schedule changes don't slip past before a deadline." },
+    { title: "Post the new date", as: "nadia", href: "/write?example=1",
+      text: "Nadia's field notes are filled in. Click Split into items. At the top, Beacon flags that one line moves the Dec 5 promise to Dec 10. Scroll down and click Publish.",
+      why: "Nadia writes the notes once. Beacon works out which departments are affected and updates the promise." },
+    { title: "Everyone gets the new date", as: "eli", href: "/feed?agent=When+will+the+Elm+Street+water+main+be+done%3F&to=me",
+      text: "Back as Eli, the panel has the same question ready. Send it. This time your agent answers straight from Nadia's update, with the source. The Inbox in the sidebar has the new date too.",
+      why: "Transportation, Parks and 311 all get the same date at once, so residents hear one answer." },
+    { title: "See the week on one page", as: "angela", href: "/digest", compare: "eli",
+      text: "Angela sees one short paragraph per department, plus every date that is changing. The City attorney's paragraph mentions a pending flood-damage claim, so it's marked confidential. Open the page as Eli: that paragraph isn't there.",
+      why: "The city manager gets the whole picture, and legal matters stay with the people cleared to see them." },
+  ],
+  explore: [
+    { title: "Answer four people at once", as: "nadia", href: "/asks", text: "Four questions about the same date, merged into one. Answer once and everyone who asked gets the reply." },
+    { title: "Turn a meeting into updates", as: "nadia", href: "/meetings/mt_elm", text: "Summarize the Public works × Transportation meeting. Beacon writes the decisions and turns each action item into a commitment for its owner." },
+    { title: "Meet every agent teammate", as: "nadia", href: "/agents", text: "Every team's built-in agent plus the teammates teams added: Q&A agents that answer, and Workers that research, review documents or change code. Message any of them." },
+    { title: "See how departments depend on each other", as: "angela", href: "/map", text: "Who owes whom, and who is asking whom, across city hall." },
+    { title: "Check who saw what", as: "angela", href: "/audit", text: "Every read, share and answer, including what each agent read and for whom. Useful for public records requests." },
   ],
   checks: {
     search: { q: "water mains", team: "publicworks", owns: "Water mains" },
     feed: { as: "eli", decision: "ui_paving_decision", atRisk: "cm_lights" },
     slipped: { as: "ruth", team: "transport", commitment: "cm_main", reason: "valves" },
-    revise: { as: "tomas", team: "publicworks", commitment: "cm_main", due: "2026-12-10", notify: ["ruth", "eli"] },
+    revise: { as: "nadia", team: "publicworks", commitment: "cm_main", due: "2026-12-10", notify: ["ruth", "eli"] },
     digest: { allowed: "angela", denied: "eli", marking: "mk_conf", slipped: ["cm_main", "cm_budget"] },
-    route: { as: "ben", team: "publicworks", question: "When will the Elm Street water main be done?", owner: "nadia", cluster: "ck_main_date", askers: 4 },
+    route: { as: "eli", team: "publicworks", question: "When will the Elm Street water main be done?", owner: "nadia", cluster: "ck_main_date", askers: 4 },
     answer: { as: "kevin", team: "publicworks", question: "Will residents lose water service during the Elm Street work?", contains: "four hours", source: "update_item:ui_answer_shutoff" },
     leak: { as: "nadia", team: "legal", question: "Is the city settling the Bayside Lofts claim?", secret: "Bayside" },
   },
