@@ -161,9 +161,17 @@ export function offlineSplit(input: SplitInput): { items: SplitItem[]; commitmen
 
 export interface AnswerInput {
   question: string;
+  /** The asker already answered a follow-up, so don't ask another. */
+  noClarify?: boolean;
   teamName: string;
   today: string;
   sources: off.Doc[];
+}
+
+export interface Clarify {
+  question: string;
+  /** Two or three short replies the asker can pick. They can also type their own. */
+  options: string[];
 }
 
 /** One statement in an answer. refs empty means Beacon inferred it: no source says it directly. */
@@ -179,6 +187,8 @@ export interface AnswerOutput {
   claims: AnswerClaim[];
   /** What the agent looked for and couldn't find, in plain words. */
   gaps: string[];
+  /** One follow-up question, when the right answer or the right person depends on something unsaid. */
+  clarify?: Clarify;
   source_refs: string[];
   /** Closest published context when the agent couldn't fully answer. */
   partial?: off.Doc;
@@ -201,6 +211,12 @@ const ANSWER_SCHEMA = {
       },
     },
     gaps: { type: "array", items: { type: "string" } },
+    clarify: {
+      type: "object",
+      additionalProperties: false,
+      required: ["question", "options"],
+      properties: { question: { type: "string" }, options: { type: "array", items: { type: "string" } } },
+    },
   },
 };
 
@@ -210,14 +226,18 @@ export async function answerFromPublished(input: AnswerInput): Promise<AnswerOut
   const ranked = off.rank(input.question, input.sources).slice(0, 12);
   const llm = getLLM();
   if (ranked.length > 0) {
-    const out = await llm.json<{ answered: boolean; claims: AnswerClaim[]; gaps: string[] }>("answer_question", {
+    const out = await llm.json<{ answered: boolean; claims: AnswerClaim[]; gaps: string[]; clarify?: Clarify }>("answer_question", {
       system:
         `You are the ${input.teamName} team's agent in Beacon. You answer colleagues from other teams using ONLY the sources given, ` +
         "which are already limited to what this person may see. Answer as a short list of claims, each one sentence. " +
         "Every claim cites the refs it rests on. You may add at most one claim with no refs when it follows plainly from the cited claims; " +
         "it will be shown as your inference. Never add facts, never promise anything for the team. " +
         "In gaps, say in a few words each thing the question asks that the sources don't answer. " +
-        "If the sources don't answer the question at all (for example it asks for a date and none is given), set answered to false.",
+        "If the sources don't answer the question at all (for example it asks for a date and none is given), set answered to false. " +
+        (input.noClarify
+          ? "Leave clarify.question empty: the asker already answered a follow-up."
+          : "If the right answer, or the right person to ask, depends on something the question doesn't say, put ONE short follow-up in clarify.question " +
+            "with two or three short suggested replies in clarify.options. Otherwise leave clarify.question empty."),
       prompt:
         `Today is ${input.today}.\nQuestion: ${input.question}\n\nSources:\n` +
         ranked.map((r) => `[${r.doc.ref}] ${r.doc.text}`).join("\n"),
@@ -233,13 +253,21 @@ export async function answerFromPublished(input: AnswerInput): Promise<AnswerOut
         .slice(0, MAX_CLAIMS);
       const refs = [...new Set(claims.flatMap((c) => c.refs))];
       const gaps = (out.gaps ?? []).map((g) => String(g).trim()).filter(Boolean).slice(0, 3);
+      const clarify = cleanClarify(out.clarify, input.noClarify);
       // An answer needs at least one sourced claim; inference alone is not an answer.
       if (!out.answered || refs.length === 0)
-        return { answered: false, answer: "", claims: [], gaps, source_refs: [], partial: ranked[0]?.doc, by: llm.name };
-      return { answered: true, answer: claims.map((c) => c.text).join(" "), claims, gaps, source_refs: refs, by: llm.name };
+        return { answered: false, answer: "", claims: [], gaps, source_refs: [], partial: ranked[0]?.doc, clarify, by: llm.name };
+      return { answered: true, answer: claims.map((c) => c.text).join(" "), claims, gaps, source_refs: refs, clarify, by: llm.name };
     }
   }
   return { ...offlineAnswer(input, ranked), by: "Offline writer" };
+}
+
+function cleanClarify(c: Clarify | undefined, off: boolean | undefined): Clarify | undefined {
+  if (off || !c) return undefined;
+  const question = String(c.question ?? "").trim();
+  const options = (c.options ?? []).map((o) => String(o).trim()).filter(Boolean).slice(0, 3);
+  return question && options.length >= 2 ? { question: question.slice(0, 200), options: options.map((o) => o.slice(0, 60)) } : undefined;
 }
 
 function offlineAnswer(input: AnswerInput, ranked: { doc: off.Doc; score: number }[]): Omit<AnswerOutput, "by"> {

@@ -12,7 +12,7 @@ const TAG: Record<ClaimTag, [Tone, string]> = {
 
 import { fmt as day } from "@/lib/clock";
 
-export function AnswerClaims({ claims, gaps }: { claims: ClaimView[]; gaps: string[] }) {
+export function AnswerClaims({ claims, gaps, followUp }: { claims: ClaimView[]; gaps: string[]; followUp?: React.ReactNode }) {
   return (
     <div className="claims">
       {claims.map((c, i) => {
@@ -35,6 +35,7 @@ export function AnswerClaims({ claims, gaps }: { claims: ClaimView[]; gaps: stri
           <strong>What I couldn&apos;t find:</strong> {gaps.join(" ")}
         </div>
       )}
+      {followUp}
     </div>
   );
 }

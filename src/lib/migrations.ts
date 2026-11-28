@@ -564,4 +564,15 @@ alter table question add column gaps jsonb not null default '[]';
 alter table chat_message add column answer jsonb;
 `,
   },
+  {
+    id: "010_T-20_clarify",
+    sql: `
+-- Clarifying questions (T-20). An agent can ask one follow-up instead of, or alongside, an answer.
+-- The asker's reply continues the question as a new question whose parent is this one.
+alter table question drop constraint if exists question_outcome_check;
+alter table question add constraint question_outcome_check check (outcome in ('answered', 'routed', 'clarify'));
+alter table question add column clarify jsonb;
+alter table question add column parent_id text references question(id);
+`,
+  },
 ];

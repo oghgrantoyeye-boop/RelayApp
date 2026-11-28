@@ -6,7 +6,7 @@
 import type { Db, Row } from "./db";
 import { fmt, now } from "./clock";
 import { audit, newId, type Viewer } from "./data";
-import { askTeam, getQuestion, type ClaimView } from "./agent";
+import { askTeam, continueQuestion, getQuestion, type ClaimView } from "./agent";
 import { search } from "./directory";
 import { getFeed } from "./feed";
 import { commitmentViews } from "./commitments";
@@ -19,6 +19,19 @@ import { learnQuietly } from "./context-learn";
 export type ChatTarget = "me" | string; // "me", or an agent's user id
 
 export interface ChatRef { label: string; href: string; detail?: string }
+/**
+ * A follow-up the agent asked. Either about a team's question (questionId), or, from your own agent,
+ * which of two teams you mean (teamIds, with the original text to ask once you pick).
+ */
+export interface ChatClarify {
+  question: string;
+  options: string[];
+  questionId?: string;
+  teamIds?: string[];
+  original?: string;
+  /** Set once the asker replied, so a later message isn't taken as the reply. */
+  done?: boolean;
+}
 export interface ChatAction {
   id: string;
   kind: "draft_update" | "nudge" | "research" | "review_doc" | "code";
@@ -37,8 +50,8 @@ export interface ChatMsg {
   text: string;
   refs: ChatRef[];
   actions: ChatAction[];
-  /** A team agent's answer, claim by claim (T-19). */
-  answer?: { claims: ClaimView[]; gaps: string[] };
+  /** A team agent's answer, claim by claim (T-19), and at most one follow-up question (T-20). */
+  answer?: { claims: ClaimView[]; gaps: string[]; clarify?: ChatClarify };
   at: string;
 }
 
@@ -96,7 +109,7 @@ const REVIEW = /\b(review|redline|check the draft|go through)\b/i;
 const CODE = /\b(fix|bug|pull request|refactor|implement|patch|code)\b/i;
 
 /** Send a message to an agent and get its reply. */
-export async function sendChat(db: Db, viewer: Viewer, input: { target: ChatTarget; text: string }): Promise<string> {
+export async function sendChat(db: Db, viewer: Viewer, input: { target: ChatTarget; text: string; replyTo?: string }): Promise<string> {
   let text = input.text.trim().slice(0, 2000);
   if (!text) throw new Error("Type a message first.");
   let target = input.target || "me";
@@ -112,7 +125,8 @@ export async function sendChat(db: Db, viewer: Viewer, input: { target: ChatTarg
   // team asking a question is not, so Beacon only learns from members of the agent's team.
   if (agent && viewer.reader.unitIds.includes(agent.team.id))
     await learnQuietly(db, { unitId: agent.team.id, kind: "agent_chat", ref: userMsgId, label: `${viewer.user.name} in ${agent.name}`, text, actorId: viewer.user.id });
-  const reply = await replyTo(db, viewer, agent, text);
+  const pending = await pendingClarify(db, viewer, target, text, input.replyTo);
+  const reply = pending ? await replyToClarify(db, viewer, pending, text) : await replyTo(db, viewer, agent, text);
   return save(db, viewer, { role: "agent", target, agentLabel: agent ? agent.name : MY_AGENT, ...reply });
 }
 
@@ -193,18 +207,41 @@ async function replyTo(db: Db, viewer: Viewer, agent: AgentRow | null, text: str
         actions: [],
       };
     }
+    const askable = r.teams.filter((x) => Object.keys(x.team.how_to_ask ?? {}).length > 0);
+    if (closeCall(askable)) {
+      const two = askable.slice(0, 2);
+      return {
+        text: `This could be ${two[0].team.name} or ${two[1].team.name}. Which did you mean?`,
+        refs: [],
+        actions: [],
+        answer: { claims: [], gaps: [], clarify: { question: "", options: two.map((x) => x.team.name), teamIds: two.map((x) => x.team.id), original: text } },
+      };
+    }
     unitId = t.team.id;
     via = t.why.startsWith("Owns ") ? `${t.team.name} owns ${t.why.slice(5)}, so I asked its agent. ` : `This sounds like ${t.team.name}'s area, so I asked its agent. `;
   }
   if (agent && !can("answer")) return { text: `Answering questions isn't one of my jobs. Ask the ${agent.team.name} agent instead.`, refs: [], actions: [] };
-  const teamId: string = unitId!;
-  const { questionId } = await askTeam(db, viewer, teamId, text);
+  const { questionId } = await askTeam(db, viewer, unitId!, text);
+  return replyForQuestion(db, viewer, questionId, via);
+}
+
+/** Two teams match about equally: ask which one rather than guess. */
+function closeCall(teams: { team: Row; score: number }[]): boolean {
+  return teams.length >= 2 && teams[1].score >= 3 && teams[1].score >= 0.7 * teams[0].score;
+}
+
+/** How an agent's answer, follow-up or routing reads in the chat. */
+async function replyForQuestion(db: Db, viewer: Viewer, questionId: string, via: string): Promise<Reply> {
   const q = await getQuestion(db, viewer, questionId);
-  const unit = (await db.one(`select name, slug from unit where id = $1`, [teamId]))!;
   if (!q) return { text: `${via}The answer draws on something you aren't cleared to see, so I can't share it.`, refs: [], actions: [] };
+  const unit = (await db.one(`select name, slug from unit where id = $1`, [q.question.unit_id]))!;
   const refs: ChatRef[] = q.sources.map((s) => ({ label: `${unit.name}: ${s.label}`, href: `/teams/${unit.slug}`, detail: s.text }));
+  const clarify: ChatClarify | undefined = q.clarify ? { ...q.clarify, questionId } : undefined;
+  if (q.question.outcome === "clarify") {
+    return { text: `${via}One question so I get this to the right place: ${q.clarify!.question}`, refs: [], actions: [], answer: { claims: [], gaps: [], clarify: { ...clarify!, question: "" } } };
+  }
   if (q.question.outcome === "answered") {
-    if (q.claims.length > 0) return { text: `${via}Here's what ${unit.name} has shared that answers this.`, refs, actions: [], answer: { claims: q.claims, gaps: q.gaps } };
+    if (q.claims.length > 0) return { text: `${via}Here's what ${unit.name} has shared that answers this.`, refs, actions: [], answer: { claims: q.claims, gaps: q.gaps, clarify } };
     return { text: `${via}${q.question.answer_text}`, refs, actions: [] };
   }
   const req = await db.one(
@@ -215,6 +252,39 @@ async function replyTo(db: Db, viewer: Viewer, agent: AgentRow | null, text: str
     ? [action("nudge", `Ask ${String(req.assignee).split(" ")[0]} to look sooner`, `Marks your question blocking and notifies ${req.assignee} now instead of in their next batch.`, { requestId: req.id })]
     : [];
   return { text: `${via}${q.question.answer_text}`, refs: [...refs, { label: "Your asks", href: "/asks" }], actions, answer: q.gaps.length ? { claims: [], gaps: q.gaps } : undefined };
+}
+
+/**
+ * Whether this message replies to the agent's open follow-up in this conversation: it was sent from
+ * the follow-up's buttons, or it's one of the suggested replies, or it's short and not a new question.
+ */
+async function pendingClarify(db: Db, viewer: Viewer, target: string, text: string, replyTo?: string): Promise<{ messageId: string; clarify: ChatClarify } | null> {
+  const last = replyTo
+    ? await db.one(`select id, answer from chat_message where id = $1 and user_id = $2 and target = $3 and role = 'agent'`, [replyTo, viewer.user.id, target])
+    : await db.one(`select id, answer from chat_message where user_id = $1 and target = $2 and role = 'agent' order by created_at desc, id desc limit 1`, [viewer.user.id, target]);
+  const clarify = last?.answer?.clarify as ChatClarify | undefined;
+  if (!last || !clarify || clarify.done) return null;
+  const picked = clarify.options.some((o) => o.toLowerCase() === text.toLowerCase());
+  // After an answer that also asked something, only a picked reply counts: "thanks" isn't an answer.
+  const onlyAsked = !(last.answer.claims ?? []).length;
+  const shortReply = onlyAsked && text.split(/\s+/).length <= 8 && !text.includes("?");
+  return replyTo || picked || shortReply ? { messageId: last.id, clarify } : null;
+}
+
+async function replyToClarify(db: Db, viewer: Viewer, pending: { messageId: string; clarify: ChatClarify }, text: string): Promise<Reply> {
+  const { clarify } = pending;
+  const m = (await db.one(`select answer from chat_message where id = $1`, [pending.messageId]))!;
+  await db.query(`update chat_message set answer = $2 where id = $1`, [pending.messageId, JSON.stringify({ ...m.answer, clarify: { ...clarify, done: true } })]);
+  if (clarify.teamIds?.length) {
+    const teams = await db.query(`select id, name from unit where id = any($1)`, [clarify.teamIds]);
+    const lower = text.toLowerCase();
+    const team = teams.find((t) => lower.includes(String(t.name).toLowerCase())) ?? teams.find((t) => String(t.name).toLowerCase().includes(lower));
+    if (!team) return { text: `I'll leave it there. Ask again and name the team, or pick its agent on the left.`, refs: [], actions: [] };
+    const { questionId } = await askTeam(db, viewer, team.id, clarify.original ?? text, { noClarify: true });
+    return replyForQuestion(db, viewer, questionId, `Thanks. I asked the ${team.name} agent. `);
+  }
+  const { questionId } = await continueQuestion(db, viewer, clarify.questionId!, text);
+  return replyForQuestion(db, viewer, questionId, "Thanks. ");
 }
 
 async function attention(db: Db, viewer: Viewer): Promise<Reply> {
