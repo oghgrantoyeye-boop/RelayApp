@@ -15,14 +15,14 @@ export default async function EarlyAccess({ searchParams }: { searchParams: Prom
       <div className="wrap ea-grid">
         <div>
           <span className="eyebrow">Early access</span>
-          <h1 className="h2" style={{ marginTop: 16 }}>Give your organization a shared signal.</h1>
+          <h1 className="h2" style={{ marginTop: 16 }}>Make every team easy to understand.</h1>
           <p className="lede" style={{ marginTop: 18 }}>
-            We&apos;re opening Beacon to a small number of early teams first. If work between your teams depends on status meetings, follow-ups
-            and someone noticing, we&apos;d like to hear from you.
+            We&apos;re opening Beacon to a small number of early teams first. If people in your organization spend their days working out who owns
+            what and who to ask, we&apos;d like to hear from you.
           </p>
           <ul className="muted" style={{ marginTop: 24, paddingLeft: 18, display: "grid", gap: 8 }}>
             <li>A walkthrough of the working prototype</li>
-            <li>A conversation about where coordination breaks down for you</li>
+            <li>A conversation about which questions get stuck between your teams</li>
             <li>Early access as Beacon opens up</li>
           </ul>
         </div>

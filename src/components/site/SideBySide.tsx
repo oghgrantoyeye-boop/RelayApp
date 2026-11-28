@@ -1,26 +1,26 @@
-// "Agents and people, side by side": how the work splits between a team's agent and its people.
+// "A team's agent and its people": how answering splits between a team's agent and its people.
 // Every claim here is something the prototype does; the thread is illustrative demo data.
 import { Reveal } from "./Interactive";
 
 const AGENT = [
-  "Answers questions from what the team has already shared, at the asker's level of access",
-  "Routes what it can't answer to the person who owns it, merged with everyone who asked the same thing",
-  "Does the legwork: research, and draft updates from tickets, pull requests and meetings",
-  "Follows up on commitments and tells the teams affected when one slips",
+  "Learns what the team owns, knows and runs from its conversations, answers and work",
+  "Answers other teams' questions from that, with a source for every point, at the asker's level of access",
+  "Says what it couldn't find, and asks a clarifying question instead of guessing",
+  "Sends what it can't answer to the owner or the team's queue, merged with everyone who asked the same thing",
 ];
 
 const PEOPLE = [
-  "Make the decisions and own the commitments",
-  "Answer once, in a batch, instead of across scattered emails and DMs",
-  "Review and approve before anything is shared with other teams",
-  "Comment on, redirect or take over an agent's work at any time",
+  "Answer once, for everyone who asked, instead of in scattered DMs",
+  "Anyone on the team can pick up a question from the team's queue",
+  "Confirm, fix or remove what Beacon learned, in one click",
+  "Approve anything about ownership or what the team can take on before others see it",
 ];
 
 const GUARDS = [
-  { t: "Never more than you can see", d: "An agent working for you reads only what you're allowed to read." },
-  { t: "Agents draft, people publish", d: "Nothing an agent writes reaches another team until a person approves it." },
-  { t: "Every action on the record", d: "Each read and answer is logged, with the person the agent acted for." },
-  { t: "A budget per agent", d: "Each agent works within a monthly spending limit, shown to its team." },
+  { t: "Never more than you can see", d: "An agent answering you reads only what you're allowed to read." },
+  { t: "Sources on every point", d: "Confirmed, learned, seen in a tool or inferred, with a date and a link." },
+  { t: "Private answers stay private", d: "A reply goes to the people who asked. Only the general fact becomes team context." },
+  { t: "Every read on the record", d: "Each read and answer is logged, with the person the agent acted for." },
 ];
 
 function Msg({ who, team, agent, children, tags }: { who: string; team: string; agent?: boolean; children: React.ReactNode; tags?: React.ReactNode }) {
@@ -45,10 +45,10 @@ export function SideBySide() {
       <div className="wrap">
         <Reveal className="section-head">
           <span className="eyebrow">People and agents</span>
-          <h2 id="agents-title" className="h2">Agents and people, side by side.</h2>
+          <h2 id="agents-title" className="h2">The team&apos;s agent answers. The team&apos;s people decide.</h2>
           <p className="lede">
-            Every team has an agent as its first point of contact. It answers what the team has already shared, does the work it&apos;s asked
-            to do and hands everything else to the person who owns it. People stay in charge of what gets decided and what gets shared.
+            Every team has an agent as its first point of contact. It answers from what the team has said and done, and hands everything
+            else to a person on the team. People stay in charge of what gets said on the team&apos;s behalf.
           </p>
         </Reveal>
         <div className="sbs">
@@ -73,19 +73,15 @@ export function SideBySide() {
             <div className="thread-body">
               <Msg who="Ravi Shah" team="Growth">When will the rate-limit change land?</Msg>
               <Msg who="Platform agent" team="Answers for Platform" agent tags={<><span className="pill info">Routed to owner</span><span className="pill info">Merged with 3 others</span></>}>
-                Platform hasn&apos;t shared a new date yet. I&apos;ve asked Aisha Bello, who owns rate limits. Three other people asked the
+                Platform hasn&apos;t said a date yet. I&apos;ve asked Aisha Bello, who owns rate limits. Three other people asked the
                 same thing, so she&apos;ll answer once for everyone.
               </Msg>
               <Msg who="Aisha Bello" team="Platform" tags={<span className="pill ok">Sent to 4 people</span>}>
                 Dec 9. The change is in review now.
               </Msg>
               <Msg who="Platform agent" team="Answers for Platform" agent>
-                Aisha says Dec 9. I&apos;ll answer this myself next time, and I&apos;ll tell you if the date moves.
+                Aisha says Dec 9. I&apos;ve added it to what I know about Platform, so I can answer this next time, with her answer as the source.
               </Msg>
-              <div className="task-line">
-                <span className="pill warn">Working</span>
-                <span>Research for Marcus: how other payment APIs limit webhook retries · 6 sources so far</span>
-              </div>
             </div>
           </Reveal>
         </div>

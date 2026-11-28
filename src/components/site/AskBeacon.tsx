@@ -7,37 +7,37 @@ interface Row {
   src?: string[];
 }
 
-// Scripted, illustrative answers about a fictional company. The real product answers from an
-// organization's own connected context, limited to what the person asking may see.
+// Scripted, illustrative answers about a fictional company. The real product answers from what
+// it has learned about each team, limited to what the person asking may see, with a source per point.
 const ANSWERS: { q: string; keys: string[]; rows: Row[] }[] = [
   {
-    q: "What's blocking the payments launch?",
-    keys: ["block", "launch", "payment", "late", "delay", "risk"],
+    q: "Can Platform support single sign-on for a merchant admin console?",
+    keys: ["sso", "sign", "platform", "support", "admin", "console"],
     rows: [
-      { k: "Current blocker", v: "Per-merchant rate limits slipped from Dec 5. A memory-leak fix is in review, and Platform is now targeting Dec 9.", src: ["PLAT-142 · tickets", "Platform update · Dec 4"] },
-      { k: "Responsible team", v: "Platform. Aisha Bello owns rate limits; Marcus Johnson leads the team." },
-      { k: "Decision", v: "Payments keeps webhook retries behind a flag until the new limits are live.", src: ["Platform × Payments meeting · Dec 4"] },
-      { k: "Downstream impact", v: "Webhook retries (Payments, due Dec 12) → 'Reliable payments' launch (Growth, Dec 15) → Sales' enterprise calls next week." },
-      { k: "Suggested next action", v: "Ask Platform to confirm Dec 9 after the 48-hour soak test, and have Growth prepare the Dec 17 email fallback now." },
+      { k: "Confirmed by Platform", v: "Platform owns sign-in and single sign-on for Northwind.", src: ["Platform's page · Nov 18"] },
+      { k: "Learned", v: "SAML single sign-on already runs for internal tools like the admin dashboard.", src: ["Ken Watanabe's answer · Nov 20"] },
+      { k: "Seen in GitHub", v: "Platform is moving sessions to short-lived tokens, which a new console would build on.", src: ["platform/auth PR #482 · Dec 2"] },
+      { k: "Inference", v: "Supporting merchants' own identity providers is probably new work. No source says so directly." },
+      { k: "Couldn't find", v: "Whether Platform has room for this next quarter. I've sent that part to Platform's team queue." },
     ],
   },
   {
-    q: "What changed this week that affects Sales?",
-    keys: ["sales", "changed", "week", "affect", "new"],
+    q: "Who owns data exports for merchants?",
+    keys: ["who", "owns", "own", "export", "data", "owner"],
     rows: [
-      { k: "Decisions", v: "If retries aren't live by Dec 12, the launch email moves to Dec 17; the webinar stays on Dec 15.", src: ["Growth launch review · Dec 5"] },
-      { k: "Risks", v: "Webhook retries are at risk because of Platform's rate-limit change.", src: ["Payments update · Dec 4"] },
-      { k: "Waiting on Sales", v: "Product needs enterprise customer requirements by Dec 10." },
-      { k: "Suggested next action", v: "Hold launch-date promises on enterprise calls until Platform confirms Dec 9." },
+      { k: "Seen in GitHub", v: "Most recent changes to merchant exports came from Payments API.", src: ["payments/exports · 9 merged PRs since Oct"] },
+      { k: "Learned", v: "Diego Alvarez answered two export questions last month.", src: ["Payments API answers · Nov 14, Nov 27"] },
+      { k: "Not confirmed", v: "Payments API hasn't confirmed it owns exports, so I've asked them to." },
+      { k: "How to ask", v: "Ask the Payments API agent. Anything it can't answer goes to its team queue." },
     ],
   },
   {
-    q: "Who should I ask about webhook retries?",
-    keys: ["who", "ask", "webhook", "retries", "owner", "own"],
+    q: "How does Platform want new services reviewed?",
+    keys: ["how", "review", "service", "launch", "ask", "work"],
     rows: [
-      { k: "Owner", v: "Priya Raman, Payments API. She owns webhooks and retries." },
-      { k: "Already published", v: "Retries cover payments and refunds at launch; payouts follow in January.", src: ["Payments API answer · Nov 18"] },
-      { k: "How to ask", v: "Ask the Payments API agent first. If it can't answer, it routes your question to Priya, in one batch with similar questions." },
+      { k: "Confirmed by Platform", v: "Ask the agent first. Book a one-hour launch review in #platform-asks.", src: ["Platform's page · Nov 18"] },
+      { k: "Learned", v: "Reviews cover load testing, rate limits and on-call setup.", src: ["Lena Fischer's answers · Nov 26"] },
+      { k: "Freshness", v: "The booking process was last mentioned Nov 12, so it may be out of date." },
     ],
   },
 ];
@@ -99,7 +99,7 @@ export function AskBeacon({ compact = false }: { compact?: boolean }) {
       </form>
       <div className="answer" aria-live="polite">
         {phase === "thinking" && (
-          <div className="thinking"><i /><i /><i /> Reading what each team has shared with you…</div>
+          <div className="thinking"><i /><i /><i /> Reading what Beacon knows about the team…</div>
         )}
         {phase === "none" && (
           <p className="muted" style={{ margin: 0, fontSize: 13 }}>

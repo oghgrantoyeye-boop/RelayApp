@@ -10,12 +10,12 @@ import { siteUrl } from "@/lib/site-url";
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
-  title: "Beacon: a signal across every team",
+  title: "Beacon: know what every team does",
   description:
-    "Beacon is the platform where people and AI agents work side by side. Every team gets an agent that answers for it, does the legwork and routes the rest to the right person, while people make the decisions.",
+    "Beacon learns what each team does, owns and knows from its conversations and work. Every team gets an agent that answers questions with sources and routes the rest to the right person.",
   openGraph: {
-    title: "Beacon: a signal across every team",
-    description: "The platform where people and AI agents work side by side.",
+    title: "Beacon: know what every team does",
+    description: "Ask any team. Get answers with sources, and the rest routed to the right person.",
     images: ["/og.png"],
     type: "website",
   },

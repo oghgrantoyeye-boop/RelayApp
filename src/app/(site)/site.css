@@ -376,3 +376,5 @@ h1, h2, h3 { margin: 0; font-weight: 600; letter-spacing: -0.03em; color: var(--
   .marquee-group[aria-hidden="true"], .marquee-item.dup { display: none; }
   .marquee-item::after { display: none; }
 }
+.pill.gray { color: var(--ink-2); background: #f6f5f2; border-color: var(--line); }
+.pill.vio { color: #6d28d9; background: #f5f3ff; border-color: #e4dcfb; }

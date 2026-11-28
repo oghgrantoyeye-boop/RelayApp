@@ -15,18 +15,18 @@ export const GROUPS: { name: string; tools: Tool[] }[] = [
   {
     name: "Engineering",
     tools: [
-      { id: "github", status: "live", what: "Merged pull requests become draft updates for the author's team." },
-      { id: "claude", status: "live", what: "A session hook drafts what you worked on, for you to review and share." },
-      { id: "jira", status: "planned", what: "Ticket status keeps commitments and dependencies current." },
-      { id: "linear", status: "planned", what: "Issues linked to the commitments they affect." },
+      { id: "github", status: "live", what: "Merged pull requests teach Beacon what each team runs and works on." },
+      { id: "claude", status: "live", what: "A session hook drafts what you worked on, so your team's picture stays current." },
+      { id: "jira", status: "planned", what: "Tickets show what a team is working on and what it gets asked." },
+      { id: "linear", status: "planned", what: "Issues show what a team is working on and what it gets asked." },
     ],
   },
   {
     name: "Conversations and meetings",
     tools: [
-      { id: "slack", status: "live", what: "Updates, alerts and asks posted to a channel. Answering from Slack is planned." },
-      { id: "zoom", status: "planned", what: "Transcripts summarized into decisions, risks and owners." },
-      { id: "gmeet", status: "planned", what: "Transcripts summarized into decisions, risks and owners." },
+      { id: "slack", status: "live", what: "Questions and answers posted to a channel. Learning from team channels and asking from Slack are planned." },
+      { id: "zoom", status: "planned", what: "Meeting summaries teach Beacon what a team decided and knows." },
+      { id: "gmeet", status: "planned", what: "Meeting summaries teach Beacon what a team decided and knows." },
       { id: "teams", status: "planned", what: "Meeting transcripts and delivery for Microsoft 365 companies." },
     ],
   },
@@ -41,9 +41,9 @@ export const GROUPS: { name: string; tools: Tool[] }[] = [
   {
     name: "Customers and design",
     tools: [
-      { id: "hubspot", status: "planned", what: "Deals that depend on a delivery date, flagged when it moves." },
-      { id: "zendesk", status: "planned", what: "Escalations routed to the team that owns the fix." },
-      { id: "figma", status: "planned", what: "Design changes surfaced to the teams building them." },
+      { id: "hubspot", status: "planned", what: "Customer questions routed to the team that can answer them." },
+      { id: "zendesk", status: "planned", what: "Escalations routed to the team that owns the area." },
+      { id: "figma", status: "planned", what: "Design files linked to the team that owns them." },
     ],
   },
 ];
@@ -119,8 +119,8 @@ export function Integrations() {
           <span className="eyebrow">Integrations</span>
           <h2 id="int-title" className="h2">Works with the tools your teams already use.</h2>
           <p className="lede" style={{ marginTop: 18 }}>
-            Beacon reads the work where it already happens: code, tickets, docs, meetings and conversations. It brings each change to the
-            teams that depend on it, at the level of detail each team is allowed to see. Nobody has to move to a new tool.
+            Beacon learns from the work where it already happens: code, tickets, docs, meetings and conversations. That&apos;s how it knows
+            what each team owns and knows without anyone filling in a profile, and it answers at the level each person is allowed to see.
           </p>
         </div>
         <Hub />

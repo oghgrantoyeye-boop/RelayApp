@@ -1,8 +1,7 @@
 import Link from "next/link";
 import { Topography } from "@/components/site/Brand";
 import { Reveal, StepBeam } from "@/components/site/Interactive";
-import { GapVisual, HeroProduct, PillarGlyph, SignalField } from "@/components/site/Mockups";
-import { DependencyGraph } from "@/components/site/DependencyGraph";
+import { GapVisual, HeroProduct, PillarGlyph, SignalField, TeamPicture } from "@/components/site/Mockups";
 import { AskBeacon } from "@/components/site/AskBeacon";
 import { Integrations } from "@/components/site/Integrations";
 import { BuiltByBand } from "@/components/site/BuiltByBand";
@@ -12,61 +11,60 @@ const Arrow = () => <span className="arrow" aria-hidden="true">→</span>;
 
 const STEPS: { title: string; body: string; card: React.ReactNode }[] = [
   {
-    title: "Product changes a launch requirement",
-    body: "A requirement moves. Nobody has to remember who else it touches.",
+    title: "Ask about a team",
+    body: "In Beacon or from Slack, ask what a team does, owns, knows or can help with. No need to know who to ask first.",
     card: (
       <>
         <div className="line"><span className="chip">Product</span><span className="muted">Ava Thompson</span></div>
-        <div>&ldquo;Enterprise payouts must include audit logs at launch.&rdquo;</div>
+        <div>&ldquo;Can Platform support single sign-on for our new merchant admin console?&rdquo;</div>
       </>
     ),
   },
   {
-    title: "Beacon identifies the dependencies",
-    body: "It knows who owns audit logging and who signs off on evidence, from the organization's own map of ownership.",
+    title: "The team's agent answers from what it knows",
+    body: "Each point says where it came from: confirmed by the team, learned from its conversations, or seen in its tools. Guesses are labelled as guesses.",
     card: (
       <>
-        <div className="line"><span className="chip">Engineering</span>Audit logging for payouts · Diego Alvarez</div>
-        <div className="line"><span className="chip">Compliance</span>Evidence review · Compliance lead</div>
+        <div className="line"><span className="pill ok">Confirmed by Platform</span>Platform owns sign-in and single sign-on</div>
+        <div className="line"><span className="pill info">Learned from Ken&apos;s answer</span>SAML already runs for internal tools</div>
+        <div className="line"><span className="pill gray">Seen in GitHub</span>Session tokens are being migrated</div>
       </>
     ),
   },
   {
-    title: "It surfaces the impact on the timeline",
-    body: "Before anyone schedules a meeting, the consequence is visible.",
-    card: (
-      <div className="line"><span className="pill warn">Launch at risk</span>Dec 15 → Dec 19 unless audit logging starts Monday</div>
-    ),
-  },
-  {
-    title: "The relevant owners are notified",
-    body: "Each team hears about it at the level of detail it needs, in the tools it already uses.",
+    title: "It says what it doesn't know",
+    body: "Instead of guessing, Beacon shows what's missing and asks a clarifying question when it needs one.",
     card: (
       <>
-        <div className="line"><span className="pill info">Full detail</span>Engineering</div>
-        <div className="line"><span className="pill info">Summary</span>Compliance</div>
-        <div className="line"><span className="pill info">Headline</span>Sales</div>
+        <div className="muted">Couldn&apos;t find: anything about sign-on for merchants rather than staff.</div>
+        <div className="line" style={{ marginTop: 6 }}><b>Is this for Northwind staff, or merchants&apos; own admins?</b></div>
       </>
     ),
   },
   {
-    title: "A proposed resolution is reviewed and approved",
-    body: "People decide. Beacon drafts the options and records the decision where everyone can find it.",
+    title: "The rest goes to the right team",
+    body: "To the person who owns the area, or to the team's queue where anyone who knows can pick it up. You always see where it went.",
+    card: (
+      <div className="line"><span className="pill warn">Awaiting Platform</span>In Platform&apos;s team queue, since no one person owns merchant sign-on</div>
+    ),
+  },
+  {
+    title: "A teammate answers once",
+    body: "The reply reaches everyone who asked the same thing, and stays private to them.",
     card: (
       <>
-        <div>Ship audit logs behind a flag for enterprise accounts first; keep Dec 15 for everyone else.</div>
-        <div className="line"><span className="pill ok">Approved</span><span className="muted">by Ava Thompson</span></div>
+        <div>&ldquo;Not for merchants yet. It&apos;s about three weeks of work; we can scope it in Q1 planning.&rdquo;</div>
+        <div className="line"><span className="pill ok">Answered</span><span className="muted">by Ken Watanabe, Platform</span></div>
       </>
     ),
   },
   {
-    title: "Beacon tracks the commitment through completion",
-    body: "Owners, due dates and status stay connected to the original intent, so nothing slips quietly.",
+    title: "The team picture stays current on its own",
+    body: "Beacon learns from the answer. Anything about ownership or what a team can take on waits for one teammate to confirm it.",
     card: (
       <>
-        <div className="line"><span className="pill ok">Done</span>Audit logging · Engineering · Dec 12</div>
-        <div className="line"><span className="pill ok">On track</span>Evidence review · Compliance · Dec 13</div>
-        <div className="line"><span className="pill ok">On track</span>Launch · Product · Dec 15</div>
+        <div>Learned: <i>merchant sign-on isn&apos;t supported yet; about three weeks of work.</i></div>
+        <div className="line"><span className="pill warn">Waiting for Platform to confirm</span></div>
       </>
     ),
   },
@@ -75,27 +73,27 @@ const STEPS: { title: string; body: string; card: React.ReactNode }[] = [
 const CASES = [
   {
     t: "Product and Engineering",
-    d: "Keep requirements, technical decisions, dependencies and delivery aligned.",
-    l: ["Requirement changes reach every team they touch", "Technical constraints flow back before dates are promised"],
+    d: "Find out what another team owns, what it's working on and whether it can help, before you plan around it.",
+    l: ["What a team owns and who to ask", "Answers with sources, not hearsay"],
     icon: <path d="M4 7h16M4 12h10M4 17h7M17 14l3 3-3 3" />,
   },
   {
-    t: "Leadership",
-    d: "Understand organizational priorities, blockers and execution across departments.",
-    l: ["One operating picture instead of status meetings", "Slipped commitments surface with their reason"],
-    icon: <path d="M4 20V10M10 20V4M16 20v-7M22 20H2" />,
-  },
-  {
-    t: "Operations",
-    d: "Coordinate workflows and resolve handoffs across teams.",
-    l: ["Clear owners for every handoff", "Questions routed to the right person, batched"],
+    t: "Teams that get asked a lot",
+    d: "Platform, data, security and ops teams answer the same questions over and over.",
+    l: ["The agent answers what the team has already said", "Everything else arrives in one queue, merged"],
     icon: <path d="M5 12h4l2-5 2 10 2-5h4" />,
   },
   {
-    t: "AI-native organizations",
-    d: "Coordinate people and AI agents through a shared organizational context.",
-    l: ["Agents work with the requester's access, never more", "Every agent action is reviewable and logged"],
-    icon: <><rect x="5" y="7" width="14" height="12" rx="3" /><path d="M12 3v4M9 12h.01M15 12h.01" /></>,
+    t: "New joiners",
+    d: "Learn how the organization works without a month of asking around.",
+    l: ["Every team's responsibilities in one place", "How each team prefers to be asked"],
+    icon: <><circle cx="12" cy="8" r="4" /><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6" /></>,
+  },
+  {
+    t: "Leaders",
+    d: "See what each team owns and knows, and where questions get stuck between teams.",
+    l: ["Which questions go unanswered, and where", "Teams' context, kept current without status reports"],
+    icon: <path d="M4 20V10M10 20V4M16 20v-7M22 20H2" />,
   },
 ];
 
@@ -107,20 +105,20 @@ export default function Home() {
         <Topography />
         <div className="wrap">
           <div className="hero-copy">
-            <span className="eyebrow">Where people and AI agents work side by side</span>
+            <span className="eyebrow">Team context, answers and routing</span>
             <h1 className="h1">
-              Your organization is working.
-              <span className="second">Is it working together?</span>
+              Know what every team does.
+              <span className="second">Ask the ones who know.</span>
             </h1>
             <p className="lede">
-              Beacon is the platform where people and AI agents work side by side. Every team gets an agent that answers for it, does the
-              legwork and routes the rest to the right person, so people spend their time on decisions instead of chasing status.
+              Beacon learns what each team does, owns and knows from its conversations and work. Every team gets an agent that answers
+              questions with sources and sends the rest to the right person, so nobody has to chase contacts or keep a profile up to date.
             </p>
             <div className="hero-ctas">
               <Link className="btn btn-primary" href="/early-access">Request early access <Arrow /></Link>
               <a className="btn btn-ghost" href="#how-it-works">See how it works</a>
             </div>
-            <p className="hero-note">One operating picture. Every team. Every initiative.</p>
+            <p className="hero-note">Answers with sources. Questions that reach someone who can answer.</p>
           </div>
           <div className="hero-product">
             <HeroProduct />
@@ -135,12 +133,12 @@ export default function Home() {
         <div className="wrap gap-grid">
           <Reveal className="gap-copy">
             <span className="eyebrow">The coordination gap</span>
-            <h2 id="gap-title" className="h2" style={{ margin: "16px 0 24px" }}>Your tools are connected. Your organization isn&apos;t.</h2>
+            <h2 id="gap-title" className="h2" style={{ margin: "16px 0 24px" }}>Everyone knows their own team. Nobody knows the rest.</h2>
             <p>Every department has its own systems, priorities and workflows.</p>
             <p>Product lives in roadmaps. Engineering lives in code and tickets. Sales lives in the CRM. Operations lives in its own processes.</p>
-            <p>But the important work happens between those systems. A product decision affects engineering capacity. An engineering delay affects a customer commitment. A change in priorities affects several departments.</p>
-            <p>Today, connecting those dots often depends on someone noticing, asking around and manually coordinating the response.</p>
-            <p className="pull">Beacon makes those connections visible.</p>
+            <p>But most questions are about another team. Who owns this? Can they help? Is this still true? How do they want to be asked?</p>
+            <p>Today the answer means searching docs, scanning channels and messaging whoever might know, and still not being sure it&apos;s current.</p>
+            <p className="pull">Beacon gives every team a picture others can understand, and a way to ask it.</p>
           </Reveal>
           <Reveal delay={120}>
             <GapVisual />
@@ -155,13 +153,13 @@ export default function Home() {
         <div className="wrap">
           <Reveal className="section-head">
             <span className="eyebrow">What Beacon does</span>
-            <h2 id="product-title" className="h2">A new layer between your teams, not another tool beside them.</h2>
+            <h2 id="product-title" className="h2">Understand any team, get a sourced answer, reach the right person.</h2>
           </Reveal>
           <div className="pillars">
             {[
-              { n: "01", k: "Unify context", t: "A living model of your organization.", p: "Beacon connects knowledge about people, teams, initiatives, decisions, responsibilities and systems.", g: "context" as const },
-              { n: "02", k: "Coordinate work", t: "Understand how work connects.", p: "Identify dependencies, surface blockers, route questions to the right people and keep teams aligned.", g: "coordinate" as const },
-              { n: "03", k: "Drive execution", t: "Move from awareness to action.", p: "Coordinate workflows, delegate approved tasks to AI agents and people, follow up on commitments, and keep initiatives moving.", g: "execute" as const },
+              { n: "01", k: "Team context", t: "Learned, not maintained.", p: "Beacon builds each team's picture from its conversations, answers and work: what it owns, knows, runs and how to ask it. Teams only fix what's wrong.", g: "context" as const },
+              { n: "02", k: "Grounded answers", t: "Every point shows its source.", p: "Each team's agent answers from that picture, at your level of access, and says whether a point was confirmed, learned, seen in a tool or inferred.", g: "coordinate" as const },
+              { n: "03", k: "Routing", t: "The rest reaches someone who knows.", p: "What the agent can't answer goes to the owner or the team's queue. You see where it went, and the answer comes back to you.", g: "execute" as const },
             ].map((x, i) => (
               <Reveal key={x.n} className="pillar" delay={i * 90}>
                 <div className="glyph"><PillarGlyph kind={x.g} /></div>
@@ -183,26 +181,20 @@ export default function Home() {
         <div className="wrap">
           <Reveal className="section-head">
             <span className="eyebrow">Product</span>
-            <h2 id="show-title" className="h2">See the whole organization, then ask it anything.</h2>
+            <h2 id="show-title" className="h2">See what a team knows, then ask it.</h2>
             <p className="lede">
-              Initiatives, owners, dependencies and decisions in one operating picture, with answers drawn only from what each person is allowed to see.
+              A team&apos;s picture, learned from its own conversations and tools, and answers drawn only from what each person is allowed to see.
             </p>
           </Reveal>
           <div className="window" style={{ marginBottom: 18 }}>
             <div className="window-bar">
               <div className="window-dots" aria-hidden="true"><i /><i /><i /></div>
-              <span className="window-title">Organization overview</span>
+              <span className="window-title">Platform · Northwind Labs</span>
               <span className="demo-label">Illustrative demo data</span>
-            </div>
-            <div className="stats">
-              <div className="stat"><div className="k">Active initiatives</div><div className="v">12</div><div className="d">across 8 teams</div></div>
-              <div className="stat"><div className="k">Cross-team blockers</div><div className="v" style={{ color: "#c0392b" }}>3</div><div className="d">1 slipped commitment</div></div>
-              <div className="stat"><div className="k">Upcoming milestones</div><div className="v">5</div><div className="d">in the next 14 days</div></div>
-              <div className="stat"><div className="k">At-risk projects</div><div className="v" style={{ color: "#b26a00" }}>2</div><div className="d">both depend on Platform</div></div>
             </div>
             <div style={{ padding: 16 }}>
               <div className="show-grid">
-                <DependencyGraph />
+                <TeamPicture />
                 <AskBeacon />
               </div>
             </div>
@@ -219,10 +211,10 @@ export default function Home() {
         <div className="wrap flow">
           <div className="flow-sticky">
             <span className="eyebrow">How it works</span>
-            <h2 id="flow-title" className="h2" style={{ marginTop: 16 }}>From a question to coordinated action.</h2>
+            <h2 id="flow-title" className="h2" style={{ marginTop: 16 }}>From a question to an answer you can trust.</h2>
             <p className="lede" style={{ marginTop: 18 }}>
-              Beacon connects intent to execution. A change in one team becomes the right next step for every team it touches, with people approving
-              what matters.
+              Beacon answers what it can from what the team has said and done, says what it doesn&apos;t know, and gets the rest to a person
+              who does.
             </p>
             <p className="muted" style={{ fontSize: 13.5, marginTop: 14 }}>Illustrative scenario.</p>
           </div>
@@ -248,7 +240,7 @@ export default function Home() {
         <div className="wrap">
           <Reveal className="section-head">
             <span className="eyebrow">Who it&apos;s for</span>
-            <h2 id="cases-title" className="h2">For the people who keep work moving between teams.</h2>
+            <h2 id="cases-title" className="h2">For anyone who needs something from another team.</h2>
           </Reveal>
           <div className="cases">
             {CASES.map((c, i) => (
@@ -274,23 +266,23 @@ export default function Home() {
             <span className="eyebrow">About</span>
             <h2 id="about-title" className="sr-only">About Beacon</h2>
             <p className="thesis">
-              Organizations don&apos;t have an information problem. They have a <em>coordination problem.</em>
+              The answer usually exists. It&apos;s just in <em>another team&apos;s head.</em>
             </p>
           </Reveal>
           <Reveal className="about-copy" delay={100}>
             <p>
-              Much of the workday goes to status meetings, handoffs and asking other teams what they decided or when they&apos;ll deliver. The
-              information usually exists. It just doesn&apos;t reach the people who depend on it, when they need it.
+              Much of the workday goes to finding out what other teams own, what they know and who to ask. The information exists in
+              their conversations, tickets and code, but it doesn&apos;t reach the people who need it.
             </p>
             <p>
-              Beacon is building the shared operating layer for that work: a living model of who owns what, what depends on what and what was
-              decided, with AI agents that answer, route and follow up inside clear boundaries.
+              Beacon builds a picture of each team from that activity, lets every team&apos;s agent answer from it with sources, and routes
+              what it can&apos;t answer to the people who can. Teams don&apos;t fill in profiles; they correct what Beacon gets wrong.
             </p>
             <div className="not-list">
-              <div><b>An AI teammate for every team.</b><span>Each one is sandboxed to its team&apos;s tools and access, never more.</span></div>
-              <div><b>Answers come with sources.</b><span>And they respect who is allowed to see what.</span></div>
-              <div><b>From questions to real work.</b><span>Teammates range from answering questions to workers that draft code, research and legal documents. Start from a ready-made one or build your own.</span></div>
-              <div><b>Agents draft, people approve.</b><span>Nothing reaches another team until a person signs off, and every action is logged.</span></div>
+              <div><b>Learned, not maintained.</b><span>Context comes from the team&apos;s own conversations and work. Teams confirm, fix or remove it in one click.</span></div>
+              <div><b>Answers come with sources.</b><span>Each point says where it came from and how fresh it is, and missing information is said out loud.</span></div>
+              <div><b>Your access, never more.</b><span>An agent answering you reads only what you&apos;re allowed to see, and every read is logged.</span></div>
+              <div><b>Answers, not actions.</b><span>Beacon answers and routes. It doesn&apos;t take on work or make promises for a team.</span></div>
             </div>
           </Reveal>
         </div>
@@ -301,8 +293,8 @@ export default function Home() {
         <SignalField />
         <div className="wrap" style={{ position: "relative" }}>
           <span className="eyebrow">Early access</span>
-          <h2 id="final-title" className="h2">Give your organization a shared signal.</h2>
-          <p>See what happens when every team can understand the work happening around them.</p>
+          <h2 id="final-title" className="h2">Make every team easy to understand.</h2>
+          <p>See what happens when anyone can ask any team, and get an answer with its sources.</p>
           <div className="hero-ctas">
             <Link className="btn btn-primary" href="/early-access">Request early access <Arrow /></Link>
             <Link className="btn btn-ghost" href="/feed">Try the interactive demo</Link>

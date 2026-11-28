@@ -3,22 +3,19 @@
 import { BeaconMark } from "./Brand";
 import { SvgMark } from "./Logos";
 
-function Av({ n }: { n: string }) {
-  return <span className="av" aria-hidden="true">{n.split(" ").map((p) => p[0]).join("")}</span>;
-}
+type Tag = ["ok" | "info" | "gray" | "vio" | "warn", string];
 
-const INITIATIVES: { t: string; team: string; color: string; owner: string; due: string; state: ["ok" | "warn" | "bad" | "info", string] }[] = [
-  { t: "'Reliable payments' launch", team: "Growth", color: "#c2410c", owner: "Jordan Ellis", due: "Dec 15", state: ["warn", "At risk"] },
-  { t: "Webhook retries", team: "Payments API", color: "#315efb", owner: "Priya Raman", due: "Dec 12", state: ["warn", "At risk"] },
-  { t: "Per-merchant rate limits", team: "Platform", color: "#0e7490", owner: "Aisha Bello", due: "Dec 9", state: ["bad", "Slipped"] },
-  { t: "Enterprise readiness", team: "Sales", color: "#0f766e", owner: "Victor Grant", due: "Jan 11", state: ["info", "Planning"] },
-  { t: "Mobile admin SSO", team: "Platform", color: "#0e7490", owner: "Ken Watanabe", due: "Dec 18", state: ["ok", "On track"] },
+const KNOWS: { k: string; t: string; s: string; tag: Tag }[] = [
+  { k: "Owns", t: "Sign-in and single sign-on", s: "Staff sign-in, SAML for internal tools", tag: ["ok", "Confirmed"] },
+  { k: "Owns", t: "Rate limits", s: "Per-merchant limits on the public API · Aisha Bello", tag: ["ok", "Confirmed"] },
+  { k: "Knows", t: "Load-testing new endpoints", s: "From Lena's answers to Payments and Mobile", tag: ["info", "Learned"] },
+  { k: "Runs", t: "Deploy pipeline and staging", s: "120 merged PRs in platform/deploy", tag: ["gray", "Seen in GitHub"] },
 ];
 
-/** The hero's product window: initiatives, the dependency chain, an AI insight and Ask Beacon. */
+/** The hero's product window: a team's learned picture, a pending confirmation and a sourced answer. */
 export function HeroProduct() {
   return (
-    <div className="window" role="img" aria-label="Beacon product preview with illustrative data: initiatives with owners and status, a dependency chain from Platform to Sales, an AI insight that the payments launch is at risk, and an Ask Beacon box.">
+    <div className="window" role="img" aria-label="Beacon product preview with illustrative data: the Platform team's page showing what Beacon has learned it owns and knows, each with its source, a question asking the team to confirm a new ownership claim, and an answer to another team's question with sources.">
       <div className="window-bar" aria-hidden="true">
         <div className="window-dots"><i /><i /><i /></div>
         <span className="window-title">Beacon · Northwind Labs</span>
@@ -27,11 +24,10 @@ export function HeroProduct() {
       <div className="app" aria-hidden="true">
         <aside className="app-side">
           <div className="org"><span style={{ color: "#17191d" }}><BeaconMark size={18} /></span>Northwind Labs</div>
-          <div className="item active">Operating picture</div>
-          <div className="item">Initiatives <span className="n">12</span></div>
-          <div className="item">Dependencies <span className="n">3</span></div>
-          <div className="item">Commitments</div>
           <div className="item">Ask Beacon</div>
+          <div className="item active">Teams</div>
+          <div className="item">Team queue <span className="n">3</span></div>
+          <div className="item">My questions</div>
           <div className="sec">Teams</div>
           {[["Platform", "#0e7490"], ["Payments API", "#315efb"], ["Growth", "#c2410c"], ["Sales", "#0f766e"], ["Finance", "#a16207"]].map(([n, c]) => (
             <div key={n} className="item"><span className="sw" style={{ background: c }} />{n}</div>
@@ -40,54 +36,49 @@ export function HeroProduct() {
         <div className="app-main">
           <div className="app-head">
             <div>
-              <div className="muted" style={{ fontSize: 12 }}>Week of Dec 7</div>
-              <h4>Operating picture</h4>
+              <div className="muted" style={{ fontSize: 12 }}>Engineering</div>
+              <h4>Platform</h4>
             </div>
-            <span className="pill bad" style={{ marginLeft: "auto" }}>1 cross-team blocker</span>
-            <span className="pill warn">2 at risk</span>
+            <span className="pill gray" style={{ marginLeft: "auto" }}>GitHub · Slack · Claude Code</span>
           </div>
           <div className="app-grid">
             <div style={{ display: "flex", flexDirection: "column", gap: 16, minWidth: 0 }}>
               <div className="panel">
-                <div className="panel-h">Initiatives<span className="muted">Owner · due</span></div>
+                <div className="panel-h">What Beacon knows about Platform<span className="muted">Source</span></div>
                 <ul className="rows">
-                  {INITIATIVES.map((r) => (
+                  {KNOWS.map((r) => (
                     <li key={r.t}>
                       <div style={{ minWidth: 0 }}>
-                        <div className="t">{r.t}</div>
-                        <div className="s"><span className="sw" style={{ background: r.color, width: 7, height: 7, borderRadius: 2, display: "inline-block" }} />{r.team}<Av n={r.owner} />{r.owner} · {r.due}</div>
+                        <div className="t"><span className="muted" style={{ fontWeight: 400 }}>{r.k} · </span>{r.t}</div>
+                        <div className="s">{r.s}</div>
                       </div>
-                      <span className={`pill ${r.state[0]}`}>{r.state[1]}</span>
+                      <span className={`pill ${r.tag[0]}`}>{r.tag[1]}</span>
                     </li>
                   ))}
                 </ul>
               </div>
-              <div className="panel">
-                <div className="panel-h">Dependency chain<span className="muted">Payments launch</span></div>
-                <ChainSvg />
+              <div className="insight">
+                <div className="insight-h">Does Platform own webhook delivery?</div>
+                <p>Learned from 3 answers and 4 merged PRs. One teammate&apos;s yes makes it part of Platform&apos;s page.</p>
+                <div style={{ display: "flex", gap: 6, marginTop: 8, flexWrap: "wrap" }}>
+                  <span className="chip">Yes, we own it</span><span className="chip">No</span><span className="chip">Not sure</span>
+                </div>
               </div>
             </div>
             <div style={{ display: "flex", flexDirection: "column", gap: 16, minWidth: 0 }}>
-              <div className="insight">
-                <div className="insight-h">
-                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 3l2 6 6 2-6 2-2 6-2-6-6-2 6-2z" /></svg>
-                  Signal: payments launch at risk
-                </div>
-                <p>Platform&apos;s rate-limit change slipped to Dec 9. Webhook retries (Dec 12) and the Dec 15 launch depend on it. Growth hasn&apos;t been told yet.</p>
-                <div style={{ display: "flex", gap: 6, marginTop: 8, flexWrap: "wrap" }}>
-                  <span className="chip">PLAT-142</span><span className="chip">Meeting · Dec 4</span><span className="chip">Payments update</span>
-                </div>
-              </div>
               <div className="panel">
-                <div className="panel-h">Needs an owner&apos;s decision</div>
-                <ul className="rows">
-                  <li><div><div className="t">Confirm new date for rate limits</div><div className="s"><Av n="Aisha Bello" />Aisha Bello · asked by 4 people</div></div><span className="pill info">Routed</span></li>
-                  <li><div><div className="t">Move launch email to Dec 17?</div><div className="s"><Av n="Maya Chen" />Maya Chen · due Dec 10</div></div><span className="pill warn">Pending</span></li>
-                </ul>
+                <div className="panel-h">Ava asked the Platform agent</div>
+                <div style={{ padding: "10px 12px", display: "flex", flexDirection: "column", gap: 8, fontSize: 12.5 }}>
+                  <div style={{ color: "#17191d" }}>Can Platform support single sign-on for a merchant admin console?</div>
+                  <div>Platform owns single sign-on. <span className="pill ok">Confirmed</span></div>
+                  <div>SAML already runs for internal tools. <span className="pill info">Learned</span></div>
+                  <div>Merchant identity providers would be new work. <span className="pill vio">Inference</span></div>
+                  <div className="muted">Couldn&apos;t find: anything about sign-on for merchants. Sent to Platform&apos;s queue.</div>
+                </div>
               </div>
               <div className="ask-bar">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#315efb" strokeWidth="2"><path d="M12 3l2 6 6 2-6 2-2 6-2-6-6-2 6-2z" /></svg>
-                <span style={{ color: "#17191d" }}>What&apos;s blocking the payments launch?</span>
+                <span style={{ color: "#17191d" }}>Who owns data exports?</span>
                 <kbd>↵</kbd>
               </div>
             </div>
@@ -98,36 +89,38 @@ export function HeroProduct() {
   );
 }
 
-function ChainSvg() {
-  const steps = [
-    { n: "Platform", s: "Rate limits", c: "#c0392b", l: "Slipped" },
-    { n: "Payments API", s: "Retries", c: "#b26a00", l: "At risk" },
-    { n: "Growth", s: "Launch", c: "#b26a00", l: "At risk" },
-    { n: "Sales", s: "Enterprise calls", c: "#68717e", l: "Waiting" },
+/** The showcase's left panel: one team's learned picture, grouped, with sources and freshness. */
+export function TeamPicture() {
+  const rows: { k: string; t: string; src: string; tag: Tag }[] = [
+    { k: "Owns", t: "Sign-in and single sign-on", src: "Confirmed by Marcus · Nov 18", tag: ["ok", "Confirmed"] },
+    { k: "Owns", t: "Rate limits, per merchant and per partner", src: "Confirmed by Aisha · Oct 30", tag: ["ok", "Confirmed"] },
+    { k: "Knows", t: "How to load-test a new endpoint", src: "Lena's answers to 2 questions · Nov 26", tag: ["info", "Learned"] },
+    { k: "Runs", t: "Deploy pipeline and staging", src: "platform/deploy · last merge Dec 5", tag: ["gray", "Seen in GitHub"] },
+    { k: "Can help with", t: "Reviewing new services before launch", src: "#platform-asks · Nov 12 · may be out of date", tag: ["info", "Learned"] },
+    { k: "How to ask", t: "Ask the agent first; outages go to #platform-oncall", src: "Confirmed by Marcus · Nov 18", tag: ["ok", "Confirmed"] },
   ];
   return (
-    <svg viewBox="0 0 420 86" width="100%" style={{ display: "block", height: "auto" }}>
-      {steps.map((st, i) => {
-        const x = 14 + i * 102;
-        return (
-          <g key={st.n}>
-            {i > 0 && <line x1={x - 22} y1="34" x2={x - 4} y2="34" stroke="#cfcac0" strokeWidth="1.5" markerEnd="url(#chain-arrow)" />}
-            <rect x={x} y="14" width="80" height="40" rx="8" fill="#fff" stroke="#e5e3de" />
-            <text x={x + 9} y="30" fontSize="11" fontWeight="600" fill="#17191d">{st.n}</text>
-            <text x={x + 9} y="45" fontSize="10" fill="#68717e">{st.s}</text>
-            <circle cx={x + 9} cy="70" r="3.5" fill={st.c} />
-            <text x={x + 17} y="73.5" fontSize="10" fill={st.c} fontWeight="500">{st.l}</text>
-          </g>
-        );
-      })}
-      <defs>
-        <marker id="chain-arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#cfcac0" /></marker>
-      </defs>
-    </svg>
+    <div className="panel">
+      <div className="panel-h">What Beacon knows about Platform<span className="demo-label" style={{ marginLeft: "auto" }}>Illustrative</span></div>
+      <ul className="rows">
+        {rows.map((r) => (
+          <li key={r.t}>
+            <div style={{ minWidth: 0 }}>
+              <div className="t"><span className="muted" style={{ fontWeight: 400 }}>{r.k} · </span>{r.t}</div>
+              <div className="s">{r.src}</div>
+            </div>
+            <span className={`pill ${r.tag[0]}`}>{r.tag[1]}</span>
+          </li>
+        ))}
+      </ul>
+      <div className="muted" style={{ padding: "10px 12px", fontSize: 12.5, borderTop: "1px solid var(--line-2)" }}>
+        Nobody typed this in. Platform members can confirm, fix or remove any line.
+      </div>
+    </div>
   );
 }
 
-/** "Your tools are connected. Your organization isn't." Silos, the gaps between them, and Beacon's signal paths. */
+/** "Everyone knows their own team." Silos, the gaps between them, and Beacon's signal paths. */
 export function GapVisual() {
   // Each team in its own tools. These are examples of where the work lives, not integrations.
   const silos = [
@@ -147,8 +140,8 @@ export function GapVisual() {
         </g>
         <g fill="#68717e" fontSize="10.5" fontFamily="inherit">
           <text x="182" y="44">&quot;who decided?&quot;</text>
-          <text x="20" y="182" transform="rotate(-90 20 182)">&quot;when will it ship?&quot;</text>
-          <text x="455" y="150" transform="rotate(90 455 150)">&quot;what changed?&quot;</text>
+          <text x="20" y="182" transform="rotate(-90 20 182)">&quot;can they help?&quot;</text>
+          <text x="455" y="150" transform="rotate(90 455 150)">&quot;is this still true?&quot;</text>
           <text x="186" y="310">&quot;who owns this?&quot;</text>
         </g>
         <g stroke="#315efb" strokeWidth="1.8" fill="none">
@@ -198,20 +191,20 @@ export function PillarGlyph({ kind }: { kind: "context" | "coordinate" | "execut
   if (kind === "coordinate")
     return (
       <svg viewBox="0 0 220 110" width="88%" aria-hidden="true">
-        {[["Design", 14, 18], ["Engineering", 80, 46], ["Product", 150, 74]].map(([t, x, y], i) => (
+        {[["Owns sign-on", "#1f8a4c", 16], ["Learned Nov 20", "#315efb", 46], ["Inference", "#6d28d9", 76]].map(([t, c, y]) => (
           <g key={t as string}>
-            <rect x={x as number} y={y as number} width="62" height="24" rx="6" fill="#fff" stroke={i === 1 ? "#c0392b" : "#dcd9d2"} />
-            <text x={(x as number) + 8} y={(y as number) + 16} fontSize="10" fill="#17191d">{t}</text>
+            <rect x="20" y={(y as number) - 2} width="120" height="22" rx="6" fill="#fff" stroke="#dcd9d2" />
+            <circle cx="32" cy={(y as number) + 9} r="3.5" fill={c as string} />
+            <text x="42" y={(y as number) + 13} fontSize="10" fill="#17191d">{t}</text>
           </g>
         ))}
-        <path d="M45 42 Q52 58 80 58" stroke="#1f8a4c" strokeWidth="1.6" fill="none" />
-        <path d="M142 58 Q170 60 178 74" stroke="#c0392b" strokeWidth="1.6" strokeDasharray="4 4" fill="none" />
-        <circle cx="162" cy="62" r="4" fill="#fff" stroke="#c0392b" strokeWidth="1.6" />
+        <path d="M150 27 H176 V87 H150 M176 57 H196" stroke="#c9c5bc" strokeWidth="1.4" fill="none" />
+        <circle cx="200" cy="57" r="5" fill="#315efb" />
       </svg>
     );
   return (
     <svg viewBox="0 0 220 110" width="88%" aria-hidden="true">
-      {[["Decision approved", true], ["Owners notified", true], ["Commitment tracked", false]].map(([t, done], i) => (
+      {[["Asked Platform", true], ["In the team queue", true], ["Answered by Ken", false]].map(([t, done], i) => (
         <g key={t as string} transform={`translate(30 ${20 + i * 28})`}>
           <rect width="16" height="16" rx="4" fill={done ? "#315efb" : "#fff"} stroke={done ? "#315efb" : "#c9c5bc"} />
           {done && <path d="M4 8 l3 3 l6 -6" stroke="#fff" strokeWidth="1.8" fill="none" />}

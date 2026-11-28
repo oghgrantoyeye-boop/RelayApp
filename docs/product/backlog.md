@@ -94,7 +94,7 @@ The model adapter supports Claude only. An OpenAI key would need a second provid
 
 ## First: the website
 
-- [~] **T-00 Rewrite the website to the new spec.** Done before anything else. The landing page
+- [x] **T-00 Rewrite the website to the new spec.** Done before anything else. The landing page
   (`src/app/(site)/page.tsx`, `src/components/site/*`, `src/app/(site)/layout.tsx`, the early-access
   page) says what Beacon is now: it helps people understand what other teams do, own and know;
   answers questions with sources, saying where each point came from and what's missing; and gets
