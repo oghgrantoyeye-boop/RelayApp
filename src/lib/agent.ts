@@ -35,13 +35,15 @@ export interface Source extends Doc {
   provenance: SourceProvenance;
   /** When the source was last true, as an ISO date: published, confirmed or last seen. */
   lastSeen: string;
+  /** Where to read it: the team page (its "What Beacon knows" section for context) or the meeting. */
+  href?: string;
 }
 
 const iso = (d: unknown): string => (d ? new Date(d as string).toISOString() : now().toISOString());
 
 /** Everything the team has published that this asker may see, rendered at their level. */
 async function publishedSources(db: Db, unitId: string, reader: Parameters<typeof visibleLevel>[1]): Promise<Source[]> {
-  const unit = await db.one(`select org_id from unit where id = $1`, [unitId]);
+  const unit = await db.one(`select org_id, slug from unit where id = $1`, [unitId]);
   if (!unit) return [];
   const policy = await loadPolicy(db, unit.org_id);
   const out: Source[] = [];
@@ -112,7 +114,11 @@ async function publishedSources(db: Db, unitId: string, reader: Parameters<typeo
     const s = m.summary as { summary: string; decisions: string[] };
     out.push({ ref: `meeting:${m.id}`, text: `${m.title}: ${s.summary} ${(s.decisions ?? []).join(" ")}`, markingIds: markingIdsOf(m), level, label: `Meeting, ${fmt(m.starts_at)}`, provenance: "learned", lastSeen: iso(m.starts_at) });
   }
-  return out;
+  const page = `/teams/${unit.slug}`;
+  return out.map((src) => ({
+    ...src,
+    href: src.ref.startsWith("meeting:") ? `/meetings/${src.ref.slice(8)}` : src.ref.startsWith("context:") ? `${page}#knows` : page,
+  }));
 }
 
 export interface Route {
@@ -318,7 +324,7 @@ export interface ClaimView {
   date?: string;
   /** Its newest source is older than STALE_SOURCE_DAYS, so it may be out of date. */
   stale: boolean;
-  source?: { label: string; text: string };
+  source?: { label: string; text: string; href?: string };
 }
 
 /** Sources not seen for this long are flagged in an answer. */
@@ -344,7 +350,7 @@ export function claimViews(claims: { text: string; refs: string[] }[], sources: 
     const best = [...used].sort((a, b) => rank[a.provenance] - rank[b.provenance])[0];
     const newest = used.map((s) => s.lastSeen).sort().at(-1)!;
     const basis = best.provenance === "confirmed" ? "Confirmed by the team" : best.provenance === "seen" ? "Seen in tools" : "Learned from the team's activity";
-    out.push({ text: c.text, tag: best.provenance, basis, date: newest, stale: Date.parse(newest) < staleBefore, source: { label: best.label, text: best.text } });
+    out.push({ text: c.text, tag: best.provenance, basis, date: newest, stale: Date.parse(newest) < staleBefore, source: { label: best.label, text: best.text, href: best.href } });
   }
   return out;
 }
