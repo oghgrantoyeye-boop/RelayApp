@@ -54,8 +54,8 @@ export default function SiteLayout({ children }: { children: React.ReactNode }) 
               <a href="/#product">Product</a>
               <a href="/#agents">Agents</a>
               <a href="/#integrations">Integrations</a>
-              <a href="/#use-cases">Use cases</a>
               <a href="/#how-it-works">How it works</a>
+              <a href="/#use-cases">Use cases</a>
               <a href="/#about">About</a>
               <Link href="/feed">Interactive demo</Link>
               <Link href="/early-access">Early access</Link>
