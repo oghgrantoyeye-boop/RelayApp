@@ -174,7 +174,7 @@ The model adapter supports Claude only. An OpenAI key would need a second provid
 - [~] **T-16 Pending questions.** (Claude) Mock: M2. Show at most three pending claims as yes, no or not
   sure questions at the top of the team page, and add them to each member's batch of asks.
   Acceptance: one confirmation makes the claim active. Depends: T-11, T-15. S.
-- [ ] **T-17 What Beacon can see.** Mock: M2, M6. Per team: sources with Live or Planned, last
+- [~] **T-17 What Beacon can see.** (Claude) Mock: M2, M6. Per team: sources with Live or Planned, last
   sync, and gaps. Adds `connector.mode`. Acceptance: matches M2's card; planned tools never show as
   Live. S.
 - [~] **T-18 Sources carry provenance and freshness.** (Claude) Mock: M3. `publishedSources` includes
