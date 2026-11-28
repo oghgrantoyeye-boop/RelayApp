@@ -158,7 +158,7 @@ The model adapter supports Claude only. An OpenAI key would need a second provid
   `answerCluster` (the answerer's reply) and from team members' messages in `chat_message`.
   Acceptance: answering a routed question in the demo creates a learned or pending entry on the
   team page. Depends: T-11. S.
-- [~] **T-13 Learn from updates, meetings, PRs and Claude Code sessions.** (Claude) Mock: M2. Call
+- [x] **T-13 Learn from updates, meetings, PRs and Claude Code sessions.** (Claude) Mock: M2. Call
   `learnFrom` from `publishDraft`, `summarizeMeeting`, `ingestPullRequest` and
   `ingestCodingSession`. Acceptance: a merged PR touching a new repository adds a "Runs" entry
   tagged Seen in GitHub. Depends: T-11. M.

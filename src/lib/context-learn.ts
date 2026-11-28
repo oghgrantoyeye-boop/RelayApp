@@ -23,6 +23,8 @@ export interface LearnSource {
   at?: Date;
   /** Markings on the source. Anything learned from it inherits them and waits for confirmation. */
   markingIds?: string[];
+  /** The source is seen by fewer people than team context is, so everything new from it waits for a teammate. */
+  needsTeammate?: boolean;
   /** Who wrote it, for the audit log. */
   actorId?: string;
 }
@@ -49,7 +51,7 @@ export async function learnFrom(db: Db, src: LearnSource): Promise<LearnResult> 
     const id = newId("cs");
     await db.query(
       `insert into context_signal (id, unit_id, source_kind, source_ref, source_label, claim, marking_ids, at) values ($1, $2, $3, $4, $5, $6, $7, $8)`,
-      [id, src.unitId, src.kind, src.ref, src.label, JSON.stringify(claim), src.markingIds ?? [], at],
+      [id, src.unitId, src.kind, src.ref, src.label, JSON.stringify(src.needsTeammate ? { ...claim, needs_teammate: true } : claim), src.markingIds ?? [], at],
     );
     const signal = (await db.one(`select * from context_signal where id = $1`, [id]))!;
     const applied = await applySignal(db, signal);

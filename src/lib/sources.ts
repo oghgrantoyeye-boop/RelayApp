@@ -8,6 +8,7 @@ import { audit, loadViewer, newId, type Viewer } from "./data";
 import { draftFromSession, suggestAffected, type SessionInput } from "./ai/tasks";
 import { teamInfos } from "./updates";
 import { levelTexts, shorten } from "./ai/offline";
+import { learnQuietly } from "./context-learn";
 
 async function createDraft(db: Db, viewer: Viewer, source: "coding_agent" | "github", body: string, items: { kind: string; text: string }[], ref: string) {
   const unitId = viewer.team.id;
@@ -56,6 +57,10 @@ export async function ingestCodingSession(db: Db, viewer: Viewer, payload: Parti
   const body = [`Coding session in ${s.repo} (${s.branch})`, ...s.commits.map((c) => `- ${c}`)].join("\n");
   const id = await createDraft(db, viewer, "coding_agent", body, items, `${s.repo}#${s.branch}`);
   await audit(db, { orgId: viewer.orgId, actorId: viewer.user.id, action: "source_coding_session", targetKind: "update", targetId: id, detail: { repo: s.repo, items: items.length, by } });
+  // The session itself stays private to its author until they publish the draft. Beacon learns only
+  // that the team works in this repository, which the team's GitHub activity would show anyway.
+  if (s.repo !== "unknown repo")
+    await learnQuietly(db, { unitId: viewer.team.id, kind: "coding_session", ref: `${s.repo}#${s.branch}`, label: `Claude Code session in ${s.repo}`, repo: s.repo, text: `Worked in ${s.repo}.`, actorId: viewer.user.id });
   return { updateId: id, items: items.length };
 }
 
@@ -82,6 +87,9 @@ export async function ingestPullRequest(db: Db, event: Row): Promise<{ updateId:
   const text = `Merged #${pr.number} in ${repo}: ${scrub(String(pr.title))}.${body ? ` ${shorten(body, 200)}` : ""}`;
   const id = await createDraft(db, viewer, "github", text, [{ kind: "progress", text }], `${repo}#${pr.number}`);
   await audit(db, { orgId: viewer.orgId, actorId: viewer.user.id, action: "source_github_pr", targetKind: "update", targetId: id, detail: { repo, number: pr.number } });
+  // A merged PR is a fact from GitHub: the team runs this repository. The title is all Beacon reads;
+  // the description stays in the author's draft until they publish it.
+  await learnQuietly(db, { unitId: viewer.team.id, kind: "pr", ref: `${repo}#${pr.number}`, label: `PR #${pr.number} in ${repo}`, repo, text: scrub(String(pr.title)), actorId: viewer.user.id });
   return { updateId: id };
 }
 
