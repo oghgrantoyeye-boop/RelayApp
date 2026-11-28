@@ -8,11 +8,37 @@ export interface LiveDetail {
   text?: string;
   reply?: string;
   agentLabel?: string;
-  done?: boolean;
+  steps?: { label: string; done: boolean }[];
+  streaming?: boolean;
+}
+
+/** What the agent is doing right now: each step with a spinner, ticked when done. */
+export function Steps({ steps, live }: { steps: { label: string; done: boolean }[]; live: boolean }) {
+  const [open, setOpen] = useState(false);
+  if (steps.length === 0) return null;
+  const running = live && steps.some((s) => !s.done);
+  if (!running && !open) {
+    return (
+      <button type="button" className="chat-steps-toggle" onClick={() => setOpen(true)}>
+        {steps.length === 1 ? steps[0].label.replace(/^Checking/, "Checked").replace(/^Asking/, "Asked").replace(/^Looking/, "Looked") : `Used ${steps.length} steps`} ›
+      </button>
+    );
+  }
+  return (
+    <ul className="chat-steps">
+      {steps.map((s, i) => (
+        <li key={i} className={s.done || !live ? "done" : "running"}>
+          <span className="step-icon" aria-hidden="true">{s.done || !live ? "✓" : ""}</span>
+          {s.label}
+          {!s.done && live ? "…" : ""}
+        </li>
+      ))}
+    </ul>
+  );
 }
 
 /** The message just sent and the reply as it streams in, until the saved messages render. */
-export function LiveTurn({ scope, me, count }: { scope: string; me: string; count: number }) {
+export function LiveTurn({ scope, count }: { scope: string; me?: string; count: number }) {
   const [turn, setTurn] = useState<LiveDetail | null>(null);
   const seen = useRef(count);
   const end = useRef<HTMLLIElement>(null);
@@ -36,26 +62,29 @@ export function LiveTurn({ scope, me, count }: { scope: string; me: string; coun
   }, [count]);
 
   useEffect(() => {
-    end.current?.scrollIntoView({ block: "end", behavior: "smooth" });
-  }, [turn?.reply, turn?.text]);
+    const box = end.current?.closest(".chat-scroll");
+    if (box) box.scrollTo({ top: box.scrollHeight, behavior: "smooth" });
+  }, [turn?.reply, turn?.text, turn?.steps?.length]);
 
   if (!turn?.text) return null;
+  const waiting = turn.streaming && !turn.reply;
   return (
     <>
       <li className="chat-msg user">
-        <Avatar name={me} size={26} />
-        <div className="chat-body">
-          <div className="chat-who">You</div>
-          <div className="chat-text"><p style={{ margin: 0, whiteSpace: "pre-wrap" }}>{turn.text}</p></div>
-        </div>
+        <div className="chat-bubble">{turn.text}</div>
       </li>
       <li className="chat-msg agent" ref={end}>
-        <Avatar name={turn.agentLabel ?? "Your Beacon agent"} agent size={26} />
+        <Avatar name={turn.agentLabel ?? "Your Beacon agent"} agent size={24} />
         <div className="chat-body">
-          <div className="chat-who">{turn.agentLabel ?? "Your Beacon agent"}</div>
-          <div className="chat-text">
-            {turn.reply ? <Markdown text={turn.reply} /> : <p className="muted typing" style={{ margin: 0 }}>Thinking…</p>}
-          </div>
+          <Steps steps={turn.steps ?? []} live={!!turn.streaming} />
+          {waiting && !(turn.steps ?? []).some((s) => !s.done) && (
+            <div className="typing" aria-label="Thinking"><span /><span /><span /></div>
+          )}
+          {turn.reply && (
+            <div className={`chat-text${turn.streaming ? " streaming" : ""}`}>
+              <Markdown text={turn.streaming ? `${turn.reply}▍` : turn.reply} />
+            </div>
+          )}
         </div>
       </li>
     </>

@@ -78,13 +78,32 @@ function system(viewer: Viewer, agent: AgentRow | null, teams: Row[], orgName: s
 }
 
 /** Run one turn: stream the reply through onDelta, then return what to save with it. */
+export interface TurnHooks {
+  /** The reply as it's written. */
+  onDelta?: (text: string) => void;
+  /** A tool step starting ("Asking Platform"), or finishing (done). */
+  onStep?: (step: { label: string; done: boolean }) => void;
+  /** The person pressed stop. What was written so far is kept. */
+  signal?: AbortSignal;
+}
+
+/** What a tool call looks like to the person while it runs. Null hides it. */
+function stepLabel(name: string, input: Record<string, unknown>): string | null {
+  if (name === "find_owner") return `Checking who owns ${String(input.topic ?? "that")}`;
+  if (name === "ask_team") return `Asking ${String(input.team ?? "the team")}`;
+  if (name === "whats_changed") return "Looking at what changed this week";
+  if (name === "my_commitments") return "Checking your teams' commitments";
+  return null;
+}
+
 export async function agentTurn(
   db: Db,
   viewer: Viewer,
   agent: AgentRow | null,
   target: string,
-  onDelta: (text: string) => void,
+  hooks: TurnHooks = {},
 ): Promise<Reply | null> {
+  const onDelta = hooks.onDelta ?? (() => {});
   const model = chatModel();
   if (!model) return null;
   // Model calls in this turn count against the viewer's workspace budget.
@@ -176,6 +195,8 @@ export async function agentTurn(
 
   let text = "";
   let failed: string | null = null;
+  const steps: string[] = [];
+  const labels = new Map<string, string>();
   const result = streamText({
     model,
     system: system(viewer, agent, teams, String(org?.name ?? "this workspace")),
@@ -183,6 +204,7 @@ export async function agentTurn(
     tools,
     stopWhen: stepCountIs(5),
     maxOutputTokens: 1200,
+    abortSignal: hooks.signal,
     onError: ({ error }) => {
       failed = error instanceof Error ? error.message : String(error);
     },
@@ -192,6 +214,18 @@ export async function agentTurn(
     for await (const part of result.fullStream) {
       // Text after a tool call starts a new paragraph.
       if (part.type === "start-step") fresh = true;
+      if (part.type === "tool-call") {
+        const label = stepLabel(part.toolName, (part.input ?? {}) as Record<string, unknown>);
+        if (label) {
+          labels.set(part.toolCallId, label);
+          steps.push(label);
+          hooks.onStep?.({ label, done: false });
+        }
+      }
+      if (part.type === "tool-result" || part.type === "tool-error") {
+        const label = labels.get(part.toolCallId);
+        if (label) hooks.onStep?.({ label, done: true });
+      }
       if (part.type !== "text-delta" || !part.text) continue;
       const delta = fresh && text.trim() ? `\n\n${part.text.replace(/^\s+/, "")}` : part.text;
       fresh = false;
@@ -201,11 +235,13 @@ export async function agentTurn(
     const usage = await result.totalUsage;
     await record("chat", usage.inputTokens ?? 0, usage.outputTokens ?? 0);
   } catch (err) {
-    failed = (err as Error).message;
+    if (!hooks.signal?.aborted) failed = (err as Error).message;
   }
+  if (hooks.signal?.aborted && !text.trim()) text = "_Stopped._";
   if (failed && !text.trim()) {
     console.warn(`[beacon] chat model failed: ${failed}`);
     return null;
   }
-  return { text: text.trim(), refs: collected.refs, actions: collected.actions, answer: collected.answer };
+  const answer = collected.answer || steps.length ? { claims: [], gaps: [], ...collected.answer, steps } : undefined;
+  return { text: text.trim(), refs: collected.refs, actions: collected.actions, answer };
 }

@@ -7,7 +7,8 @@ import { FollowUp } from "@/components/FollowUp";
 import { FullPathInput } from "@/components/Nav";
 import { AnswerClaims } from "@/components/AnswerClaims";
 import { RateAnswer } from "@/components/RateAnswer";
-import { LiveTurn } from "./LiveTurn";
+import { LiveTurn, Steps } from "./LiveTurn";
+import { ScrollToEnd } from "./ScrollToEnd";
 
 const backFor = (target: string) => (target === "me" ? "/messages" : `/messages?with=${encodeURIComponent(target)}`);
 
@@ -16,13 +17,18 @@ export function ChatThread({ messages, me, empty, scope }: { messages: ChatMsg[]
   return (
     <ol className="chat-list" aria-live="polite">
       {messages.length === 0 && <li className="chat-empty">{empty}</li>}
-      {messages.map((m) => (
-        <li key={m.id} className={`chat-msg ${m.role}`}>
-          <Avatar name={m.role === "user" ? me : m.agentLabel ?? "Your Beacon agent"} agent={m.role === "agent"} size={26} />
+      {messages.map((m) =>
+        m.role === "user" ? (
+          <li key={m.id} className="chat-msg user">
+            <div className="chat-bubble">{m.text}</div>
+          </li>
+        ) : (
+        <li key={m.id} className="chat-msg agent">
+          <Avatar name={m.agentLabel ?? "Your Beacon agent"} agent size={24} />
           <div className="chat-body">
-            <div className="chat-who">{m.role === "user" ? "You" : m.agentLabel}</div>
-            <div className="chat-text">{m.role === "agent" ? <Markdown text={m.text} /> : <p style={{ margin: 0, whiteSpace: "pre-wrap" }}>{m.text}</p>}</div>
-            {m.answer && (
+            {m.answer?.steps && m.answer.steps.length > 0 && <Steps steps={m.answer.steps.map((label) => ({ label, done: true }))} live={false} />}
+            <div className="chat-text"><Markdown text={m.text} /></div>
+            {m.answer && (m.answer.claims.length > 0 || m.answer.gaps.length > 0 || m.answer.clarify) && (
               <AnswerClaims
                 claims={m.answer.claims}
                 gaps={m.answer.gaps}
@@ -66,8 +72,10 @@ export function ChatThread({ messages, me, empty, scope }: { messages: ChatMsg[]
             ))}
           </div>
         </li>
-      ))}
+        ),
+      )}
       <LiveTurn scope={scope} me={me} count={messages.length} />
+      <ScrollToEnd count={messages.length} />
     </ol>
   );
 }
