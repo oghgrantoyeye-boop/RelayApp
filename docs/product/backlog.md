@@ -165,7 +165,7 @@ The model adapter supports Claude only. An OpenAI key would need a second provid
 - [ ] **T-14 Seed by learning.** Mock: M2. The sample workspaces build their team context by
   running `learnFrom` over their seeded updates, answers, meetings and documents. Acceptance:
   Platform's page in Northwind looks like M2 without hand-written context. Depends: T-12, T-13. S.
-- [ ] **T-15 "What Beacon knows about us" section.** Mock: M2. Entries grouped by kind with
+- [~] **T-15 "What Beacon knows about us" section.** (Claude) Mock: M2. Entries grouped by kind with
   provenance tags, sources and freshness; Looks right, Fix (inline edit) and Remove with undo, for
   team members; others see it read-only at the shared level. Every action writes an audit event
   and feeds back into learning. Acceptance: matches M2; removing an entry stops it being
@@ -219,7 +219,7 @@ The model adapter supports Claude only. An OpenAI key would need a second provid
 - [x] **T-31 Sign-in.** Mock: M1. Google, Microsoft and email magic links (env vars above), a
   `session` table, membership in several workspaces, and the workspace chooser. The persona
   switcher stays only inside sample workspaces. Depends: T-30. M. (Cursor)
-- [ ] **T-36 Gate account creation behind early access.** Do this next, before T-32 continues.
+- [~] **T-36 Gate account creation behind early access.** Do this next, before T-32 continues. (Cursor)
   Today `upsertAccount` (`src/lib/auth/accounts.ts`) creates an account for any email that signs in
   with Google, Microsoft or a magic link. Change it so a new account is created only when the email
   is approved: a `lead` row with `status = 'approved'` (add `status` pending/approved/declined,
