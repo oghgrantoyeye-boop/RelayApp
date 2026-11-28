@@ -317,6 +317,18 @@ other questions. Then GitHub, then the planned tools.
   secrets. Later: Beacon MCP server, and publishing the installer to npm. Plan: "Beacon: audit and
   integrations plan" doc. M.
 
+- [ ] **T-64 Slack app.** Requirement from Ovo (Nov 28), planned after T-63, not approved to
+  build yet. A Slack admin installs Beacon; each team picks public channels to learn from (never DMs
+  or private channels). @Beacon and /beacon answer in a thread with sources; a gap goes to the owner
+  as a DM and their reply is learned. Secrets: SLACK_CLIENT_ID, SLACK_CLIENT_SECRET,
+  SLACK_SIGNING_SECRET. Plan, diagram and open decisions: "Beacon: audit and integrations plan"
+  doc. L.
+- [ ] **T-65 Google Docs.** Requirement from Ovo (Nov 28), planned after T-63, not approved to
+  build yet. Read-only Google sign-in by an admin; each team picks docs and folders (Google file
+  picker suggested, so no Google security review). Docs are split into passages tagged with their
+  team and sharing list, re-read when changed, and only quoted to people who can open them.
+  Secrets: GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET. Plan: same doc. M.
+
 ## Suggested order
 
 - **Claude:** T-00 (website), T-01, T-02, T-50, T-03, then T-10, T-11, T-12, T-13, T-15, T-18, T-19,
