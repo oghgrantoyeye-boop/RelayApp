@@ -40,8 +40,9 @@ export function scrub(s: string): string {
 
 export async function userByToken(db: Db, token: string | null): Promise<Viewer | null> {
   if (!token) return null;
-  const u = await db.one(`select id from app_user where api_token = $1 and kind = 'human'`, [token]);
-  return u ? loadViewer(db, u.id) : null;
+  const { findUserIdByApiToken } = await import("./auth/api-tokens");
+  const id = await findUserIdByApiToken(db, token);
+  return id ? loadViewer(db, id) : null;
 }
 
 export async function ingestCodingSession(db: Db, viewer: Viewer, payload: Partial<SessionInput>) {

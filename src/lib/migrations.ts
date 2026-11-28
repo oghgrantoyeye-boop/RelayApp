@@ -585,4 +585,12 @@ create index workspace_invite_email_idx on workspace_invite (lower(email), statu
 create index workspace_invite_org_idx on workspace_invite (org_id, status);
 `,
   },
+  {
+    id: "012_T-45_api_token_hash",
+    sql: `
+-- Store coding-agent tokens as hash + display prefix (T-45). Plaintext is shown once via cookie.
+alter table app_user add column api_token_hash text unique;
+alter table app_user add column api_token_prefix text;
+`,
+  },
 ];

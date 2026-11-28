@@ -1,23 +1,32 @@
-import { headers } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { currentViewer } from "@/lib/session";
 import { Flash, LevelTag, Pill, Topbar } from "@/components/ui";
 import { connectTool, issueCodingToken, revokeCodingToken, simulate, syncTool } from "@/app/actions";
 import { CATALOG, CONNECTOR_LABEL, recentSourceItems, teamConnectors } from "@/lib/integrations";
 import { fmt, fmtDateTime } from "@/lib/clock";
 import { aiStatus, usage } from "@/lib/ai/llm";
-import { hookSettingsJson, isApiToken } from "@/lib/auth/api-tokens";
+import {
+  API_TOKEN_ONCE_COOKIE,
+  demoApiToken,
+  hookSettingsJson,
+  isApiToken,
+} from "@/lib/auth/api-tokens";
 
 export default async function ConnectPage({ searchParams }: { searchParams: Promise<{ msg?: string }> }) {
   const { msg } = await searchParams;
-  const { db, viewer, demo } = await currentViewer();
+  const { db, viewer, demo, isSample } = await currentViewer();
   const tools = await teamConnectors(db, viewer.team.id);
   const items = await recentSourceItems(db, viewer, viewer.team.id, 10);
   const available = CATALOG.filter((k) => !tools.some((t) => t.kind === k));
   const h = await headers();
   const origin = `${h.get("x-forwarded-proto") ?? "http"}://${h.get("host") ?? "localhost:3000"}`;
-  const token = typeof viewer.user.api_token === "string" ? viewer.user.api_token : "";
-  const hasToken = isApiToken(token);
-  const settings = hasToken ? hookSettingsJson(origin, token) : null;
+  const jar = await cookies();
+  const once = jar.get(API_TOKEN_ONCE_COOKIE)?.value ?? "";
+  if (once) jar.delete(API_TOKEN_ONCE_COOKIE);
+  const prefix = typeof viewer.user.api_token_prefix === "string" ? viewer.user.api_token_prefix : "";
+  const hasToken = !!viewer.user.api_token_hash || !!viewer.user.api_token || isApiToken(once);
+  const revealToken = isSample ? demoApiToken(viewer.user.id) : isApiToken(once) ? once : "";
+  const settings = revealToken ? hookSettingsJson(origin, revealToken) : null;
   return (
     <>
       <Topbar crumbs={[viewer.team.name, "Integrations"]} />
@@ -102,22 +111,33 @@ export default async function ConnectPage({ searchParams }: { searchParams: Prom
             <h2>Coding agents (Claude Code)</h2>
             <p className="muted">When a session ends, a small hook sends Beacon what you asked for, the agent&apos;s closing notes and your recent commits. Beacon drafts &ldquo;what I worked on&rdquo; and strips anything that looks like a secret.</p>
             <div className="row" style={{ gap: 8, margin: "12px 0", flexWrap: "wrap" }}>
-              <Pill tone={hasToken ? "green" : "gray"}>{hasToken ? "Token active" : "No token"}</Pill>
-              {hasToken && <span className="mono small muted">{token.slice(0, 12)}…</span>}
-              <form action={issueCodingToken}><button className="b sm" type="submit">{hasToken ? "Rotate token" : "Issue token"}</button></form>
-              {hasToken && (
-                <form action={revokeCodingToken}><button className="b sm" type="submit">Revoke</button></form>
+              <Pill tone={hasToken || isSample ? "green" : "gray"}>{hasToken || isSample ? "Token active" : "No token"}</Pill>
+              {!isSample && prefix && <span className="mono small muted">{prefix}…</span>}
+              {isSample ? (
+                <span className="small muted">Demo token for the sample workspace. Issue, rotate and revoke are personal in a real workspace.</span>
+              ) : (
+                <>
+                  <form action={issueCodingToken}><button className="b sm" type="submit">{hasToken ? "Rotate token" : "Issue token"}</button></form>
+                  {hasToken && (
+                    <form action={revokeCodingToken}><button className="b sm" type="submit">Revoke</button></form>
+                  )}
+                </>
               )}
             </div>
-            {hasToken && settings ? (
+            {settings ? (
               <ol style={{ margin: "10px 0 0", paddingLeft: 18, display: "flex", flexDirection: "column", gap: 8 }}>
                 <li>Copy <span className="mono">integrations/claude-code/relay-hook.mjs</span> from the Beacon repo to <span className="mono">~/.claude/hooks/</span>.</li>
                 <li>
-                  Add this to <span className="mono">~/.claude/settings.json</span>. This is {viewer.user.name}&apos;s personal token — revoke it anytime above.
+                  Add this to <span className="mono">~/.claude/settings.json</span>.
+                  {isSample
+                    ? ` This is ${viewer.user.name}'s demo token.`
+                    : ` This is ${viewer.user.name}'s personal token. Copy it now. Revoke it anytime above.`}
                   <pre className="code">{settings}</pre>
                 </li>
                 <li>Finish a session. The draft shows up under Write update.</li>
               </ol>
+            ) : hasToken ? (
+              <p className="muted small">Token on file ({prefix}…). Rotate to see a new one.</p>
             ) : (
               <p className="muted small">Issue a personal token to see the hook install command.</p>
             )}
