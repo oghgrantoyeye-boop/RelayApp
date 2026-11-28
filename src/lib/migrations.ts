@@ -704,4 +704,11 @@ create table ai_usage (
 create index ai_usage_org_at_idx on ai_usage (org_id, at);
 `,
   },
+  {
+    id: "016_T-16_pending_questions",
+    sql: `
+-- Pending questions (T-16): a member who answers "Not sure" isn't asked about that claim again.
+alter table context_entry add column unsure_by text[] not null default '{}';
+`,
+  },
 ];

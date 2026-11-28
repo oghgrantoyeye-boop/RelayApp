@@ -4,7 +4,7 @@
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { currentViewer } from "@/lib/session";
-import { confirmEntry, editEntry, restoreEntry, retireEntry } from "@/lib/context";
+import { confirmEntry, editEntry, restoreEntry, retireEntry, unsureEntry } from "@/lib/context";
 
 const str = (f: FormData, k: string) => String(f.get(k) ?? "").trim();
 
@@ -53,5 +53,13 @@ export async function restoreContext(form: FormData) {
     const { db, viewer } = await currentViewer();
     await restoreEntry(db, viewer, id);
     return "Restored.";
+  });
+}
+
+export async function unsureContext(form: FormData) {
+  return act(form, async (id) => {
+    const { db, viewer } = await currentViewer();
+    await unsureEntry(db, viewer, id);
+    return "Thanks. Beacon will ask someone else on the team.";
   });
 }

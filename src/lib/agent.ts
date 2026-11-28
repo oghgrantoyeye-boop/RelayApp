@@ -13,7 +13,7 @@ import { answerFromPublished, confidentOwnership, routeQuestion, type Clarify } 
 import { jaccard, overlap, tokens, type Doc } from "./ai/offline";
 import { notifyCommitmentChange } from "./commitments";
 import { learnQuietly } from "./context-learn";
-import { CONTEXT_KIND_LABEL, contextTag } from "./context";
+import { CONTEXT_KIND_LABEL, contextTag, pendingQuestions } from "./context";
 import { auditStatus } from "./requests";
 import { refContext } from "./data";
 
@@ -624,14 +624,24 @@ export async function declineCluster(db: Db, viewer: Viewer, key: string, reason
 export async function sendBatch(db: Db, viewer: Viewer) {
   const { clusters } = await getAsks(db, viewer);
   const pending = clusters.filter((c) => !c.delivered);
-  if (pending.length === 0) return { sent: 0 };
+  // What Beacon wants a teammate to confirm rides along in the same batch (T-16).
+  const checks = (await Promise.all(viewer.reader.unitIds.map(async (u) => {
+    const slug = (await db.one(`select slug from unit where id = $1`, [u]))?.slug;
+    return (await pendingQuestions(db, viewer, u)).map((p) => ({ ...p, slug }));
+  }))).flat();
+  if (pending.length === 0 && checks.length === 0) return { sent: 0 };
   const lines = pending.map((c) => {
     const who = c.askers.length > 1 ? `${c.askers.length} people asked` : `${c.askers[0].name} (${c.askers[0].team}) asked`;
     return `• ${who}: ${c.title}${c.urgent ? " [urgent]" : ""}`;
   });
+  if (checks.length > 0) {
+    lines.push("", "Beacon would like a quick check (yes, no or not sure on your team page):");
+    for (const c of checks) lines.push(`• ${c.question}`);
+  }
+  const total = pending.length + checks.length;
   await deliver(db, [viewer.user.id], {
     kind: "ask_batch",
-    subject: `Your asks for ${fmt(now())}: ${pending.length} ${pending.length === 1 ? "thing" : "things"} people need from you`,
+    subject: `Your asks for ${fmt(now())}: ${total} ${total === 1 ? "thing" : "things"} people need from you`,
     body: lines.join("\n"),
     refs: [{ type: "asks", id: viewer.user.id, href: "/asks" }],
   });

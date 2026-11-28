@@ -13,9 +13,10 @@ import { CommitmentLine } from "@/components/Commitment";
 import { askAgent, replyToAgent, sendRequest, toggleFollow } from "@/app/actions";
 import { FollowUp } from "@/components/FollowUp";
 import { teamConnectors, CONNECTOR_LABEL } from "@/lib/integrations";
-import { teamContext } from "@/lib/context";
+import { pendingQuestions, teamContext } from "@/lib/context";
 import { TeamContext } from "@/components/TeamContext";
 import { AnswerClaims } from "@/components/AnswerClaims";
+import { PendingQuestions } from "@/components/PendingQuestions";
 
 export default async function TeamPage({ params, searchParams }: { params: Promise<{ slug: string }>; searchParams: Promise<{ msg?: string; q?: string; ask?: string }> }) {
   const { slug } = await params;
@@ -57,6 +58,7 @@ export default async function TeamPage({ params, searchParams }: { params: Promi
   ) : null;
   const tools = isGroup ? [] : await teamConnectors(db, team.id);
   const context = isGroup ? null : await teamContext(db, viewer, team.id);
+  const pendingAsk = isGroup ? [] : await pendingQuestions(db, viewer, team.id);
 
   return (
     <>
@@ -139,6 +141,7 @@ export default async function TeamPage({ params, searchParams }: { params: Promi
               </section>
             )}
 
+            <PendingQuestions items={pendingAsk} slug={team.slug} />
             {context && <TeamContext team={team as { name: string; slug: string }} {...context} />}
 
             <section>
