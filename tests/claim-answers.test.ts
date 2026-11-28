@@ -71,10 +71,12 @@ describe("claim-by-claim answers", () => {
         { text: "Uses an old pipeline.", refs: ["old"] },
         { text: "Probably new work.", refs: [] },
         { text: "Something secret.", refs: ["hidden"] },
+        // Malformed stored claims (missing refs) must not 500 the team/ask page.
+        { text: "Legacy claim without refs." } as { text: string; refs: string[] },
       ],
       [src("a", "x", "learned", "2026-11-20T00:00:00Z"), src("b", "y", "confirmed", "2026-11-18T00:00:00Z"), src("old", "z", "seen", "2026-06-01T00:00:00Z")],
     );
-    expect(views.map((c) => c.tag)).toEqual(["confirmed", "seen", "inference"]);
+    expect(views.map((c) => c.tag)).toEqual(["confirmed", "seen", "inference", "inference"]);
     expect(views[0].date).toBe("2026-11-20T00:00:00Z");
     expect(views[1].stale).toBe(true);
     expect(views[2].date).toBeUndefined();

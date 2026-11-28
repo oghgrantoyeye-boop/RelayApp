@@ -28,9 +28,11 @@ export default async function AgentPage({ params, searchParams }: { params: Prom
   if (!agent) notFound();
   // A teammate the team added, or the team's built-in agent.
   const teamAgents = (await listAgents(db, viewer.orgId)).filter((a) => a.team.id === team.id);
-  const profile = (agentParam ? teamAgents.find((a) => a.id === agentParam) : null) ?? (await getAgent(db, agent.id, viewer.orgId))!;
+  const profile = (agentParam ? teamAgents.find((a) => a.id === agentParam) : null) ?? (await getAgent(db, agent.id, viewer.orgId));
+  if (!profile) notFound();
   const custom = !profile.builtIn;
-  const shown = custom ? (await db.one(`select * from app_user where id = $1`, [profile.id]))! : agent;
+  const shown = custom ? await db.one(`select * from app_user where id = $1`, [profile.id]) : agent;
+  if (!shown) notFound();
   const can = (a: string) => profile.actions.includes(a);
   const kinds = [
     can("research") && { id: "research", label: "Research with me" },

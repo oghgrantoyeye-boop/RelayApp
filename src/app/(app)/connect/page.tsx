@@ -1,6 +1,7 @@
 import { cookies, headers } from "next/headers";
 import { currentViewer } from "@/lib/session";
 import { Flash, LevelTag, Pill, Topbar } from "@/components/ui";
+import { ConsumeApiTokenOnce } from "@/components/ConsumeApiTokenOnce";
 import { connectTool, issueCodingToken, revokeCodingToken, setAiBudget, simulate, syncTool } from "@/app/actions";
 import { mapGithubRepo, startGithubAppInstall } from "@/app/actions/github";
 import { CATALOG, CONNECTOR_LABEL, recentSourceItems, teamConnectors } from "@/lib/integrations";
@@ -30,15 +31,15 @@ export default async function ConnectPage({ searchParams }: { searchParams: Prom
   const available = CATALOG.filter((k) => !tools.some((t) => t.kind === k));
   const h = await headers();
   const origin = `${h.get("x-forwarded-proto") ?? "http"}://${h.get("host") ?? "localhost:3000"}`;
-  const jar = await cookies();
-  const once = jar.get(API_TOKEN_ONCE_COOKIE)?.value ?? "";
-  if (once) jar.delete(API_TOKEN_ONCE_COOKIE);
+  // Read-only in RSC — mutating cookies here throws and 500s the page after Issue/Rotate.
+  const once = (await cookies()).get(API_TOKEN_ONCE_COOKIE)?.value ?? "";
   const prefix = typeof viewer.user.api_token_prefix === "string" ? viewer.user.api_token_prefix : "";
   const hasToken = !!viewer.user.api_token_hash || !!viewer.user.api_token || isApiToken(once);
   const revealToken = isSample ? demoApiToken(viewer.user.id) : isApiToken(once) ? once : "";
   const command = revealToken ? connectCommand(origin, revealToken) : null;
   return (
     <>
+      {!isSample && <ConsumeApiTokenOnce present={!!once} />}
       <Topbar crumbs={[viewer.team.name, "Integrations"]} />
       <div className="content">
         <Flash msg={msg} />
