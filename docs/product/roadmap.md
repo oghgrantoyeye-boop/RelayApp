@@ -1,7 +1,8 @@
 # Beacon roadmap: team context, answers and routing
 
 This is the build plan for moving this repository onto the adopted product spec,
-[`team-context-answers-routing.md`](team-context-answers-routing.md). It is written as a handoff:
+[`team-context-answers-routing.md`](team-context-answers-routing.md). The goal screens are in [`mocks/index.html`](mocks/index.html) (also published at https://claude.ai/artifact/Br3yuED6gSPJujQ3SCPLPF) and the pick-up-any-task list is
+[`backlog.md`](backlog.md). It is written as a handoff:
 each phase lists the goal, the concrete changes with file paths, schema changes, and what "done"
 means. Anyone (a person, Claude Code or Cursor) can pick up a phase and work from it.
 
@@ -13,6 +14,7 @@ Written Nov 28, 2026, against `claude/dazzling-archimedes-x7233q` at `8bfe8f1`.
   say what the spec says, and parking what the spec defers.
 - **Phases 1 to 3** match the spec's suggested phases one for one. Team context is learned from
   conversations and activity first; teams correct it rather than write it (decided Nov 28).
+- **Phase 4** adds workspaces and sign-in, which the spec needs before a pilot.
 - **Later** is the spec's execution layer. Most of it is already built, so the plan is to park it,
   not delete it.
 - **Decisions needed** lists the spec's open questions that block a phase, each with a recommended
@@ -76,7 +78,7 @@ risk or deadline dashboard).
 | Customer demos | `src/lib/demos/*.ts`, `src/lib/demos/types.ts`, `tests/demos.test.ts`, `/guide`, `src/components/GuideBar.tsx` | All five stories are slip chains ("X slips, which blocks Y, which puts Z at risk"), and the demo type and tests require a `slipped` step. Rewrite the Northwind story around the spec's narrative (Product asks whether Platform can support a new initiative), and change `types.ts` and the tests to check answer, clarify, route and respond instead of slip. Phase 0 for Northwind; the others follow or are hidden. |
 | Marketing site | `src/app/(site)/page.tsx`, `src/components/site/Mockups.tsx`, `AskBeacon.tsx`, `DependencyGraph.tsx`, `SideBySide.tsx`, `src/app/(site)/layout.tsx` | Hero says agents "do the legwork" and "work side by side"; the product preview shows "Launch at risk", "At-risk projects", "Slipped"; the flow is "From a question to coordinated action". The spec flags this directly. Rewrite around understanding teams, sourced answers and routing; keep a deadline scenario only as one example use case. Phase 0. |
 | README, HANDOFF, SPEC | `README.md`, `HANDOFF.md`, `SPEC.md` | Point to the new spec as current. Mark `SPEC.md` as the historical v1 brief. Phase 0. |
-| Hard-coded org | `ORG_ID = "northwind"` in `src/lib/data.ts` | Fine for the demo. Tenant isolation is a pre-pilot requirement in the spec; see "Before a real pilot". |
+| Hard-coded org | `ORG_ID = "northwind"` in `src/lib/data.ts` | Fine for the demo. Becomes real workspaces with sign-in in Phase 4. |
 
 ### Park (the spec defers it; keep the code, hide it)
 
@@ -312,6 +314,44 @@ Done when: a team that changes what it owns sees Beacon's picture follow within 
 one question to confirm it; stale entries fade on their own; conflicts are shown with their
 sources; admins can tune which changes need confirmation.
 
+## Phase 4: Workspaces and sign-in (2 to 3 weeks)
+
+Goal: each organization is its own workspace that people sign in to, with its data kept apart
+from every other workspace. Demos become sample workspaces that sit side by side instead of
+replacing each other. This can run in parallel with Phases 2 and 3, and must land before a pilot.
+
+Today there is one hard-coded organization (`ORG_ID = "northwind"` in `src/lib/data.ts`), every
+demo is seeded under that id, "Choose a demo" truncates every table (`loadDemo` in
+`src/app/actions.ts`), most reads don't filter by organization, and the persona switcher stands in
+for sign-in.
+
+1. **Workspace on every row** (M). Rename nothing (keep `org` and `org_id`, called "workspace" in
+   the UI). Add `org_id` to the tables that don't have it (`member`, `ownership_item`,
+   `team_update`, `update_item`, `commitment`, `connector`, `source_doc`, `meeting`, `task_run`,
+   `delivery`, `context_entry`, `context_signal`), backfilled from their unit. From Phase 1 on,
+   every new table gets `org_id` from the start.
+2. **Scoped queries** (L). The viewer carries `orgId`. Every query filters by it; `loadPolicy`,
+   `unitMap`, `search`, `orgChart`, `getFeed` and the agent's `publishedSources` take it from the
+   viewer, not a constant. Add a test that seeds two workspaces with overlapping team names and
+   checks that no page, agent answer, learned entry or audit read crosses between them.
+3. **Sign-in** (M). Email magic link or Google and Microsoft sign-in (decision), a `session`
+   table, and `app_user.org_id` as the person's workspace. A person can belong to several
+   workspaces and switch between them. Keep the persona switcher, but only inside sample
+   workspaces.
+4. **Workspace setup** (M). Create a workspace, invite people by email, create teams and pick
+   leads, connect sources (GitHub app, Claude Code token, Slack app), and choose which channels and
+   repositories Beacon learns from. A first-run screen shows what Beacon can see and what it has
+   learned so far.
+5. **Sample workspaces** (M). Each demo pack seeds its own workspace (`org.id = pack.id`), so
+   Northwind and Harborview can be open at once, and "Reset" resets only that workspace. Signed-in
+   people can open a sample workspace from the workspace switcher.
+6. **Per-workspace settings** (S). The context policy (Phase 3), routing thresholds, batch cadence
+   defaults and retention live in `org.settings`.
+
+Done when: two people in two workspaces never see each other's data, sign-in replaces the persona
+switcher outside sample workspaces, and a new workspace can be set up, connected and learning
+without seed data.
+
 ## Later: bounded work execution
 
 Turn `BEACON_WORKERS` back on, one action at a time, once the foundation is trusted. The parked code
@@ -342,11 +382,10 @@ check with pilot users that they want it.
 
 ## Before a real pilot
 
-These are outside the three phases but required before Beacon touches a real organization's data.
+These are outside the phases above but required before Beacon touches a real organization's data.
 The spec calls them out under privacy and security.
 
-- Real sign-in and organizations (the persona switcher is demo-only), and tenant isolation
-  (remove the hard-coded `ORG_ID`).
+- Phase 4 (workspaces, sign-in and data kept apart per workspace) is done.
 - Source permission enforcement for each live connector: validate that GitHub repository access
   and Slack channel membership are respected at ingestion, summarization, retrieval and routing.
 - Retention and deletion rules for ingested content, questions and answers.
@@ -370,5 +409,6 @@ and the affected phase adjusts.
 | How do users tell team-provided from inferred? | Phase 1 | A tag next to each claim: "Confirmed by the team", "Learned from the team's conversations", "Seen in GitHub", "Beacon's inference". |
 | Which updates are automatic vs reviewed? | Phase 1 | Low-risk kinds apply automatically; ownership, capabilities and anything from a marked source wait for one teammate's confirmation (Phase 1, step 3). Configurable in Phase 3. |
 | Keep all five demos? | Phase 0 | Rewrite Northwind first and hide the other four until each is rewritten to the new story. |
+| Sign-in method? | Phase 4 | Google and Microsoft sign-in, plus email magic links for everyone else. |
 | Privacy, retention and audit requirements? | Pilot | Not decided; needed before a pilot. |
 | Metric baselines and targets? | Pilot | Measure during the first pilot, then set targets. |

@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Beacon goal mocks</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+/* VOICE work: a shipped product, calm and dense, in the style of Linear and Attio
+   IDEA the Beacon app itself, using the repo's design tokens (design/source/gen2.py)
+   PICTURE each screen is the working product, opened mid-use on the spec's narrative
+   COLOUR white ground, ink #18181b, muted #5f5f6b, lines #e6e6ea, accent blue #1d4ed8; provenance in four quiet tints
+   TYPE Geist throughout, 13px base as in the product, 15px reading text in answers
+   LAYOUT sidebar plus content on a laptop; sidebar becomes a top strip under 760px; screen tabs above */
+:root{color-scheme:light dark;--bg:light-dark(#ffffff,#111113);--side:light-dark(#fafafa,#17171a);--ink:light-dark(#18181b,#ececef);--mut:light-dark(#5f5f6b,#a0a0ab);--line:light-dark(#e6e6ea,#2a2a30);--soft:light-dark(#f4f4f5,#1d1d21);--acc:light-dark(#1d4ed8,#7aa2ff);--accbg:light-dark(#eef2ff,#1b2340);--ok:light-dark(#15803d,#4ade80);--okbg:light-dark(#ecfdf3,#13261b);--warn:light-dark(#a16207,#facc15);--warnbg:light-dark(#fefce8,#2a2610);--bad:light-dark(#b42318,#f87171);--badbg:light-dark(#fef3f2,#2c1515);--vio:light-dark(#6d28d9,#c4b5fd);--viobg:light-dark(#f5f3ff,#231d38)}
+:root[data-theme=light]{color-scheme:light}
+:root[data-theme=dark]{color-scheme:dark}
+*{box-sizing:border-box;min-width:0}
+html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font:13px/1.5 Geist,system-ui,-apple-system,"Segoe UI",sans-serif;overflow-x:clip}
+a{color:var(--acc);text-decoration:none}
+button{font:inherit;color:inherit}
+h1{font-size:22px;line-height:1.15;letter-spacing:-.02em;margin:0 0 4px;font-weight:600}
+h2{font-size:14px;margin:0 0 10px;font-weight:600}
+p{margin:0 0 8px}
+.mockbar{display:flex;flex-wrap:wrap;gap:6px;align-items:center;padding:10px max(16px,2vw);border-bottom:1px solid var(--line);background:var(--side);position:sticky;top:0;z-index:5}
+.mockbar strong{margin-right:8px;font-size:13px}
+.mockbar .note{margin-left:auto;color:var(--mut)}
+.tab{border:1px solid var(--line);background:var(--bg);border-radius:7px;padding:6px 10px;cursor:pointer;min-height:34px}
+.tab[aria-current=true]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.app{display:grid;grid-template-columns:220px minmax(0,1fr);min-height:calc(100vh - 56px)}
+.side{background:var(--side);border-right:1px solid var(--line);padding:14px 10px;display:flex;flex-direction:column;gap:2px}
+.ws{display:flex;gap:8px;align-items:center;padding:6px 8px 12px;font-weight:600}
+.logo{width:22px;height:22px;border-radius:6px;background:var(--acc);display:grid;place-items:center;color:#fff;font-size:12px;font-weight:700;flex:none}
+.nav{display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:6px;color:var(--ink);cursor:pointer}
+.nav:hover{background:var(--soft)}
+.nav[aria-current=true]{background:var(--soft);font-weight:600}
+.nav .count{margin-left:auto;background:var(--acc);color:#fff;border-radius:9px;padding:0 6px;font-size:11px}
+.side .me{margin-top:auto;border-top:1px solid var(--line);padding:10px 8px 0;color:var(--mut)}
+.main{padding:20px clamp(16px,3vw,32px) 48px;max-width:1180px}
+.crumbs{color:var(--mut);margin-bottom:14px}
+.cols{display:grid;grid-template-columns:minmax(0,1.7fr) minmax(0,1fr);gap:20px;align-items:start}
+.card{border:1px solid var(--line);border-radius:10px;padding:14px 16px;background:var(--bg)}
+.stack{display:flex;flex-direction:column;gap:14px}
+.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.mut{color:var(--mut)}
+.sm{font-size:12px}
+.b{border:1px solid var(--line);background:var(--bg);border-radius:7px;padding:6px 11px;cursor:pointer;min-height:32px}
+.b:hover{background:var(--soft)}
+.bp{background:var(--acc);border-color:var(--acc);color:#fff}
+.bp:hover{background:var(--acc);filter:brightness(1.08)}
+.b:focus-visible,.tab:focus-visible,.nav:focus-visible,input:focus-visible,textarea:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
+.pill{display:inline-flex;align-items:center;gap:5px;border-radius:999px;padding:1px 8px;font-size:11.5px;font-weight:500;white-space:nowrap;border:1px solid transparent}
+.p-conf{background:var(--okbg);color:var(--ok)}
+.p-learn{background:var(--accbg);color:var(--acc)}
+.p-seen{background:var(--soft);color:var(--mut);border-color:var(--line)}
+.p-inf{background:var(--viobg);color:var(--vio)}
+.p-wait{background:var(--warnbg);color:var(--warn)}
+.p-bad{background:var(--badbg);color:var(--bad)}
+.p-live{background:var(--okbg);color:var(--ok)}
+.p-demo{background:var(--soft);color:var(--mut);border-color:var(--line)}
+.dot{width:7px;height:7px;border-radius:50%;background:currentColor;display:inline-block}
+.entry{border-top:1px solid var(--line);padding:11px 0;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:6px 12px}
+.entry:first-of-type{border-top:0}
+.entry .t{font-weight:600}
+.entry .src{grid-column:1/-1;color:var(--mut);font-size:12px}
+.entry .acts{display:flex;gap:6px;align-items:start}
+.entry.removed{opacity:.45}
+.entry.removed .t{text-decoration:line-through}
+.kind{color:var(--mut);font-size:12px;margin-right:6px}
+.ask{background:var(--warnbg);border:1px solid color-mix(in srgb,var(--warn) 30%,transparent);border-radius:10px;padding:12px 14px}
+.ask p{margin:0 0 8px;font-weight:500}
+input[type=text],textarea{font:16px/1.4 Geist,system-ui,sans-serif;width:100%;border:1px solid var(--line);border-radius:8px;padding:9px 11px;background:var(--bg);color:var(--ink)}
+textarea{min-height:84px;resize:vertical}
+.msgs{display:flex;flex-direction:column;gap:14px}
+.msg{display:grid;grid-template-columns:28px minmax(0,1fr);gap:10px}
+.av{width:28px;height:28px;border-radius:50%;display:grid;place-items:center;font-size:11px;font-weight:600;color:#fff;flex:none}
+.bub{font-size:15px;line-height:1.55}
+.claim{display:grid;grid-template-columns:minmax(0,1fr);gap:3px;border-left:2px solid var(--line);padding:4px 0 4px 12px;margin:8px 0}
+.claim .meta{font-size:12px;color:var(--mut);display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.gap{background:var(--soft);border-radius:8px;padding:9px 12px;font-size:13.5px;margin-top:8px}
+.route{border:1px solid var(--line);border-radius:10px;padding:12px 14px;margin-top:8px;font-size:13.5px}
+.steps{display:flex;gap:0;margin:10px 0 4px;flex-wrap:wrap}
+.step{flex:1 1 110px;border-top:3px solid var(--line);padding-top:6px;font-size:12px;color:var(--mut)}
+.step.on{border-color:var(--acc);color:var(--ink)}
+.step.done{border-color:var(--ok);color:var(--ink)}
+.qtabs{display:flex;gap:4px;border-bottom:1px solid var(--line);margin-bottom:14px}
+.qtab{border:0;background:none;padding:8px 10px;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px;color:var(--mut);min-height:40px}
+.qtab[aria-selected=true]{border-color:var(--ink);color:var(--ink);font-weight:600}
+.tbl{width:100%;border-collapse:collapse}
+.tbl th{text-align:left;font-weight:500;color:var(--mut);font-size:12px;padding:6px 8px;border-bottom:1px solid var(--line)}
+.tbl td{padding:10px 8px;border-bottom:1px solid var(--line);vertical-align:top}
+.scroll{overflow-x:auto}
+.signin{display:grid;place-items:center;padding:48px 16px;min-height:calc(100vh - 56px);background:var(--side)}
+.signin .card{width:min(440px,100%);padding:26px}
+.wsrow{display:flex;gap:12px;align-items:center;border:1px solid var(--line);border-radius:10px;padding:12px;margin-top:8px;cursor:pointer;background:var(--bg);width:100%;text-align:left}
+.wsrow:hover{border-color:var(--acc)}
+.toggle{width:36px;height:20px;border-radius:10px;background:var(--line);position:relative;border:0;cursor:pointer;flex:none}
+.toggle::after{content:"";position:absolute;top:2px;left:2px;width:16px;height:16px;border-radius:50%;background:#fff;transition:left .15s}
+.toggle[aria-pressed=true]{background:var(--acc)}
+.toggle[aria-pressed=true]::after{left:18px}
+.srcrow{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px 12px;align-items:center;padding:10px 0;border-top:1px solid var(--line)}
+.srcrow:first-of-type{border-top:0}
+.screen[hidden]{display:none}
+.legend{display:flex;gap:8px;flex-wrap:wrap;margin:6px 0 2px}
+.toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:9px 14px;border-radius:8px;font-size:13px;opacity:0;pointer-events:none;transition:opacity .2s}
+.toast.on{opacity:1}
+@media(prefers-reduced-motion:reduce){.toggle::after,.toast{transition:none}}
+@media(max-width:900px){.cols{grid-template-columns:minmax(0,1fr)}}
+@media(max-width:760px){.app{grid-template-columns:minmax(0,1fr)}.side{flex-direction:row;flex-wrap:wrap;border-right:0;border-bottom:1px solid var(--line);padding:8px}.ws{padding:6px 8px;width:100%}.side .me{display:none}.mockbar .note{margin-left:0;width:100%}}
+@media(max-width:600px){.tbl thead{display:none}.tbl tr{display:grid;padding:8px 0;border-bottom:1px solid var(--line)}.tbl td{border:0;padding:3px 0}}
+</style>
+</head>
+<body>
+<div class="mockbar" role="navigation" aria-label="Mock screens">
+  <strong>Beacon goal mocks</strong>
+  <button class="tab" data-go="sign-in">1 Sign in</button>
+  <button class="tab" data-go="team">2 Team page</button>
+  <button class="tab" data-go="ask">3 Ask a team</button>
+  <button class="tab" data-go="queue">4 Team queue</button>
+  <button class="tab" data-go="my-questions">5 My questions</button>
+  <button class="tab" data-go="setup">6 Workspace setup</button>
+  <span class="note sm">Sample data from the Northwind Labs demo. Buttons work; nothing is saved.</span>
+</div>
+
+<!-- 1 SIGN IN -->
+<section class="screen signin" id="s-sign-in">
+  <div class="card">
+    <div class="row" style="margin-bottom:14px"><span class="logo">B</span><strong style="font-size:15px">Beacon</strong></div>
+    <h1>Choose a workspace</h1>
+    <p class="mut">Signed in as ava.thompson@northwind.example</p>
+    <button class="wsrow" data-go="team"><span class="logo" style="background:#1d4ed8">N</span><span><strong>Northwind Labs</strong><br><span class="mut sm">300 people · 14 teams · GitHub, Claude Code and Slack connected</span></span></button>
+    <button class="wsrow" data-go="setup"><span class="logo" style="background:#0f766e">+</span><span><strong>Create a workspace</strong><br><span class="mut sm">Invite your teams and connect sources. Beacon starts learning right away.</span></span></button>
+    <p class="mut sm" style="margin:16px 0 6px">Sample workspaces</p>
+    <button class="wsrow"><span class="logo" style="background:#a16207">H</span><span><strong>City of Harborview</strong> <span class="pill p-demo">Sample</span><br><span class="mut sm">Explore Beacon with a fictional city hall</span></span></button>
+    <p class="mut sm" style="margin-top:16px">Each workspace keeps its own people, teams, sources and everything Beacon learns. Nothing crosses between them.</p>
+  </div>
+</section>
+
+<div class="app" id="app">
+  <aside class="side" aria-label="Beacon">
+    <div class="ws"><span class="logo">N</span>Northwind Labs</div>
+    <a class="nav" data-go="ask">Ask Beacon</a>
+    <a class="nav" data-go="team">Teams</a>
+    <a class="nav" data-go="queue">Team queue <span class="count" id="qcount">3</span></a>
+    <a class="nav" data-go="my-questions">My questions</a>
+    <a class="nav">What's changing</a>
+    <a class="nav">Inbox</a>
+    <a class="nav">Audit log</a>
+    <a class="nav" data-go="setup">Workspace settings</a>
+    <div class="me sm" id="me">Ava Thompson<br>VP of product</div>
+  </aside>
+  <main class="main">
+
+<!-- 2 TEAM PAGE -->
+<section class="screen" id="s-team">
+  <div class="crumbs">Teams / Engineering / Platform</div>
+  <div class="row" style="justify-content:space-between;align-items:flex-start;margin-bottom:18px">
+    <div>
+      <h1>Platform</h1>
+      <p class="mut" style="font-size:14px">Auth, infrastructure, deploys and rate limits for every other engineering team.</p>
+      <div class="row sm mut">Lead: Marcus Johnson · 5 people · Usually answers in 1 business day</div>
+    </div>
+    <div class="row"><button class="b" data-go="ask">Ask the Platform agent</button><button class="b">Follow</button></div>
+  </div>
+  <div class="cols">
+    <div class="stack">
+      <div class="ask" id="pend">
+        <p>Beacon thinks Platform owns <strong>webhook delivery infrastructure</strong>. Right?</p>
+        <div class="sm mut" style="margin-bottom:8px">Learned from 3 answers Ken and Lena gave this month and 4 merged PRs in platform/queue. Waiting for one teammate to confirm because it changes who owns what.</div>
+        <div class="row"><button class="b bp" data-pend="yes">Yes, we own it</button><button class="b" data-pend="no">No, Payments API does</button><button class="b" data-pend="skip">Not sure</button></div>
+      </div>
+      <div class="card">
+        <div class="row" style="justify-content:space-between"><h2 style="margin:0">What Beacon knows about Platform</h2><span class="mut sm">Shown to Platform members. Others see it at Headline.</span></div>
+        <div class="legend"><span class="pill p-conf"><span class="dot"></span>Confirmed by the team</span><span class="pill p-learn"><span class="dot"></span>Learned from conversations</span><span class="pill p-seen"><span class="dot"></span>Seen in tools</span></div>
+        <div id="entries"></div>
+        <div class="row" style="margin-top:8px"><button class="b sm">Add something Beacon missed</button><span class="mut sm">Most of this was learned. You only need to fix what's wrong.</span></div>
+      </div>
+      <div class="card">
+        <h2>Active work</h2>
+        <div class="entry"><div><div class="t">Session token migration</div><div class="mut sm">Moving internal tools to short-lived tokens. Aisha Bello.</div></div><span class="pill p-seen">GitHub · Dec 2</span></div>
+        <div class="entry"><div><div class="t">Per-merchant rate limits</div><div class="mut sm">Landing in the week of Dec 9. Aisha Bello.</div></div><span class="pill p-conf">Update · Dec 4</span></div>
+      </div>
+    </div>
+    <div class="stack">
+      <div class="card">
+        <h2>How to work with Platform</h2>
+        <p>Ask the agent first. Anything it can't answer goes to the team queue, and whoever knows picks it up.</p>
+        <p class="mut sm">For outages, page on-call in #platform-oncall instead.</p>
+        <span class="pill p-conf">Confirmed by Marcus · Nov 18</span>
+      </div>
+      <div class="card">
+        <h2>What Beacon can see</h2>
+        <div class="srcrow"><div><strong>GitHub</strong><div class="mut sm">platform/* repositories · synced 4 min ago</div></div><span class="pill p-live">Live</span></div>
+        <div class="srcrow"><div><strong>Slack</strong><div class="mut sm">#platform, #platform-asks · 2 channels excluded</div></div><span class="pill p-live">Live</span></div>
+        <div class="srcrow"><div><strong>Claude Code</strong><div class="mut sm">3 of 5 members send sessions</div></div><span class="pill p-live">Live</span></div>
+        <div class="srcrow"><div><strong>Jira</strong><div class="mut sm">Not connected yet</div></div><span class="pill p-demo">Planned</span></div>
+        <p class="mut sm" style="margin-top:8px">Gap: nothing learned yet about Platform's capacity for new projects.</p>
+      </div>
+      <div class="card">
+        <h2>Members</h2>
+        <div class="mut">Marcus Johnson (lead), Aisha Bello, Ken Watanabe, Lena Fischer, Zoe Clark</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 3 ASK -->
+<section class="screen" id="s-ask">
+  <div class="crumbs">Ask Beacon / Platform agent</div>
+  <div class="cols">
+    <div class="card">
+      <div class="row" style="justify-content:space-between;margin-bottom:12px"><h2 style="margin:0">Asking the Platform agent</h2><span class="mut sm">Answers only from what you're allowed to see</span></div>
+      <div class="msgs" id="chat">
+        <div class="msg"><span class="av" style="background:#6d28d9">AT</span><div class="bub">We're planning an admin console for enterprise merchants. Can Platform support single sign-on for it?</div></div>
+        <div class="msg"><span class="av" style="background:#0e7490">P</span><div class="bub">
+          Here's what I know about Platform and sign-on.
+          <div class="claim"><div>Platform owns authentication for Northwind, including single sign-on.</div><div class="meta"><span class="pill p-conf">Confirmed by Platform</span><span>Team page · Nov 18</span></div></div>
+          <div class="claim"><div>Single sign-on with SAML is already running for internal tools like the admin dashboard.</div><div class="meta"><span class="pill p-learn">Learned from Ken's answer</span><span>Nov 20</span><a href="#ask">Source</a></div></div>
+          <div class="claim"><div>Platform is moving sessions to short-lived tokens, which a new console would build on.</div><div class="meta"><span class="pill p-seen">Seen in GitHub</span><span>PR #482 · Dec 2</span><a href="#ask">Source</a></div></div>
+          <div class="claim"><div>Extending it to merchants' own identity providers is probably new work.</div><div class="meta"><span class="pill p-inf">Beacon's inference</span><span>No source says so directly</span></div></div>
+          <div class="gap"><strong>What I couldn't find:</strong> whether Platform has room for this next quarter, and anything about sign-on for merchants rather than staff.</div>
+        </div></div>
+        <div class="msg"><span class="av" style="background:#0e7490">P</span><div class="bub">One question so I send this to the right place: is this sign-on for Northwind staff, or for merchants' own admins?
+          <div class="row" style="margin-top:8px" id="clar"><button class="b" data-clar="Merchants' own admins">Merchants' own admins</button><button class="b" data-clar="Northwind staff">Northwind staff</button></div>
+        </div></div>
+      </div>
+      <div class="row" style="margin-top:14px"><input type="text" id="askbox" placeholder="Ask Platform anything" aria-label="Ask Platform"><button class="b bp" id="askgo">Ask</button></div>
+    </div>
+    <div class="stack">
+      <div class="card">
+        <h2>How to read an answer</h2>
+        <div class="stack" style="gap:8px">
+          <div><span class="pill p-conf">Confirmed by the team</span><div class="mut sm">A teammate confirmed or wrote it.</div></div>
+          <div><span class="pill p-learn">Learned from conversations</span><div class="mut sm">Beacon picked it up from what the team said, with a link.</div></div>
+          <div><span class="pill p-seen">Seen in tools</span><div class="mut sm">Observed in GitHub, Slack or another source.</div></div>
+          <div><span class="pill p-inf">Beacon's inference</span><div class="mut sm">Beacon's own conclusion. Treat it as a guess.</div></div>
+        </div>
+      </div>
+      <div class="card"><h2>This is an answer, not an action</h2><p class="mut">Beacon doesn't take on work or make promises for Platform. When it can't answer, it asks the team for you.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- 4 QUEUE -->
+<section class="screen" id="s-queue">
+  <div class="crumbs">Platform / Team queue <span class="mut">· viewing as Ken Watanabe, Platform</span></div>
+  <h1>Team queue</h1>
+  <p class="mut" style="font-size:14px">Questions other teams asked Platform that the agent couldn't answer. Anyone on the team can pick one up.</p>
+  <div class="qtabs" role="tablist"><button class="qtab" role="tab" aria-selected="false" data-qt="mine">For you · 1</button><button class="qtab" role="tab" aria-selected="true" data-qt="team">Team queue · 3</button></div>
+  <div class="cols">
+    <div class="stack" id="qlist"></div>
+    <div class="card" id="qdetail"></div>
+  </div>
+</section>
+
+<!-- 5 MY QUESTIONS -->
+<section class="screen" id="s-my-questions">
+  <div class="crumbs">Ava Thompson / My questions</div>
+  <h1>My questions</h1>
+  <p class="mut" style="font-size:14px">Everything you asked, where it went, and what's happened since.</p>
+  <div class="card" style="margin:14px 0">
+    <div class="row" style="justify-content:space-between"><strong style="font-size:14px">Can Platform support single sign-on for the merchant admin console?</strong><span class="pill p-conf" id="mqstat">Answered</span></div>
+    <div class="steps"><div class="step done">Asked<br>Dec 6, 9:12</div><div class="step done">Clarified<br>Merchants' admins</div><div class="step done">In Platform's queue<br>No single owner</div><div class="step done">Ken picked it up<br>Dec 6, 10:40</div><div class="step on">Answered<br>Dec 6, 11:05</div></div>
+    <div class="route"><strong>Ken Watanabe, Platform:</strong> Not for merchants yet. Staff SAML would carry over, but merchant identity providers are new work, roughly 3 weeks. We can scope it in Q1 planning on Jan 8 if you bring the requirements.</div>
+    <div class="row" style="margin-top:10px"><button class="b bp" id="resolve">That answers it</button><button class="b">Ask a follow-up</button><span class="mut sm">Shared only with you. Beacon learned the general fact for Platform's page.</span></div>
+  </div>
+  <div class="card scroll">
+    <table class="tbl">
+      <thead><tr><th>Question</th><th>Went to</th><th>Status</th><th>Last change</th></tr></thead>
+      <tbody>
+        <tr><td>Which team owns data exports for merchants?</td><td>Beacon, then Payments API</td><td><span class="pill p-wait">Awaiting the team</span></td><td>Today, 8:30</td></tr>
+        <tr><td>Does Product design have a pattern for admin roles?</td><td>Product design queue</td><td><span class="pill p-bad">No reply in 3 days</span> <a href="#my-questions">Send to Nora</a></td><td>Dec 3</td></tr>
+        <tr><td>What does Growth need from Product for the pricing page?</td><td>Lucas Meyer, Growth</td><td><span class="pill p-learn">Needs your input</span></td><td>Dec 5</td></tr>
+        <tr><td>Who decides on rate limits for partner APIs?</td><td>Answered by the Platform agent</td><td><span class="pill p-conf">Resolved</span></td><td>Dec 1</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- 6 SETUP -->
+<section class="screen" id="s-setup">
+  <div class="crumbs">Northwind Labs / Workspace settings</div>
+  <h1>Sources and learning</h1>
+  <p class="mut" style="font-size:14px">Beacon learns each team's picture from these sources. Teams don't fill in profiles; they correct what Beacon gets wrong.</p>
+  <div class="cols" style="margin-top:14px">
+    <div class="stack">
+      <div class="card">
+        <h2>Connected sources</h2>
+        <div class="srcrow"><div><strong>GitHub</strong><div class="mut sm">northwind org · 41 repositories · merged PRs and reviews</div></div><span class="pill p-live">Live</span></div>
+        <div class="srcrow"><div><strong>Slack</strong><div class="mut sm">Reads public team channels you choose below. Never DMs or private channels.</div></div><span class="pill p-live">Live</span></div>
+        <div class="srcrow"><div><strong>Claude Code</strong><div class="mut sm">Session hook · 23 people sending</div></div><span class="pill p-live">Live</span></div>
+        <div class="srcrow"><div><strong>Jira, Linear, Notion, Google Drive, Zoom</strong><div class="mut sm">Coming later</div></div><span class="pill p-demo">Planned</span></div>
+      </div>
+      <div class="card">
+        <h2>Slack channels Beacon learns from</h2>
+        <div id="chans"></div>
+      </div>
+    </div>
+    <div class="stack">
+      <div class="card">
+        <h2>What needs a teammate's OK</h2>
+        <div class="srcrow"><div>Who owns what</div><span class="pill p-wait">Needs confirming</span></div>
+        <div class="srcrow"><div>What a team can take on</div><span class="pill p-wait">Needs confirming</span></div>
+        <div class="srcrow"><div>Anything from a confidential source</div><span class="pill p-wait">Needs confirming</span></div>
+        <div class="srcrow"><div>What a team knows, its systems, how to ask it</div><span class="pill p-live">Applies, with undo</span></div>
+      </div>
+      <div class="card">
+        <h2>People</h2>
+        <p>300 members · 14 teams · sign-in with Google</p>
+        <button class="b">Invite people</button>
+      </div>
+    </div>
+  </div>
+</section>
+
+  </main>
+</div>
+<div class="toast" id="toast" role="status"></div>
+
+<script>
+{
+const $ = (s, r = document) => r.querySelector(s);
+const esc = (t) => String(t).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
+const toast = (t) => { const el = $("#toast"); el.textContent = t; el.classList.add("on"); clearTimeout(toast.h); toast.h = setTimeout(() => el.classList.remove("on"), 2200); };
+
+const ENTRIES = [
+  { kind: "Owns", t: "Authentication and single sign-on", body: "Staff sign-in, SAML for internal tools, session tokens.", tag: "conf", src: "Confirmed by Marcus · Nov 18" },
+  { kind: "Owns", t: "Rate limits", body: "Per-merchant and per-partner limits on the public API. Aisha Bello.", tag: "conf", src: "Confirmed by Aisha · Oct 30" },
+  { kind: "Knows", t: "How to load-test a new endpoint", body: "Lena has run this for Payments and Mobile.", tag: "learn", src: "Learned from Lena's answers to 2 questions · Nov 26" },
+  { kind: "Runs", t: "Deploy pipeline and staging", body: "Everything ships through platform/deploy.", tag: "seen", src: "Seen in GitHub: 120 merged PRs in platform/deploy · last Dec 5" },
+  { kind: "Can help with", t: "Reviewing new services before launch", body: "A one-hour review, booked through #platform-asks.", tag: "learn", src: "Learned from #platform-asks · Nov 12 · may be out of date" },
+];
+const TAG = { conf: ["p-conf", "Confirmed"], learn: ["p-learn", "Learned"], seen: ["p-seen", "Seen in tools"] };
+const drawEntries = () => {
+  $("#entries").innerHTML = ENTRIES.map((e, i) => `<div class="entry${e.removed ? " removed" : ""}" data-i="${i}">
+    <div><div><span class="kind">${esc(e.kind)}</span><span class="t">${esc(e.t)}</span> <span class="pill ${TAG[e.tag][0]}">${TAG[e.tag][1]}</span></div><div class="mut">${esc(e.body)}</div></div>
+    <div class="acts">${e.removed ? `<button class="b sm" data-act="undo">Undo</button>` : e.tag === "conf" ? `<button class="b sm" data-act="fix">Fix</button>` : `<button class="b sm" data-act="ok">Looks right</button><button class="b sm" data-act="fix">Fix</button><button class="b sm" data-act="rm">Remove</button>`}</div>
+    <div class="src">${esc(e.src)}</div></div>`).join("");
+};
+$("#entries").addEventListener("click", (ev) => {
+  const b = ev.target.closest("button"); if (!b) return;
+  const e = ENTRIES[b.closest(".entry").dataset.i];
+  const a = b.dataset.act;
+  if (a === "ok") { e.tag = "conf"; e.src = "Confirmed by you · just now"; toast("Confirmed. Beacon will use it with more confidence."); }
+  if (a === "rm") { e.removed = true; toast("Removed. Beacon won't learn it again from the same sources."); }
+  if (a === "undo") { e.removed = false; }
+  if (a === "fix") { e.body = e.body + " (edited)"; e.tag = "conf"; e.src = "Fixed by you · just now"; toast("Saved your fix. It replaces what Beacon learned."); }
+  drawEntries();
+});
+$("#pend").addEventListener("click", (ev) => {
+  const b = ev.target.closest("button"); if (!b) return;
+  const v = b.dataset.pend;
+  if (v === "yes") ENTRIES.splice(1, 0, { kind: "Owns", t: "Webhook delivery infrastructure", body: "Queues and retries under platform/queue.", tag: "conf", src: "Confirmed by you · just now" });
+  $("#pend").innerHTML = `<p style="margin:0">${v === "yes" ? "Thanks. Added to what Platform owns." : v === "no" ? "Thanks. Beacon will ask Payments API instead." : "OK. Beacon will ask Marcus in his next batch."}</p>`;
+  drawEntries();
+});
+
+let clarified = false;
+$("#chat").addEventListener("click", (ev) => {
+  const b = ev.target.closest("[data-clar]"); if (!b || clarified) return;
+  clarified = true;
+  $("#clar").remove();
+  $("#chat").insertAdjacentHTML("beforeend", `<div class="msg"><span class="av" style="background:#6d28d9">AT</span><div class="bub">${esc(b.dataset.clar)}</div></div>
+  <div class="msg"><span class="av" style="background:#0e7490">P</span><div class="bub">Nobody at Platform has talked about sign-on for merchants, so I can't answer that part. I've sent it to <strong>Platform's team queue</strong>, since no one person owns it. Anyone on the team can pick it up.
+  <div class="route"><div class="row" style="justify-content:space-between"><strong>Sent to Platform · team queue</strong><span class="pill p-wait">Awaiting the team</span></div>
+  <div class="steps"><div class="step done">Asked</div><div class="step done">Clarified</div><div class="step on">In queue</div><div class="step">Answered</div></div>
+  <div class="mut sm">Platform usually answers in 1 business day. Track it in <a href="#my-questions">My questions</a>.</div></div></div></div>`);
+});
+$("#askgo").addEventListener("click", () => { const v = $("#askbox").value.trim(); if (!v) return; $("#chat").insertAdjacentHTML("beforeend", `<div class="msg"><span class="av" style="background:#6d28d9">AT</span><div class="bub">${esc(v)}</div></div><div class="msg"><span class="av" style="background:#0e7490">P</span><div class="bub mut">In the product, the Platform agent answers here with sources.</div></div>`); $("#askbox").value = ""; });
+
+const Q = [
+  { id: 1, q: "Can Platform support single sign-on for the merchant admin console?", from: "Ava Thompson, Product", why: "No one owns merchant sign-on, so it came to the team", ctx: "Clarified: for merchants' own admins, not staff. The agent already shared what Platform owns and the staff SAML setup.", age: "1h", mine: false },
+  { id: 2, q: "When will per-merchant rate limits land?", from: "Ravi Shah, Growth · and 3 others", why: "Sent to Aisha, who owns rate limits. Visible to the team too", ctx: "4 people asked the same thing. One answer reaches all of them.", age: "2h", mine: false, owner: "Aisha Bello" },
+  { id: 3, q: "Can Mobile get a staging environment for the new app build?", from: "Sofia Rossi, Mobile", why: "Sent to you: you answered 3 staging questions this month", ctx: "Needed by Dec 10.", age: "5h", mine: true },
+];
+let qtab = "team", qsel = 1, answered = {}, claimed = {};
+const drawQ = () => {
+  const list = Q.filter((x) => qtab === "team" || x.mine);
+  $("#qlist").innerHTML = list.map((x) => `<button class="card" style="text-align:left;cursor:pointer;${x.id === qsel ? "border-color:var(--acc)" : ""}" data-q="${x.id}">
+    <div class="row" style="justify-content:space-between"><strong>${esc(x.q)}</strong>${answered[x.id] ? `<span class="pill p-conf">Answered</span>` : claimed[x.id] ? `<span class="pill p-learn">You picked it up</span>` : `<span class="mut sm">${esc(x.age)}</span>`}</div>
+    <div class="mut sm">${esc(x.from)}</div><div class="sm" style="margin-top:4px">${esc(x.why)}</div></button>`).join("");
+  const x = Q.find((y) => y.id === qsel) || list[0];
+  if (!x) { $("#qdetail").innerHTML = ""; return; }
+  $("#qdetail").innerHTML = answered[x.id]
+    ? `<h2>Answered</h2><p>Your reply went to ${esc(x.from.split(",")[0])}${x.id === 2 ? " and 3 others" : ""}.</p>
+       <div class="ask" style="margin-top:10px"><p>Beacon learned: <em>Platform doesn't support sign-on for merchants' identity providers yet; it's about 3 weeks of work.</em></p>
+       <div class="mut sm" style="margin-bottom:8px">This says what Platform can take on, so a teammate confirms it before other teams see it.</div>
+       <div class="row"><button class="b bp" data-conf="1">Looks right</button><button class="b">Fix</button><button class="b">Don't keep</button></div></div>`
+    : `<h2>${esc(x.q)}</h2><p class="mut">${esc(x.from)}</p><p>${esc(x.ctx)}</p>
+       ${claimed[x.id] ? "" : `<div class="row" style="margin-bottom:10px"><button class="b" data-claim="${x.id}">I'll take it</button><button class="b">Pass to a teammate</button><span class="mut sm">Anyone on Platform can answer.</span></div>`}
+       <label class="sm mut" for="ans">Your answer</label>
+       <textarea id="ans">${x.id === 1 ? "Not for merchants yet. Staff SAML would carry over, but merchant identity providers are new work, roughly 3 weeks. We can scope it in Q1 planning on Jan 8 if you bring the requirements." : ""}</textarea>
+       <div class="row" style="margin-top:8px"><button class="b bp" data-send="${x.id}">Send answer</button><button class="b">Ask them for more detail</button></div>
+       <p class="mut sm" style="margin-top:8px">The answer stays private to the people who asked. Beacon learns the general fact for Platform's page.</p>`;
+};
+$("#s-queue").addEventListener("click", (ev) => {
+  const t = ev.target.closest("[data-qt]"); if (t) { qtab = t.dataset.qt; document.querySelectorAll(".qtab").forEach((b) => b.setAttribute("aria-selected", String(b === t))); qsel = qtab === "mine" ? 3 : 1; drawQ(); return; }
+  const c = ev.target.closest("[data-q]"); if (c) { qsel = +c.dataset.q; drawQ(); return; }
+  const cl = ev.target.closest("[data-claim]"); if (cl) { claimed[cl.dataset.claim] = true; toast("Picked up. Your teammates see you're on it."); drawQ(); return; }
+  const s = ev.target.closest("[data-send]"); if (s) { answered[s.dataset.send] = true; $("#qcount").textContent = String(Q.length - Object.keys(answered).length); toast("Sent."); drawQ(); return; }
+  const cf = ev.target.closest("[data-conf]"); if (cf) { cf.closest(".ask").innerHTML = "<p style='margin:0'>Confirmed. It's on Platform's page and the agent can answer it next time.</p>"; }
+});
+
+const CH = [["#platform", "Platform team channel", true], ["#platform-asks", "Questions to Platform", true], ["#payments-eng", "Payments API team channel", true], ["#growth-launches", "Growth marketing", true], ["#platform-oncall", "Incident chatter", false], ["#random", "Not a team channel", false]];
+$("#chans").innerHTML = CH.map(([n, d, on], i) => `<div class="srcrow"><div><strong>${esc(n)}</strong><div class="mut sm">${esc(d)}</div></div><button class="toggle" aria-pressed="${on}" aria-label="Learn from ${esc(n)}" data-ch="${i}"></button></div>`).join("");
+$("#chans").addEventListener("click", (ev) => { const b = ev.target.closest(".toggle"); if (!b) return; const on = b.getAttribute("aria-pressed") !== "true"; b.setAttribute("aria-pressed", String(on)); toast(on ? "Beacon will learn from this channel." : "Excluded. Beacon forgets what it learned only from here."); });
+
+$("#resolve").addEventListener("click", () => { $("#mqstat").textContent = "Resolved"; toast("Marked resolved."); });
+
+const SCREENS = ["sign-in", "team", "ask", "queue", "my-questions", "setup"];
+const show = () => {
+  const h = location.hash.slice(1);
+  const cur = SCREENS.includes(h) ? h : "team";
+  SCREENS.forEach((s) => { $("#s-" + s).hidden = s !== cur; });
+  $("#app").hidden = cur === "sign-in";
+  document.querySelectorAll("[data-go]").forEach((b) => b.setAttribute("aria-current", String(b.dataset.go === cur)));
+  $("#me").innerHTML = cur === "queue" ? "Ken Watanabe<br>Senior engineer, Platform" : "Ava Thompson<br>VP of product";
+  window.scrollTo(0, 0);
+};
+document.addEventListener("click", (ev) => { const g = ev.target.closest("[data-go]"); if (g) { ev.preventDefault(); location.hash = g.dataset.go; } });
+window.addEventListener("hashchange", show);
+drawEntries(); drawQ(); show();
+}
+</script>
+</body>
+</html>
