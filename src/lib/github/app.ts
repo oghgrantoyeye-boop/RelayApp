@@ -1,5 +1,5 @@
 // GitHub App install, repo→team maps, and webhook handling (T-44).
-import { createHmac, createSign, timingSafeEqual } from "node:crypto";
+import { createHmac, createSign, randomBytes, timingSafeEqual } from "node:crypto";
 import type { Db, Row } from "../db";
 import { audit, newId } from "../data";
 import { now } from "../clock";
@@ -7,10 +7,18 @@ import { encryptSecret } from "../crypto/secrets";
 import { ingestPullRequest, scrub } from "../sources";
 import { learnQuietly } from "../context-learn";
 
+/** Cookie that binds the install CSRF state to a workspace (never put orgId in the URL alone). */
+export const GITHUB_SETUP_STATE_COOKIE = "beacon_github_setup";
+
 export function githubAppConfigured(
   env: Record<string, string | undefined> = process.env as Record<string, string | undefined>,
 ): boolean {
-  return !!(env.GITHUB_APP_ID?.trim() && env.GITHUB_APP_PRIVATE_KEY?.trim());
+  return !!(
+    env.GITHUB_APP_ID?.trim() &&
+    env.GITHUB_APP_PRIVATE_KEY?.trim() &&
+    env.GITHUB_APP_CLIENT_ID?.trim() &&
+    env.GITHUB_APP_CLIENT_SECRET?.trim()
+  );
 }
 
 export function githubAppInstallUrl(
@@ -22,6 +30,59 @@ export function githubAppInstallUrl(
   const u = new URL(`https://github.com/apps/${slug}/installations/new`);
   if (state) u.searchParams.set("state", state);
   return u.toString();
+}
+
+/** Random CSRF state + cookie payload `{state}:{orgId}` for the install flow. */
+export function createGithubSetupState(orgId: string): { state: string; cookieValue: string } {
+  const state = randomBytes(24).toString("base64url");
+  return { state, cookieValue: `${state}:${orgId}` };
+}
+
+export function parseGithubSetupCookie(cookieValue: string | undefined, stateParam: string | null): string {
+  if (!cookieValue || !stateParam) throw new Error("Missing GitHub install state. Start again from Connect.");
+  const sep = cookieValue.indexOf(":");
+  if (sep < 1) throw new Error("Bad GitHub install state cookie");
+  const state = cookieValue.slice(0, sep);
+  const orgId = cookieValue.slice(sep + 1);
+  if (!orgId || state !== stateParam) throw new Error("GitHub install state mismatch. Start again from Connect.");
+  return orgId;
+}
+
+/** Exchange the OAuth `code` from user-authorization-during-installation for a user-to-server token. */
+export async function exchangeGithubUserCode(code: string): Promise<string> {
+  const clientId = process.env.GITHUB_APP_CLIENT_ID?.trim();
+  const clientSecret = process.env.GITHUB_APP_CLIENT_SECRET?.trim();
+  if (!clientId || !clientSecret) throw new Error("GitHub App OAuth client is not configured");
+  const res = await fetch("https://github.com/login/oauth/access_token", {
+    method: "POST",
+    headers: { Accept: "application/json", "Content-Type": "application/json", "User-Agent": "Beacon-GitHub-App" },
+    body: JSON.stringify({ client_id: clientId, client_secret: clientSecret, code }),
+  });
+  if (!res.ok) throw new Error("Could not exchange GitHub OAuth code");
+  const body = (await res.json()) as { access_token?: string; error?: string; error_description?: string };
+  if (!body.access_token) throw new Error(body.error_description || body.error || "GitHub OAuth code exchange failed");
+  return body.access_token;
+}
+
+/** True when the user token can see this installation (`GET /user/installations`). */
+export async function userCanAccessInstallation(userToken: string, installationId: string): Promise<boolean> {
+  let page = 1;
+  while (page <= 5) {
+    const res = await fetch(`https://api.github.com/user/installations?per_page=100&page=${page}`, {
+      headers: {
+        Authorization: `Bearer ${userToken}`,
+        Accept: "application/vnd.github+json",
+        "User-Agent": "Beacon-GitHub-App",
+      },
+    });
+    if (!res.ok) throw new Error("Could not list the signed-in user's GitHub App installations");
+    const data = (await res.json()) as { installations?: { id?: number | string }[] };
+    const list = data.installations ?? [];
+    if (list.some((i) => String(i.id) === String(installationId))) return true;
+    if (list.length < 100) break;
+    page++;
+  }
+  return false;
 }
 
 function isProd(): boolean {

@@ -1,9 +1,16 @@
 "use server";
 
+import { cookies } from "next/headers";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { currentViewer } from "@/lib/session";
-import { attachVerifiedInstallation, mapRepoToTeam } from "@/lib/github/app";
+import {
+  GITHUB_SETUP_STATE_COOKIE,
+  createGithubSetupState,
+  githubAppConfigured,
+  githubAppInstallUrl,
+  mapRepoToTeam,
+} from "@/lib/github/app";
 
 const withMsg = (path: string, msg: string) => `${path}${path.includes("?") ? "&" : "?"}msg=${encodeURIComponent(msg)}`;
 
@@ -21,24 +28,27 @@ async function requireGithubAdmin() {
   return ctx;
 }
 
-export async function attachGithubInstallation(form: FormData) {
-  let msg: string;
+/** Set CSRF state cookie and send the owner to GitHub's install page. */
+export async function startGithubAppInstall() {
+  let target: string;
   try {
-    const { db, viewer, account } = await requireGithubAdmin();
-    const installationId = String(form.get("installationId") ?? "").trim();
-    if (!installationId) throw new Error("Installation id is required");
-    // Attach only after verifying the installation with the App JWT (never trust typed org login alone).
-    await attachVerifiedInstallation(db, {
-      orgId: viewer.orgId,
-      installationId,
-      installedByAccountId: account!.id,
+    const { viewer } = await requireGithubAdmin();
+    if (!githubAppConfigured()) throw new Error("GitHub App credentials are not configured on this server");
+    const { state, cookieValue } = createGithubSetupState(viewer.orgId);
+    const url = githubAppInstallUrl(undefined, state);
+    if (!url) throw new Error("Set GITHUB_APP_SLUG so Beacon can build the install link");
+    (await cookies()).set(GITHUB_SETUP_STATE_COOKIE, cookieValue, {
+      path: "/",
+      sameSite: "lax",
+      httpOnly: true,
+      maxAge: 600,
+      secure: process.env.NODE_ENV === "production",
     });
-    msg = `GitHub App install ${installationId} attached to this workspace.`;
+    target = url;
   } catch (e) {
-    msg = `Error: ${(e as Error).message}`;
+    target = withMsg("/connect", `Error: ${(e as Error).message}`);
   }
-  revalidatePath("/", "layout");
-  redirect(withMsg("/connect", msg));
+  redirect(target);
 }
 
 export async function mapGithubRepo(form: FormData) {

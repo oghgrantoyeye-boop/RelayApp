@@ -4,8 +4,10 @@ import { openDb, migrate, type Db } from "@/lib/db";
 import { seed } from "@/lib/seed";
 import { setNow } from "@/lib/clock";
 import {
+  createGithubSetupState,
   handleGithubAppEvent,
   mapRepoToTeam,
+  parseGithubSetupCookie,
   recordInstallation,
   verifyGithubAppSignature,
   unitForRepo,
@@ -189,6 +191,14 @@ describe("GitHub App (T-44)", () => {
       },
     });
     expect("updateId" in r || "skipped" in r).toBe(true);
+  });
+
+  it("binds install CSRF state to a workspace cookie, not the bare org id", () => {
+    const { state, cookieValue } = createGithubSetupState("software");
+    expect(cookieValue.startsWith(`${state}:`)).toBe(true);
+    expect(parseGithubSetupCookie(cookieValue, state)).toBe("software");
+    expect(() => parseGithubSetupCookie(cookieValue, "other")).toThrow(/mismatch/);
+    expect(() => parseGithubSetupCookie(undefined, state)).toThrow(/Missing/);
   });
 
   it("fails closed on webhook signatures in production without a secret", async () => {

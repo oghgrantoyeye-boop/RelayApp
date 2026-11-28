@@ -2,7 +2,7 @@ import { cookies, headers } from "next/headers";
 import { currentViewer } from "@/lib/session";
 import { Flash, LevelTag, Pill, Topbar } from "@/components/ui";
 import { connectTool, issueCodingToken, revokeCodingToken, simulate, syncTool } from "@/app/actions";
-import { mapGithubRepo } from "@/app/actions/github";
+import { mapGithubRepo, startGithubAppInstall } from "@/app/actions/github";
 import { CATALOG, CONNECTOR_LABEL, recentSourceItems, teamConnectors } from "@/lib/integrations";
 import { fmt, fmtDateTime } from "@/lib/clock";
 import { aiStatus, usage } from "@/lib/ai/llm";
@@ -12,7 +12,7 @@ import {
   hookSettingsJson,
   isApiToken,
 } from "@/lib/auth/api-tokens";
-import { githubAppConfigured, githubAppInstallUrl } from "@/lib/github/app";
+import { githubAppConfigured } from "@/lib/github/app";
 
 export default async function ConnectPage({ searchParams }: { searchParams: Promise<{ msg?: string }> }) {
   const { msg } = await searchParams;
@@ -174,12 +174,12 @@ export default async function ConnectPage({ searchParams }: { searchParams: Prom
               </p>
             ) : githubAppConfigured() ? (
               <div style={{ marginTop: 12 }}>
-                {githubAppInstallUrl(undefined, viewer.orgId) && (
-                  <p className="small muted" style={{ marginBottom: 8 }}>
-                    <a href={githubAppInstallUrl(undefined, viewer.orgId)!}>Install on GitHub</a>
-                    {" "}(returns here via the setup URL and attaches after verifying the installation).
-                  </p>
-                )}
+                <p className="small muted" style={{ marginBottom: 8 }}>
+                  Enable &ldquo;Request user authorization (OAuth) during installation&rdquo; on the App. Install starts from Beacon so we can verify you own the install.
+                </p>
+                <form action={startGithubAppInstall} style={{ marginBottom: 8 }}>
+                  <button className="b sm" type="submit">Install on GitHub</button>
+                </form>
                 {installs.length > 0 && (
                   <p className="small muted" style={{ marginBottom: 8 }}>
                     Attached: {installs.map((i) => `${i.account_login} (#${i.installation_id})`).join(", ")}
@@ -194,8 +194,9 @@ export default async function ConnectPage({ searchParams }: { searchParams: Prom
               </div>
             ) : (
               <p className="small muted" style={{ marginTop: 8 }}>
-                Set <span className="mono">GITHUB_APP_ID</span>, <span className="mono">GITHUB_APP_PRIVATE_KEY</span> and{" "}
-                <span className="mono">GITHUB_APP_WEBHOOK_SECRET</span> (plus optional <span className="mono">GITHUB_APP_SLUG</span>) to enable installs.
+                Set <span className="mono">GITHUB_APP_ID</span>, <span className="mono">GITHUB_APP_PRIVATE_KEY</span>,{" "}
+                <span className="mono">GITHUB_APP_WEBHOOK_SECRET</span>, <span className="mono">GITHUB_APP_CLIENT_ID</span>,{" "}
+                <span className="mono">GITHUB_APP_CLIENT_SECRET</span> (plus optional <span className="mono">GITHUB_APP_SLUG</span>) to enable installs.
                 Legacy per-repo webhooks with <span className="mono">GITHUB_WEBHOOK_SECRET</span> still work.
               </p>
             )}
