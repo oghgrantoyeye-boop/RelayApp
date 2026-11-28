@@ -511,4 +511,46 @@ create index context_signal_unit_idx on context_signal (org_id, unit_id, at desc
 create index context_signal_entry_idx on context_signal (entry_id);
 `,
   },
+  {
+    id: "008_T-31_auth",
+    sql: `
+-- Signed-in identity (Google, Microsoft or email). Separate from app_user so one person can
+-- belong to several workspaces, each with its own app_user row.
+create table account (
+  id text primary key,
+  email text not null unique,
+  name text not null default '',
+  google_sub text unique,
+  microsoft_sub text unique,
+  created_at timestamptz not null default now()
+);
+
+create table session (
+  id text primary key,
+  account_id text not null references account(id) on delete cascade,
+  token_hash text not null unique,
+  expires_at timestamptz not null,
+  created_at timestamptz not null default now()
+);
+create index session_account_idx on session (account_id);
+create index session_expires_idx on session (expires_at);
+
+-- Which app_user this account acts as inside a workspace.
+create table org_membership (
+  account_id text not null references account(id) on delete cascade,
+  org_id text not null references org(id) on delete cascade,
+  user_id text not null references app_user(id) on delete cascade,
+  role text not null default 'member' check (role in ('owner', 'admin', 'member')),
+  primary key (account_id, org_id)
+);
+
+create table magic_link (
+  id text primary key,
+  email text not null,
+  token_hash text not null unique,
+  expires_at timestamptz not null,
+  created_at timestamptz not null default now()
+);
+`,
+  },
 ];

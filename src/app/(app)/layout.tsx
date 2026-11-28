@@ -22,14 +22,15 @@ export const metadata: Metadata = {
 export const dynamic = "force-dynamic";
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
-  const { db, viewer, demo } = await currentViewer();
+  const { db, viewer, demo, isSample } = await currentViewer();
   const [asks, inbox, drafts, people] = await Promise.all([
     db.one(`select count(*)::int as n from request r join member m on m.id = r.assignee_member_id where m.user_id = $1 and r.status = 'open'`, [viewer.user.id]),
     db.one(`select count(*)::int as n from delivery where recipient_id = $1 and read_at is null`, [viewer.user.id]),
     db.one(`select count(*)::int as n from team_update where author_id = $1 and status = 'draft'`, [viewer.user.id]),
     db.query(
       `select a.id, a.name, a.title, u.name as team, u.parent_unit_id from app_user a join member m on m.user_id = a.id join unit u on u.id = m.unit_id
-       where a.kind = 'human' and m.role <> 'agent' order by (u.parent_unit_id is null) desc, u.name, (m.role = 'lead') desc, a.name`,
+       where a.org_id = $1 and a.kind = 'human' and m.role <> 'agent' order by (u.parent_unit_id is null) desc, u.name, (m.role = 'lead') desc, a.name`,
+      [viewer.orgId],
     ),
   ]);
   const groups: { team: string; people: { id: string; name: string; title: string }[] }[] = [];
@@ -102,12 +103,17 @@ export default async function RootLayout({ children }: { children: React.ReactNo
                   <span className="small muted">{viewer.user.title}, {viewer.team.name}</span>
                 </div>
               </div>
-              <PersonaSwitcher current={viewer.user.id} groups={groups} action={setPersona} />
-              <form action={resetDemo}>
-                <PathInput />
-                <button className="b sm" type="submit" style={{ width: "100%", justifyContent: "center" }}>Reset demo data</button>
-              </form>
-              <a href="/demos" className="b sm" style={{ width: "100%", justifyContent: "center", marginTop: 6 }}>Choose a demo</a>
+              {isSample && <PersonaSwitcher current={viewer.user.id} groups={groups} action={setPersona} />}
+              {isSample && (
+                <form action={resetDemo}>
+                  <PathInput />
+                  <button className="b sm" type="submit" style={{ width: "100%", justifyContent: "center" }}>Reset demo data</button>
+                </form>
+              )}
+              <a href="/signin" className="b sm" style={{ width: "100%", justifyContent: "center", marginTop: 6 }}>
+                {isSample ? "Workspaces" : "Switch workspace"}
+              </a>
+              {isSample && <a href="/demos" className="b sm" style={{ width: "100%", justifyContent: "center", marginTop: 6 }}>Choose a demo</a>}
             </div>
           </nav>
           <main className="main">{Number.isInteger(guideStep) && <GuideBar demo={demo} step={guideStep} firstName={firstName} fullName={fullName} />}{children}</main>
