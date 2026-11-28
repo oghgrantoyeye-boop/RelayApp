@@ -250,3 +250,7 @@ tr[aria-selected="true"] td { background: var(--soft); }
 /* T-21: rate an agent answer */
 .rate-answer details > summary { list-style: none; cursor: pointer; display: inline-flex; }
 .rate-answer details > summary::-webkit-details-marker { display: none; }
+
+/* T-17: what Beacon can see */
+.sees { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.sees li { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; }

@@ -12,7 +12,7 @@ import { Avatar, Flash, Icon, KindPill, LevelTag, Pill, StatePill, TeamChip, Top
 import { CommitmentLine } from "@/components/Commitment";
 import { askAgent, replyToAgent, sendRequest, toggleFollow } from "@/app/actions";
 import { FollowUp } from "@/components/FollowUp";
-import { teamConnectors, CONNECTOR_LABEL } from "@/lib/integrations";
+import { whatBeaconSees } from "@/lib/visibility";
 import { pendingQuestions, teamContext } from "@/lib/context";
 import { TeamContext } from "@/components/TeamContext";
 import { AnswerClaims } from "@/components/AnswerClaims";
@@ -23,7 +23,7 @@ import { PendingQuestions } from "@/components/PendingQuestions";
 export default async function TeamPage({ params, searchParams }: { params: Promise<{ slug: string }>; searchParams: Promise<{ msg?: string; q?: string; ask?: string }> }) {
   const { slug } = await params;
   const { msg, q, ask } = await searchParams;
-  const { db, viewer, demo } = await currentViewer();
+  const { db, viewer, demo, isSample } = await currentViewer();
   const team = await db.one(`select * from unit where slug = $1 and org_id = $2`, [slug, viewer.orgId]);
   if (!team) notFound();
   const policy = await loadPolicy(db, viewer.orgId);
@@ -59,7 +59,7 @@ export default async function TeamPage({ params, searchParams }: { params: Promi
       hidden={<><input type="hidden" name="questionId" value={asked.question.id} /><input type="hidden" name="slug" value={team.slug} /></>}
     />
   ) : null;
-  const tools = isGroup ? [] : await teamConnectors(db, team.id);
+  const sees = isGroup ? null : await whatBeaconSees(db, team.id, { isSample });
   const context = isGroup ? null : await teamContext(db, viewer, team.id);
   const pendingAsk = isGroup ? [] : await pendingQuestions(db, viewer, team.id);
 
@@ -219,12 +219,20 @@ export default async function TeamPage({ params, searchParams }: { params: Promi
                 </dl>
               </section>
             )}
-            {tools.length > 0 && (
-              <section>
-                <h2>Connected tools</h2>
-                <div className="row">{tools.map((t) => <span key={t.id} className="chip" title={t.name}>{CONNECTOR_LABEL[t.kind] ?? t.kind}</span>)}</div>
+            {sees && (sees.rows.length > 0 || sees.gaps.length > 0) && (
+              <section aria-label="What Beacon can see">
+                <h2>What Beacon can see</h2>
+                <ul className="sees">
+                  {sees.rows.map((r, i) => (
+                    <li key={i}>
+                      <div><strong>{r.tool}</strong><div className="small muted">{r.detail}</div></div>
+                      <Pill tone={r.status === "live" ? "green" : r.status === "sample" ? "violet" : "amber"}>{r.status === "live" ? "Live" : r.status === "sample" ? "Sample" : "Planned"}</Pill>
+                    </li>
+                  ))}
+                </ul>
+                {sees.gaps.map((g) => <p key={g} className="small muted" style={{ margin: "6px 0 0" }}>Gap: {g}</p>)}
                 <p className="small muted" style={{ marginTop: 8 }}>
-                  {isMember ? "Its agent reads these to answer questions and draft updates." : `Their content stays inside ${team.name} unless an interface shares it with you.`}
+                  {isMember ? "Its agent reads the live sources to answer questions and draft updates." : `Their content stays inside ${team.name} unless an interface shares it with you.`}
                 </p>
               </section>
             )}
