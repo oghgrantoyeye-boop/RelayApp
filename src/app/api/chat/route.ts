@@ -27,18 +27,34 @@ export async function POST(req: Request) {
   if (mention) target = mention.agent.id;
   if (body.from === "dock") (await cookies()).set(DOCK_COOKIE, target, { path: "/", sameSite: "lax", httpOnly: true });
 
+  // One JSON event per line: {t:"d"} text, {t:"s"} a step starting or done, {t:"e"} an error.
   const enc = new TextEncoder();
   const stream = new ReadableStream<Uint8Array>({
     async start(controller) {
+      const send = (ev: Record<string, unknown>) => {
+        try {
+          controller.enqueue(enc.encode(`${JSON.stringify(ev)}\n`));
+        } catch {
+          // The person stopped or left; the reply is still saved.
+        }
+      };
       try {
-        await sendChat(db, viewer, { target, text }, (delta) => controller.enqueue(enc.encode(delta)));
+        await sendChat(db, viewer, { target, text }, {
+          onDelta: (v) => send({ t: "d", v }),
+          onStep: (s) => send({ t: "s", v: s.label, done: s.done }),
+          signal: req.signal,
+        });
       } catch (err) {
-        controller.enqueue(enc.encode(`\n\nSorry, that didn't go through: ${(err as Error).message}`));
+        send({ t: "e", v: `Sorry, that didn't go through: ${(err as Error).message}` });
       }
-      controller.close();
+      try {
+        controller.close();
+      } catch {
+        // Already closed.
+      }
     },
   });
   return new Response(stream, {
-    headers: { "content-type": "text/plain; charset=utf-8", "cache-control": "no-store", "x-beacon-target": target },
+    headers: { "content-type": "application/x-ndjson; charset=utf-8", "cache-control": "no-store", "x-beacon-target": target },
   });
 }

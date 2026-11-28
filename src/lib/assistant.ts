@@ -54,7 +54,7 @@ export interface ChatMsg {
   refs: ChatRef[];
   actions: ChatAction[];
   /** A team agent's answer, claim by claim (T-19), and at most one follow-up question (T-20). */
-  answer?: { claims: ClaimView[]; gaps: string[]; clarify?: ChatClarify; questionId?: string; vote?: "up" | "down" | null };
+  answer?: { claims: ClaimView[]; gaps: string[]; clarify?: ChatClarify; questionId?: string; vote?: "up" | "down" | null; steps?: string[] };
   at: string;
 }
 
@@ -87,11 +87,11 @@ export async function chatContacts(db: Db, viewer: Viewer) {
   return { mine, others, lastAt };
 }
 
-async function save(db: Db, viewer: Viewer, m: Omit<ChatMsg, "id" | "at">) {
+async function save(db: Db, viewer: Viewer, m: Omit<ChatMsg, "id" | "at">, order = 0) {
   const id = newId("ch");
   await db.query(
     `insert into chat_message (id, org_id, user_id, role, target, agent_label, text, refs, actions, answer, created_at) values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`,
-    [id, viewer.orgId, viewer.user.id, m.role, m.target, m.agentLabel, m.text, JSON.stringify(m.refs), JSON.stringify(m.actions), m.answer ? JSON.stringify(m.answer) : null, new Date(now().getTime() + (m.role === "agent" ? 1 : 0))],
+    [id, viewer.orgId, viewer.user.id, m.role, m.target, m.agentLabel, m.text, JSON.stringify(m.refs), JSON.stringify(m.actions), m.answer ? JSON.stringify(m.answer) : null, new Date(now().getTime() + (m.role === "agent" ? 1 + order : 0))],
   );
   return id;
 }
@@ -127,9 +127,11 @@ export async function sendChat(
   db: Db,
   viewer: Viewer,
   input: { target: ChatTarget; text: string; replyTo?: string },
-  /** Receives the reply as it's written, when a model is talking. */
-  onDelta: (text: string) => void = () => {},
+  /** Receives the reply as it's written and the steps the agent takes, when a model is talking. */
+  hooksIn: import("./agent-chat").TurnHooks | ((text: string) => void) = {},
 ): Promise<string> {
+  const hooks = typeof hooksIn === "function" ? { onDelta: hooksIn } : hooksIn;
+  const onDelta = hooks.onDelta ?? (() => {});
   let text = input.text.trim().slice(0, 2000);
   if (!text) throw new Error("Type a message first.");
   let target = input.target || "me";
@@ -150,7 +152,7 @@ export async function sendChat(
   let reply: Reply | Reply[] | null = null;
   if (!input.replyTo && !workersEnabled()) {
     const { agentTurn } = await import("./agent-chat");
-    reply = await agentTurn(db, viewer, agent, target, onDelta);
+    reply = await agentTurn(db, viewer, agent, target, hooks);
   }
   if (!reply) {
     const pending = await pendingClarify(db, viewer, target, text, input.replyTo);
@@ -158,7 +160,9 @@ export async function sendChat(
     for (const r of Array.isArray(reply) ? reply : [reply]) onDelta(r.text);
   }
   let last = "";
-  for (const r of Array.isArray(reply) ? reply : [reply]) last = await save(db, viewer, { role: "agent", target, agentLabel: agent ? agent.name : MY_AGENT, ...r });
+  // Several replies in one turn keep their order: each is a millisecond after the last.
+  const replies = Array.isArray(reply) ? reply : [reply];
+  for (const [i, r] of replies.entries()) last = await save(db, viewer, { role: "agent", target, agentLabel: agent ? agent.name : MY_AGENT, ...r }, i);
   return last;
 }
 
