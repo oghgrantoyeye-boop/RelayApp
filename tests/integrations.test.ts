@@ -13,12 +13,15 @@ import { commentTask, getTask, listTasks, redirectTask, runTask, startTask, take
 import { commitmentViews } from "@/lib/commitments";
 import { getDraft, publishDraft } from "@/lib/updates";
 import { recentSourceItems } from "@/lib/integrations";
+import { DEFAULT_DEMO } from "@/lib/demos";
+import { scoped } from "@/lib/scoped";
+const sid = (id: string) => scoped(DEFAULT_DEMO, id);
 
 // These tests cover work-performing agents, which are off by default (src/lib/flags.ts).
 process.env.BEACON_WORKERS = "on";
 
 let db: Db;
-const v = async (id: string): Promise<Viewer> => (await loadViewer(db, id))!;
+const v = async (id: string): Promise<Viewer> => (await loadViewer(db, sid(id), DEFAULT_DEMO))!;
 
 beforeEach(async () => {
   setNow("2026-12-06T09:00:00Z");
@@ -56,7 +59,7 @@ describe("connected tools", () => {
     expect(diego.shown).toBeNull();
     // Mobile gets Payments' tickets at Summary through an interface, so the title would name the customer: nothing is shown.
     expect((await sourceLevel("ben", "Per-account limit overrides for Halcyon Bank")).shown).toBeNull();
-    const items = await recentSourceItems(db, await v("hannah"), "payments", 50);
+    const items = await recentSourceItems(db, await v("hannah"), sid("payments"), 50);
     expect(items.some((i) => i.row.external_ref === "PAY-320")).toBe(false);
     expect(JSON.stringify(items)).not.toContain("Halcyon");
   });
@@ -68,11 +71,11 @@ describe("connected tools", () => {
   });
 
   it("lets the agent use a team's tools only at the asker's level", async () => {
-    await askTeam(db, await v("ravi"), "platform", "When will the rate-limit change land?");
+    await askTeam(db, await v("ravi"), sid("platform"), "When will the rate-limit change land?");
     const ev = (await db.one(`select * from audit_event where action = 'agent_read' order by id desc limit 1`))!;
     const refs = Object.keys(ev.detail.levels as Record<string, string>);
     expect(refs.some((r) => r.startsWith("source:"))).toBe(false); // Growth sees no Platform tool content
-    await askTeam(db, await v("hannah"), "platform", "What's the status of the burst limits ticket?");
+    await askTeam(db, await v("hannah"), sid("platform"), "What's the status of the burst limits ticket?");
     const ev2 = (await db.one(`select * from audit_event where action = 'agent_read' order by id desc limit 1`))!;
     const refs2 = Object.keys(ev2.detail.levels as Record<string, string>).filter((r) => r.startsWith("source:"));
     expect(refs2.length).toBeGreaterThan(0); // Payments sees Platform's tickets and pull requests
@@ -83,29 +86,29 @@ describe("connected tools", () => {
 
 describe("meetings", () => {
   it("shows a meeting to its host team and attendees only", async () => {
-    expect(await getMeeting(db, await v("priya"), "mt_limits")).not.toBeNull(); // attended, from Payments
-    expect(await getMeeting(db, await v("zoe"), "mt_limits")).not.toBeNull(); // Platform, didn't attend
-    expect(await getMeeting(db, await v("ben"), "mt_limits")).toBeNull();
-    expect((await listMeetings(db, await v("jordan"))).map((m) => m.id)).toEqual(["mt_launch"]);
-    expect(await getMeeting(db, await v("diego"), "mt_staff")).toBeNull(); // confidential staff meeting
+    expect(await getMeeting(db, await v("priya"), sid("mt_limits"))).not.toBeNull(); // attended, from Payments
+    expect(await getMeeting(db, await v("zoe"), sid("mt_limits"))).not.toBeNull(); // Platform, didn't attend
+    expect(await getMeeting(db, await v("ben"), sid("mt_limits"))).toBeNull();
+    expect((await listMeetings(db, await v("jordan"))).map((m) => m.id)).toEqual([sid("mt_launch")]);
+    expect(await getMeeting(db, await v("diego"), sid("mt_staff"))).toBeNull(); // confidential staff meeting
   });
 
   it("summarizes decisions and action items, and routes them as drafts", async () => {
     const marcus = await v("marcus");
-    const s = await summarizeMeeting(db, marcus, "mt_limits");
+    const s = await summarizeMeeting(db, marcus, sid("mt_limits"));
     expect(s.decisions.join(" ")).toContain("keep retries behind the flag");
-    expect(s.action_items.map((a) => a.owner).sort()).toEqual(["aisha", "hannah", "marcus"]);
-    expect(s.action_items.find((a) => a.owner === "hannah")!.text).toMatch(/throttle retries/i);
+    expect(s.action_items.map((a) => a.owner).sort()).toEqual([sid("aisha"), sid("hannah"), sid("marcus")]);
+    expect(s.action_items.find((a) => a.owner === sid("hannah"))!.text).toMatch(/throttle retries/i);
 
-    const updateId = await routeMeeting(db, marcus, "mt_limits");
+    const updateId = await routeMeeting(db, marcus, sid("mt_limits"));
     const draft = (await getDraft(db, marcus, updateId))!;
-    expect(draft.items.some((i) => i.kind === "decision" && (i.affected_unit_ids as string[]).includes("payments"))).toBe(true);
-    const hannahs = draft.commitments.find((c) => c.owner_user_id === "hannah")!;
-    expect(hannahs.owner_unit_id).toBe("payments");
+    expect(draft.items.some((i) => i.kind === "decision" && (i.affected_unit_ids as string[]).includes(sid("payments")))).toBe(true);
+    const hannahs = draft.commitments.find((c) => c.owner_user_id === sid("hannah"))!;
+    expect(hannahs.owner_unit_id).toBe(sid("payments"));
     const seen = async (who: string) => (await commitmentViews(db, (await v(who)).reader, (r) => r.id === hannahs.id)).length;
     expect(await seen("hannah")).toBe(1);
     expect(await seen("marcus")).toBe(0);
-    await expect(routeMeeting(db, await v("priya"), "mt_limits")).rejects.toBeInstanceOf(PermissionError);
+    await expect(routeMeeting(db, await v("priya"), sid("mt_limits"))).rejects.toBeInstanceOf(PermissionError);
 
     // Publishing confirms Marcus's own action item and leaves Hannah's for her.
     await publishDraft(db, marcus, updateId, {
@@ -113,22 +116,22 @@ describe("meetings", () => {
       commitments: draft.commitments.map((c) => ({ id: c.id, confirm: true, title: c.title, due_date: c.due_date })),
     });
     const statuses = await db.query(`select c.status, om.user_id from commitment c join member om on om.id = c.owner_member_id where c.update_id = $1`, [updateId]);
-    expect(statuses.find((r) => r.user_id === "marcus")!.status).toBe("open");
-    expect(statuses.find((r) => r.user_id === "hannah")!.status).toBe("draft");
+    expect(statuses.find((r) => r.user_id === sid("marcus"))!.status).toBe("open");
+    expect(statuses.find((r) => r.user_id === sid("hannah"))!.status).toBe("draft");
   });
 });
 
 describe("agent work", () => {
   it("is shared with the team and nobody else", async () => {
-    const id = await startTask(db, await v("hannah"), "payments", { kind: "research", instructions: "How do other APIs cap webhook retry rates?" });
+    const id = await startTask(db, await v("hannah"), sid("payments"), { kind: "research", instructions: "How do other APIs cap webhook retry rates?" });
     expect(await getTask(db, await v("diego"), id)).not.toBeNull();
     expect(await getTask(db, await v("aisha"), id)).toBeNull();
-    expect(await listTasks(db, await v("aisha"), "payments")).toEqual([]);
-    await expect(startTask(db, await v("aisha"), "payments", { kind: "research", instructions: "x" })).rejects.toBeInstanceOf(PermissionError);
+    expect(await listTasks(db, await v("aisha"), sid("payments"))).toEqual([]);
+    await expect(startTask(db, await v("aisha"), sid("payments"), { kind: "research", instructions: "x" })).rejects.toBeInstanceOf(PermissionError);
   });
 
   it("asks for a key instead of pretending to research without one", async () => {
-    const id = await startTask(db, await v("hannah"), "payments", { kind: "research", instructions: "Compare webhook retry policies" });
+    const id = await startTask(db, await v("hannah"), sid("payments"), { kind: "research", instructions: "Compare webhook retry policies" });
     await runTask(db, id);
     const t = (await getTask(db, await v("hannah"), id))!.task;
     expect(t.status).toBe("needs_key");
@@ -137,20 +140,21 @@ describe("agent work", () => {
 
   it("researches with the model, tracks cost and logs both agent and requester", async () => {
     setLLM(new FakeLLM({}, { text: "## Answer\nCap at the merchant level.", sources: [{ title: "Example", url: "https://example.com" }], inputTokens: 100000, outputTokens: 5000, searches: 3 }));
-    const before = Number((await db.one(`select spent_usd from app_user where id = 'agent_payments'`))!.spent_usd);
-    const id = await startTask(db, await v("hannah"), "payments", { kind: "research", instructions: "How do other APIs cap webhook retry rates?" });
+    const agentId = `agent_${sid("payments")}`;
+    const before = Number((await db.one(`select spent_usd from app_user where id = $1`, [agentId]))!.spent_usd);
+    const id = await startTask(db, await v("hannah"), sid("payments"), { kind: "research", instructions: "How do other APIs cap webhook retry rates?" });
     await runTask(db, id);
     const t = (await getTask(db, await v("priya"), id))!.task;
     expect(t.status).toBe("done");
     expect(t.result_md).toContain("Cap at the merchant level");
     expect(Number(t.cost_usd)).toBeCloseTo(0.5, 2); // 100k in at $4/M + 5k out at $20/M
-    expect(Number((await db.one(`select spent_usd from app_user where id = 'agent_payments'`))!.spent_usd)).toBeCloseTo(before + 0.5, 2);
+    expect(Number((await db.one(`select spent_usd from app_user where id = $1`, [agentId]))!.spent_usd)).toBeCloseTo(before + 0.5, 2);
     const ev = (await db.one(`select * from audit_event where action = 'task_done' and target_id = $1`, [id]))!;
-    expect([ev.actor_id, ev.on_behalf_of_id]).toEqual(["agent_payments", "hannah"]);
+    expect([ev.actor_id, ev.on_behalf_of_id]).toEqual([agentId, sid("hannah")]);
   });
 
   it("lets teammates comment, redirect and take over", async () => {
-    const id = await startTask(db, await v("hannah"), "payments", { kind: "research", instructions: "Compare webhook retry policies" });
+    const id = await startTask(db, await v("hannah"), sid("payments"), { kind: "research", instructions: "Compare webhook retry policies" });
     await commentTask(db, await v("diego"), id, "Include payouts too");
     await redirectTask(db, await v("priya"), id, "Focus on per-merchant caps");
     let t = (await getTask(db, await v("hannah"), id))!.task;
@@ -159,11 +163,11 @@ describe("agent work", () => {
     await takeOverTask(db, await v("priya"), id);
     t = (await getTask(db, await v("hannah"), id))!.task;
     expect(t.status).toBe("stopped");
-    expect(t.taken_over_by).toBe("priya");
+    expect(t.taken_over_by).toBe(sid("priya"));
   });
 
   it("drafts the team's update from its tools without a model", async () => {
-    const id = await startTask(db, await v("marcus"), "platform", { kind: "draft_update", instructions: "" });
+    const id = await startTask(db, await v("marcus"), sid("platform"), { kind: "draft_update", instructions: "" });
     await runTask(db, id);
     const t = (await getTask(db, await v("marcus"), id))!.task;
     expect(t.status).toBe("done");
