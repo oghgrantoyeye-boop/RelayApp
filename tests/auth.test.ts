@@ -40,6 +40,20 @@ describe("sign-in", () => {
     expect(await accountFromSession(db, sessionToken)).toBeNull();
   });
 
+  it("never shows the magic link on a deployed site without an email server", async () => {
+    await approve(db, "ava@example.com");
+    const prev = { vercel: process.env.VERCEL, email: process.env.EMAIL_SERVER };
+    process.env.VERCEL = "1";
+    delete process.env.EMAIL_SERVER;
+    try {
+      await expect(requestMagicLink(db, "ava@example.com")).rejects.toThrow(/isn't set up/);
+    } finally {
+      if (prev.vercel === undefined) delete process.env.VERCEL;
+      else process.env.VERCEL = prev.vercel;
+      if (prev.email !== undefined) process.env.EMAIL_SERVER = prev.email;
+    }
+  });
+
   it("lets one account join several workspaces without mixing people", async () => {
     await approve(db, "lead@example.com");
     const account = await upsertAccount(db, { email: "lead@example.com", name: "Lead" });
