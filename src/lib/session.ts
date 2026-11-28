@@ -1,5 +1,6 @@
 import "server-only";
 import { cookies } from "next/headers";
+import { redirect } from "next/navigation";
 import { getDb } from "./db";
 import { loadViewer } from "./data";
 import { activeDemo } from "./demo";
@@ -64,11 +65,12 @@ export async function currentViewer() {
     const any = await db.one(`select id from app_user where org_id = $1 and kind = 'human' order by name limit 1`, [activeOrg]);
     viewer = any ? await loadViewer(db, any.id, activeOrg) : null;
   }
+  if (!viewer) redirect("/signin");
   // Model calls in this request count against this workspace's AI budget (T-35).
   setAiScope(db, activeOrg);
   return {
     db,
-    viewer: viewer!,
+    viewer,
     demo,
     orgId: activeOrg,
     account,

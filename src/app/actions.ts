@@ -298,6 +298,12 @@ export async function revokeCodingToken() {
   });
 }
 
+/** Clears the one-time Claude Code token cookie after /connect has rendered it. */
+export async function consumeApiTokenOnce() {
+  const { API_TOKEN_ONCE_COOKIE } = await import("@/lib/auth/api-tokens");
+  (await cookies()).delete(API_TOKEN_ONCE_COOKIE);
+}
+
 export async function simulate(form: FormData) {
   return run("/connect", async () => {
     const { db, viewer } = await currentViewer();

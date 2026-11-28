@@ -367,17 +367,18 @@ export const STALE_SOURCE_DAYS = 90;
  * Each claim with its tag, date and source, from the sources this viewer may still see. A claim
  * whose sources the viewer can no longer see is dropped rather than shown without its basis.
  */
-export function claimViews(claims: { text: string; refs: string[] }[], sources: Source[]): ClaimView[] {
+export function claimViews(claims: { text: string; refs?: string[] | null }[], sources: Source[]): ClaimView[] {
   const byRef = new Map(sources.map((s) => [s.ref, s]));
   const staleBefore = now().getTime() - STALE_SOURCE_DAYS * 86_400_000;
   const rank: Record<SourceProvenance, number> = { confirmed: 0, seen: 1, learned: 2 };
   const out: ClaimView[] = [];
   for (const c of claims) {
-    if (c.refs.length === 0) {
+    const refs = c.refs ?? [];
+    if (refs.length === 0) {
       out.push({ text: c.text, tag: "inference", basis: "Beacon's inference", stale: false });
       continue;
     }
-    const used = c.refs.map((r) => byRef.get(r)).filter((s): s is Source => !!s);
+    const used = refs.map((r) => byRef.get(r)).filter((s): s is Source => !!s);
     if (used.length === 0) continue;
     // The strongest source decides the tag: something the team confirmed beats something learned.
     const best = [...used].sort((a, b) => rank[a.provenance] - rank[b.provenance])[0];
