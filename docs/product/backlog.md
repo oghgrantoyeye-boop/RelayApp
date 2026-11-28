@@ -131,7 +131,7 @@ The model adapter supports Claude only. An OpenAI key would need a second provid
 
 ## M2 and M3: learned team context and grounded answers
 
-- [ ] **T-10 Team context tables.** Mock: M2. Migration `006_team_context` with `context_entry`
+- [~] **T-10 Team context tables.** (Claude) Mock: M2. Migration `006_team_context` with `context_entry`
   and `context_signal` as in the roadmap's Phase 1, each with `org_id`. `refContext` in
   `src/lib/data.ts` so `visibleLevel` covers them. Acceptance: permission tests show members see
   full, others see the shared level, a marked signal never surfaces above its source's level. M.
