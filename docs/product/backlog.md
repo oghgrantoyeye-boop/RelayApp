@@ -198,7 +198,7 @@ The model adapter supports Claude only. An OpenAI key would need a second provid
   match to the owner (and shows it in the team queue), anything else to the team queue, and says
   why (`request.destination`, `request.route_reason`). Acceptance: "merchant sign-on" goes to
   Platform's queue with the reason shown. M.
-- [ ] **T-23 Team queue page.** Mock: M4. For you and Team queue tabs, I'll take it
+- [~] **T-23 Team queue page.** (Claude) Mock: M4. For you and Team queue tabs, I'll take it
   (`request.claimed_by`), Pass to a teammate, answer once for everyone who asked, Ask them for more
   detail. Acceptance: matches M4; any Platform member can answer. Depends: T-22. M.
 - [ ] **T-24 Answers feed learning.** Mock: M4. Remove the Publish checkbox; after an answer,
