@@ -11,7 +11,8 @@ Written Nov 28, 2026, against `claude/dazzling-archimedes-x7233q` at `8bfe8f1`.
 
 - **Phase 0** is cleanup and reframing: no new features, just getting the product and the site to
   say what the spec says, and parking what the spec defers.
-- **Phases 1 to 3** match the spec's suggested phases one for one.
+- **Phases 1 to 3** match the spec's suggested phases one for one. Team context is learned from
+  conversations and activity first; teams correct it rather than write it (decided Nov 28).
 - **Later** is the spec's execution layer. Most of it is already built, so the plan is to park it,
   not delete it.
 - **Decisions needed** lists the spec's open questions that block a phase, each with a recommended
@@ -30,8 +31,8 @@ with a persona switcher in place of sign-in. It was built to `SPEC.md` (the v1 b
 team pages, updates, commitments, a leadership digest) and then extended with team agents,
 integrations, meetings, an agent workspace and "Worker" teammates.
 
-Much of the spec's foundation already exists. The main gaps are explicit, editable team context;
-provenance and freshness on answers; a team queue (rather than one named owner); request status
+Much of the spec's foundation already exists. The main gaps are a team picture learned from
+conversations and activity, with light correction by the team; provenance and freshness on answers; a team queue (rather than one named owner); request status
 for the requester; and a review policy for turning answers into team knowledge. The main conflicts
 are the Worker agents (the spec defers work-performing agents) and the risk, slip and deadline
 framing across the demos, the feed, the digest and the site (the spec says Beacon is not a
@@ -61,12 +62,12 @@ risk or deadline dashboard).
 
 | Area | Where | What changes |
 | --- | --- | --- |
-| Ownership items | `ownership_item` | Becomes one kind of team context ("responsibility"), with provenance, freshness and review fields. Phase 1. |
-| `unit.description` and `unit.how_to_ask` | `unit` table, team page "How to ask" card | Today these are seeded and not editable. They become editable team context ("what we do", "how to work with us"). Phase 1. |
+| Ownership items | `ownership_item` | Becomes one kind of team context ("responsibility"), learned and kept fresh from activity, with provenance and freshness fields. Phase 1. |
+| `unit.description` and `unit.how_to_ask` | `unit` table, team page "How to ask" card | Today these are seeded and not editable. They become the team-edited starting point, with the rest of the picture learned from conversations and activity. Phase 1. |
 | Answer output | `answerFromPublished`, `question` table, team page and agent panel rendering | Add per-source provenance (team-provided, observed, inferred) and freshness, an explicit "what I couldn't find" line, and a clarification outcome. Phase 1. |
 | Asks page | `src/app/(app)/asks/page.tsx`, `getAsks` | Today it only shows asks assigned to the viewer, although `answerCluster` already lets any member of the team answer. Add a team queue so routing doesn't imply only one owner can answer. Phase 2. |
 | Request status | `request.status` (`open`, `answered`, `accepted`, `declined`) | Add requester-facing states (awaiting team, needs your input, answered, resolved, unresolved) and a "My questions" view. Phase 2. |
-| "Publish" on an answer | `answerCluster` (`input.publish` writes an `update_item` of kind `answer` straight to the team page) | The spec recommends proposing updates rather than silently promoting answers. Change "Publish" to "Propose as team context", reviewed by the team. Phase 2, policy in Phase 3. |
+| "Publish" on an answer | `answerCluster` (`input.publish` writes an `update_item` of kind `answer` straight to the team page) | The spec recommends not silently promoting answers. Instead every answer feeds learning, and the trust rules decide whether a claim applies or waits for a teammate's confirmation. Phase 1 and 2. |
 | Write update | `src/app/(app)/write`, `src/lib/updates.ts`, `src/lib/ai/tasks.ts` (`splitUpdate`) | Keep as explicit team input and as the activity summary path. Drop "risk" as a headline item kind in the UI (keep the enum for data), and stop auto-suggesting commitments by default. Phase 0. |
 | My feed | `src/app/(app)/feed`, `src/lib/feed.ts` | Today it's grouped as asks, decisions, risks, progress. Reframe as "What's changing with teams you work with", without a risk bucket at the top. Phase 0. |
 | Commitments | `commitment` table, `src/lib/commitments.ts`, `/commitments`, `src/components/Commitment.tsx` | The spec makes deadline tracking a non-goal. Keep the data (it answers "when will X land?" and shows a team's active work), but remove the top-level page and the slipped and at-risk highlighting. Show "Active work" on the team page instead. Phase 0. |
@@ -134,10 +135,16 @@ Done when: with the flag off, no page, agent reply or site section shows at-risk
 deadline dashboards, or offers to do work; the Northwind guide walks the spec's narrative; all
 tests pass.
 
-## Phase 1: Team context and grounded answers (2 to 3 weeks)
+## Phase 1: Learned team context and grounded answers (3 weeks)
 
-Goal: teams can describe themselves, and agents answer from that plus observed activity, showing
-where each claim came from and how fresh it is.
+Goal: Beacon builds each team's picture by itself, from the team's conversations and work
+activity, so teams don't have a profile to maintain. Agents answer from that picture, showing
+where each claim came from and how fresh it is. Teams only step in to correct it.
+
+**The principle:** learning is the main mechanism and editing is a light correction layer. A team
+should get a useful picture without typing anything. Any form that asks a team to write its own
+context from scratch is the wrong default, because it turns Beacon into one more thing to keep up
+to date.
 
 1. **Team context model** (M). New migration `006_team_context`:
    ```sql
@@ -148,54 +155,97 @@ where each claim came from and how fresh it is.
      title text not null,
      body text not null default '',
      owner_member_id text references member(id),
-     provenance text not null check (provenance in ('team_provided', 'observed', 'inferred')),
-     source_refs jsonb not null default '[]',
-     shared_level text not null default 'headline',   -- what other teams see; capped by markings
+     provenance text not null check (provenance in ('learned', 'team_confirmed', 'team_edited')),
+     confidence numeric not null default 0.5,          -- rises as more sources agree
+     source_refs jsonb not null default '[]',           -- the conversations and activity it came from
+     shared_level text not null default 'headline',     -- what other teams see; capped by markings
      marking_id text references marking(id),
-     status text not null default 'active' check (status in ('active', 'proposed', 'retired')),
-     created_by text references app_user(id),
-     reviewed_by text references app_user(id),
-     reviewed_at timestamptz,
-     as_of timestamptz not null,      -- when the fact was last true or confirmed
+     status text not null default 'active' check (status in ('active', 'pending', 'retired')),
+     confirmed_by text references app_user(id),
+     confirmed_at timestamptz,
+     first_seen_at timestamptz not null,
+     last_seen_at timestamptz not null,                 -- last time a source supported it
      updated_at timestamptz not null
    );
-   alter table ownership_item add column provenance text not null default 'team_provided';
-   alter table ownership_item add column reviewed_at timestamptz;
+   create table context_signal (               -- one observation from one source, before it becomes an entry
+     id text primary key,
+     unit_id text not null references unit(id),
+     source_kind text not null,                -- agent_chat, answer, update, pr, coding_session, slack, meeting
+     source_ref text not null,
+     claim jsonb not null,                     -- { kind, title, body, owner_hint }
+     marking_id text references marking(id),
+     entry_id text references context_entry(id),
+     at timestamptz not null
+   );
+   alter table ownership_item add column provenance text not null default 'team_edited';
+   alter table ownership_item add column last_seen_at timestamptz;
    ```
-   Keep `ownership_item` for routing (it has keywords and an owner) and treat it as the
-   `responsibility` kind in the UI. Seed `about` and `how_to_work` entries from `unit.description`
-   and `unit.how_to_ask`. Add `refContext(row)` in `src/lib/data.ts` so `visibleLevel` covers it,
-   and add permission tests (team members see full, others see `shared_level`, markings cap).
-2. **Edit team context** (M). A "Team context" section on the team page, editable by the team's
-   members (`assertWrite`), with add, edit and retire for each kind, and an "is this still
-   accurate?" confirm button that sets `reviewed_at`. Every change writes an audit event. Who may
-   edit what is a decision (see Decisions); default: any member edits, the lead is notified of
-   changes to responsibilities and their owners.
-3. **What Beacon can see** (S). On each team page and in the agent panel: connected sources, each
-   marked live or demo (new `connector.mode` column), last sync, and gaps ("No tickets connected",
-   "Team context last confirmed 45 days ago").
-4. **Sources carry provenance and freshness** (M). In `publishedSources`, add `provenance` and
-   `asOf` to each `Source`, and include `context_entry` rows. Published updates and answers are
-   `team_provided`; connector documents, PRs and coding sessions are `observed`; anything the model
-   concludes without a direct source is `inferred`.
-5. **Grounded answer format** (M). Change `ANSWER_SCHEMA` and `answerFromPublished` to return
+   Keep `ownership_item` for routing (it has keywords and an owner) and show it as the
+   `responsibility` kind. Add `refContext(row)` in `src/lib/data.ts` so `visibleLevel` covers
+   entries and signals, and add permission tests: a signal from a marked or team-only source can
+   never produce an entry other teams see above what that source allows.
+2. **Learn from conversations** (L). A new `src/lib/context-learn.ts` with one entry point,
+   `learnFrom(source)`, that extracts candidate claims (what the team owns, can help with, knows,
+   which systems it runs, how it likes to be asked) and records them as `context_signal` rows,
+   then merges signals into entries. Sources, in order:
+   - **Conversations with the team's agent** (`chat_message`) and **answered asks**
+     (`answerCluster`): what teammates say when they answer is the richest signal of what the team
+     knows and owns. Learn from the answerer's reply, not the asker's question.
+   - **Published updates** (`publishDraft`) and **meeting summaries** (`summarizeMeeting`).
+   - **Activity**: merged PRs and Claude Code sessions (`src/lib/sources.ts`), and connector
+     documents (`source_doc`).
+   - **Team Slack channels** once the Slack app can read them (see Decisions). Today Slack is
+     notifications only.
+   Runs after each source event with `after()`, as `work.ts` does today, plus a nightly pass that
+   decays confidence on entries no source has supported for a while. A new AI task in
+   `src/lib/ai/tasks.ts`, `extractContext`, with an offline version in `offline.ts` and a fixed
+   fake in tests. Every extraction writes an audit event.
+3. **Merge and trust rules** (M). One function, `applySignal()`, in a new
+   `src/lib/context-policy.ts`. Low-risk claims (`knows`, `system`, `how_to_work`, `about`)
+   become active entries straight away, tagged "learned" with their sources. Claims that change who
+   owns something, add a `capability` the team might be held to, or come from a marked source
+   become `pending` and wait for one team member to confirm. Repeated signals raise confidence;
+   a team-edited entry is never overwritten by a learned one, only flagged if they disagree.
+   (This pulls the core of the old Phase 3 policy forward, because learned context needs it from
+   day one.)
+4. **Light correction on the team page** (M). A "What Beacon knows about us" section, visible to
+   the team's members, listing entries with their sources and a one-click **Looks right**, **Fix**
+   (inline edit) or **Remove** on each. Pending claims sit at the top as short questions ("Beacon
+   thinks Platform owns webhook delivery. Right?"), at most a few at a time, and are also folded
+   into each member's existing batch of asks instead of a new notification. Teams can add an
+   entry by hand, but the page never opens on an empty form. Every confirmation, fix and removal
+   writes an audit event and feeds back into learning (a removed claim isn't re-learned from the
+   same sources).
+5. **Seed from what exists** (S). On first run, learn from the demo's existing updates, answers,
+   meetings and source docs instead of seeding hand-written context, so the demo shows learning
+   working. `unit.description` and `unit.how_to_ask` stay as the team-edited starting point.
+6. **What Beacon can see** (S). On each team page and in the agent panel: connected sources, each
+   marked live or demo (new `connector.mode` column), last sync, how many entries came from each,
+   and gaps ("Nothing learned about how to ask this team yet").
+7. **Sources carry provenance and freshness** (M). In `publishedSources`, add `provenance` and
+   `lastSeen` to each `Source`, and include active `context_entry` rows. Pending entries are never
+   used in answers to other teams.
+8. **Grounded answer format** (M). Change `ANSWER_SCHEMA` and `answerFromPublished` to return
    claims, each with refs, plus `gaps` (what it couldn't find) and `stale_refs`. Mark a source
    stale past a threshold (default 30 days; make it a constant). Update the offline writer to
-   produce the same shape. Render answers with sources and freshness next to each claim, a "Team
-   says" / "Seen in GitHub, Dec 4" / "Beacon's inference" tag, and a visible gaps line, on the team
-   page (`#agent` card) and in `ChatThread.tsx`.
-6. **Clarification** (M). Add `needs_clarification` with a follow-up question to the answer output,
+   produce the same shape. Render answers with sources and freshness next to each claim, a
+   "Confirmed by Platform" / "Learned from Platform's conversations, Dec 4" / "Seen in GitHub" /
+   "Beacon's inference" tag, and a visible gaps line, on the team page (`#agent` card) and in
+   `ChatThread.tsx`.
+9. **Clarification** (M). Add `needs_clarification` with a follow-up question to the answer output,
    and `clarify` to `question.outcome`. The agent asks when the question is ambiguous or lacks a
    detail needed to route. The asker's reply continues the same question. In `assistant.ts`, when
    Beacon can't tell which team a general question is for, or two teams match, ask the person to
    pick instead of guessing.
-7. **Feedback** (S). Thumbs up or down and an optional note on every answer, stored on `question`
-   (`feedback`, `feedback_note`). This is the spec's "answer usefulness" metric.
+10. **Feedback** (S). Thumbs up or down and an optional note on every answer, stored on `question`
+    (`feedback`, `feedback_note`). This is the spec's "answer usefulness" metric. A thumbs down on
+    an answer lowers confidence in the entries it used.
 
-Done when: a team member can describe their team's responsibilities, capabilities and ways of
-working; a person from another team gets an answer that shows, per claim, whether it's
-team-provided, observed or inferred, how fresh it is and what's missing; ambiguous questions get a
-clarifying question; permission tests cover the new table.
+Done when: with no one typing team context, a team's page shows what it owns, knows and how to
+work with it, learned from its conversations and activity with sources; a team member can confirm,
+fix or remove any of it in one click; sensitive claims wait for one confirmation; a person from
+another team gets an answer that shows, per claim, where it came from, how fresh it is and what's
+missing; permission tests cover signals and entries.
 
 ## Phase 2: Cross-team question routing (2 weeks)
 
@@ -219,10 +269,12 @@ question is, and any team member can answer.
 4. **My questions** (M). A page listing the viewer's questions and requests with status, where
    each went and why ("Sent to Platform's queue because no one owns 'data exports'"), and the reply
    when it arrives. Link to it from every routed answer.
-5. **Answers become proposals, not team knowledge** (S). Replace the "Publish" checkbox in
-   `answerCluster` with "Propose as team context", which creates a `context_entry` with
-   `status = 'proposed'` for the team to review (Phase 3 handles the policy). The answer itself
-   stays private to the people who asked, as today.
+5. **Answers feed learning, not the team page directly** (S). Remove the "Publish" checkbox in
+   `answerCluster`. Every answer is passed to `learnFrom()` (Phase 1), which turns it into
+   context under the trust rules: low-risk knowledge becomes a learned entry, anything sensitive
+   waits for a teammate's confirmation. The answerer doesn't have to decide anything extra. The
+   answer itself stays private to the people who asked, as today, and only the learned claim (at
+   the team's shared level) is reusable.
 6. **Notifications** (S). Keep the inbox and the Slack webhook. Add Slack delivery for team queue
    items to a per-team channel webhook (a new `unit.slack_webhook_url` column) so a team sees new
    asks where it already works. Batching rules stay.
@@ -232,34 +284,33 @@ question is, and any team member can answer.
 
 Done when: a question no one owns lands in the team queue, any member can answer it, the requester
 sees its status and where it went, unanswered requests become visibly unresolved with a next step,
-and answers are never promoted to team context without review.
+and answers only become team context through the trust rules, never by being published as is.
 
 ## Phase 3: Context maintenance and policy (2 weeks)
 
-Goal: the team picture stays accurate, changes are handled by how sensitive they are, and
-conflicts are surfaced.
+Goal: the learned picture stays accurate as teams change, with as little asked of teams as
+possible. Phase 1 already applies low-risk claims automatically and holds sensitive ones for
+confirmation; this phase makes that policy configurable and handles change over time.
 
-1. **Update policy** (M). One function, `changePolicy(kind, change)`, in a new
-   `src/lib/context-policy.ts`, returning `auto` or `review`. Default classification:
-   `auto` for wording changes to `about` and `how_to_work`, new `knows` entries from answers the
-   answerer proposed, and links; `review` for anything touching `responsibility` or its owner,
-   `capability`, commitments or dates, or anything with a marking. Auto-applied changes can be
-   undone in one click for 7 days. Rules are configurable in `org.settings`.
-2. **Review queue** (M). A "Proposed changes" list on the team page for members: approve, edit or
-   reject, each with who proposed it and from what source. Approval and reversal write audit
-   events (the spec's tracking plan asks for edits, proposals, approvals and reversals).
-3. **Activity proposals** (M). When a merged PR, a coding session or a connector document
-   suggests a change (a new system, a new area of work), propose a `context_entry` with
-   `provenance = 'observed'` instead of only drafting an update. Reuse `src/lib/sources.ts`.
-4. **Conflict detection** (M). Flag when observed activity disagrees with stated context, for
-   example another team's PRs touch a system this team says it owns, or an owner has left the
-   team. Show the conflict on both team pages and in answers ("Platform says it owns rate limits;
-   recent changes came from Payments API").
-5. **Freshness prompts** (S). Ask each team to confirm its context every N days (default 30) in
-   the team's batch, and show "last confirmed" on the team page and in answers.
+1. **Configurable policy** (M). Move the rules in `context-policy.ts` into `org.settings` so an
+   admin can choose which kinds apply automatically and which wait for confirmation. Auto-applied
+   changes can be undone in one click for 7 days.
+2. **Change detection** (M). When new signals contradict an active entry (a system's PRs now come
+   from another team, an owner has left the team, answers about an area now come from someone
+   else), lower the old entry's confidence, learn the new one, and ask the team one question
+   ("Did data exports move to Payments API?") instead of asking it to re-check its whole page.
+3. **Conflict display** (S). Show unresolved disagreements on both teams' pages and in answers
+   ("Platform's page says it owns rate limits; recent changes came from Payments API").
+4. **Decay instead of review cycles** (S). Entries that no source has supported for N days (default
+   45) fade to "may be out of date" in answers, and drop out after longer. No periodic "please
+   review your context" prompts: those are the maintenance burden learning is meant to remove.
+5. **Audit and reversals** (S). A per-team history of learned, confirmed, fixed and removed
+   entries, with their sources (the spec's tracking plan asks for edits, proposals, approvals and
+   reversals).
 
-Done when: low-risk changes apply with undo, sensitive ones wait for review, conflicts are shown
-with their sources, and every team page shows when its context was last confirmed.
+Done when: a team that changes what it owns sees Beacon's picture follow within days, with at most
+one question to confirm it; stale entries fade on their own; conflicts are shown with their
+sources; admins can tune which changes need confirmation.
 
 ## Later: bounded work execution
 
@@ -299,6 +350,9 @@ The spec calls them out under privacy and security.
 - Source permission enforcement for each live connector: validate that GitHub repository access
   and Slack channel membership are respected at ingestion, summarization, retrieval and routing.
 - Retention and deletion rules for ingested content, questions and answers.
+- Clear disclosure of which conversations Beacon learns from, a way for a team to exclude a
+  channel or thread, and a guarantee that learned context never quotes a private message to
+  another team (it states the claim and links the source only for readers allowed to open it).
 - Security acceptance criteria for permission leakage, with tests.
 
 ## Decisions needed
@@ -309,12 +363,12 @@ and the affected phase adjusts.
 | Question (from the spec) | Blocks | Recommended default |
 | --- | --- | --- |
 | Which use case anchors the first pilot? | Phase 0 story, Phase 1 | Getting an answer across team boundaries. It's the most built today and exercises context, answers and routing together. |
-| Which sources connect first? | Phase 1 | Explicit team context plus GitHub (merged PRs) and Claude Code sessions, the two live sources. Slack for notifications only. |
+| Which sources connect first? | Phase 1 | Learn first from what Beacon already has: conversations with team agents, answered asks, updates and meetings, plus GitHub and Claude Code (the two live sources). Reading team Slack channels is the first new integration to build, since that's where most team conversation happens. |
 | Minimum team context schema? | Phase 1 | The six kinds in `context_entry`: about, responsibility, capability, how to work with us, knows, systems. |
-| Who can edit team context? | Phase 1 | Any team member; the lead is notified of changes to responsibilities and owners. |
+| Who can correct team context? | Phase 1 | Any team member can confirm, fix or remove a learned entry; the lead is notified of changes to responsibilities and owners. |
 | Initial request destination and notifications? | Phase 2 | Owner when the match is confident, otherwise the team queue; inbox plus a per-team Slack channel. |
-| How do users tell team-provided from inferred? | Phase 1 | A tag next to each claim: "Team says", "Seen in GitHub", "Beacon's inference". |
-| Which updates are automatic vs reviewed? | Phase 3 | The classification in Phase 3, step 1. |
+| How do users tell team-provided from inferred? | Phase 1 | A tag next to each claim: "Confirmed by the team", "Learned from the team's conversations", "Seen in GitHub", "Beacon's inference". |
+| Which updates are automatic vs reviewed? | Phase 1 | Low-risk kinds apply automatically; ownership, capabilities and anything from a marked source wait for one teammate's confirmation (Phase 1, step 3). Configurable in Phase 3. |
 | Keep all five demos? | Phase 0 | Rewrite Northwind first and hide the other four until each is rewritten to the new story. |
 | Privacy, retention and audit requirements? | Pilot | Not decided; needed before a pilot. |
 | Metric baselines and targets? | Pilot | Measure during the first pilot, then set targets. |
