@@ -14,6 +14,7 @@ import {
   isApiToken,
 } from "@/lib/auth/api-tokens";
 import { githubAppConfigured } from "@/lib/github/app";
+import { ConnectCommand } from "@/components/ConnectCommand";
 
 export default async function ConnectPage({ searchParams }: { searchParams: Promise<{ msg?: string }> }) {
   const { msg } = await searchParams;
@@ -25,7 +26,8 @@ export default async function ConnectPage({ searchParams }: { searchParams: Prom
         `select installation_id, account_login from github_installation where org_id = $1 order by created_at`,
         [viewer.orgId],
       );
-  const tools = await teamConnectors(db, viewer.team.id);
+  // A real workspace only lists connections that really sync; demo placeholders stay in samples.
+  const tools = (await teamConnectors(db, viewer.team.id)).filter((t) => isSample || t.mode === "live");
   const items = await recentSourceItems(db, viewer, viewer.team.id, 10);
   const available = CATALOG.filter((k) => !tools.some((t) => t.kind === k));
   const h = await headers();
@@ -106,16 +108,31 @@ export default async function ConnectPage({ searchParams }: { searchParams: Prom
           </section>
           <aside>
             <section>
-              <h2>Add a tool</h2>
-              <p className="small muted" style={{ marginBottom: 10 }}>In the demo, connecting a tool records the connection. A pilot connects your real workspace.</p>
-              <div className="row">
-                {available.map((k) => (
-                  <form key={k} action={connectTool}>
-                    <input type="hidden" name="kind" value={k} />
-                    <button className="b sm" type="submit">+ {CONNECTOR_LABEL[k]}</button>
-                  </form>
-                ))}
-              </div>
+              <h2>{isSample ? "Add a tool" : "Coming soon"}</h2>
+              {isSample ? (
+                <>
+                  <p className="small muted" style={{ marginBottom: 10 }}>In the demo, connecting a tool records the connection. A pilot connects your real workspace.</p>
+                  <div className="row">
+                    {available.map((k) => (
+                      <form key={k} action={connectTool}>
+                        <input type="hidden" name="kind" value={k} />
+                        <button className="b sm" type="submit">+ {CONNECTOR_LABEL[k]}</button>
+                      </form>
+                    ))}
+                  </div>
+                </>
+              ) : (
+                <>
+                  <p className="small muted" style={{ marginBottom: 10 }}>
+                    These don&apos;t connect yet. Slack and Google Docs are next. Today, coding agents and the GitHub App below work for real.
+                  </p>
+                  <div className="row">
+                    {CATALOG.filter((k) => k !== "github").map((k) => (
+                      <span key={k} className="chip" style={{ color: "var(--muted)" }}>{CONNECTOR_LABEL[k]}</span>
+                    ))}
+                  </div>
+                </>
+              )}
             </section>
           </aside>
         </div>
@@ -141,23 +158,17 @@ export default async function ConnectPage({ searchParams }: { searchParams: Prom
                 </>
               )}
             </div>
-            {command ? (
-              <ol style={{ margin: "10px 0 0", paddingLeft: 18, display: "flex", flexDirection: "column", gap: 8 }}>
-                <li>
-                  Run this in a terminal on your computer. It needs Node 18 or later.
-                  {isSample
-                    ? ` This is ${viewer.user.name}'s demo token.`
-                    : ` It holds ${viewer.user.name}'s personal token, so copy it now. Revoke it anytime above.`}
-                  <pre className="code" style={{ whiteSpace: "pre-wrap", wordBreak: "break-all" }}>{command}</pre>
-                  <span className="small muted">It saves the token in ~/.beacon/config.json, readable only by you, and adds Beacon to Claude Code, Codex and Cursor if it finds them. Your other hooks stay as they are.</span>
-                </li>
-                <li>Restart any agent that was open, then work as usual. Claude Code reports when a session ends; Codex and Cursor after each turn.</li>
-                <li>Today&apos;s draft shows up under Write update. Check the connection with <span className="mono">node ~/.beacon/beacon.mjs status</span>, or remove it with <span className="mono">node ~/.beacon/beacon.mjs disconnect</span>.</li>
-              </ol>
-            ) : hasToken ? (
-              <p className="muted small">Token on file ({prefix}…). Rotate to see the connect command with a new token.</p>
-            ) : (
-              <p className="muted small">Issue a personal token to see the one command that connects your coding agents.</p>
+            <ConnectCommand
+              command={command}
+              prefix={isSample ? "demo" : prefix}
+              note={isSample ? `This is ${viewer.user.name}'s demo token.` : `It holds ${viewer.user.name}'s personal token. Revoke it anytime above.`}
+            />
+            {!command && !isSample && (
+              <p className="muted small" style={{ marginTop: 8 }}>
+                {hasToken
+                  ? `Beacon keeps only a fingerprint of your token (${prefix}…), so it can't show the command again. If it isn't on screen, click Rotate token to get a new command; the old token stops working.`
+                  : "Click Issue token to get the one command that connects your coding agents."}
+              </p>
             )}
             <form action={simulate} style={{ marginTop: 12 }}>
               <input type="hidden" name="kind" value="session" />

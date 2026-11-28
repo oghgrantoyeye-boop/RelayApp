@@ -74,10 +74,17 @@ export async function createSession(db: Db, accountId: string): Promise<{ token:
 
 export async function accountFromSession(db: Db, token: string | undefined | null): Promise<Row | null> {
   if (!token) return null;
+  // Without AUTH_SECRET no session can be valid, so an old cookie just means signed out.
+  let hashed: string;
+  try {
+    hashed = hashToken(token);
+  } catch {
+    return null;
+  }
   const row = await db.one(
     `select a.*, s.id as session_id, s.expires_at from session s join account a on a.id = s.account_id
      where s.token_hash = $1 and s.expires_at > $2`,
-    [hashToken(token), now().toISOString()],
+    [hashed, now().toISOString()],
   );
   return row;
 }

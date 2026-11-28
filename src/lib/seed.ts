@@ -62,6 +62,15 @@ async function seedPack(t: Db, pack: DemoPack) {
 
   const { hashToken } = await import("./auth/crypto");
   const { apiTokenPrefix, demoApiToken } = await import("./auth/api-tokens");
+  // Demo tokens are hashed with AUTH_SECRET. Without it (production that hasn't set it yet), the
+  // sample workspace still loads; only its demo coding-agent tokens don't work.
+  const safeHash = (t: string) => {
+    try {
+      return hashToken(t);
+    } catch {
+      return null;
+    }
+  };
   for (const [id, name, title, team, role] of PEOPLE) {
     const demo = demoApiToken(s(id));
     await q(
@@ -74,7 +83,7 @@ async function seedPack(t: Db, pack: DemoPack) {
         title,
         `${id}@${pack.org.domain}.example`,
         name.toLowerCase().replace(/[^a-z]+/g, "-"),
-        hashToken(demo),
+        safeHash(demo),
         apiTokenPrefix(demo),
       ],
     );

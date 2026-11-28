@@ -283,7 +283,7 @@ export async function issueCodingToken() {
       httpOnly: true,
       maxAge: 120,
     });
-    return withMsg("/connect", "Issued a new Claude Code token. Copy the install command now. It won't be shown again.");
+    return withMsg("/connect", "Issued a new token. Copy the connect command below and run it on your computer.");
   });
 }
 
@@ -327,7 +327,8 @@ export async function simulate(form: FormData) {
 
 export async function connectTool(form: FormData) {
   return run("/connect", async () => {
-    const { db, viewer } = await currentViewer();
+    const { db, viewer, isSample } = await currentViewer();
+    if (!isSample) throw new Error("That tool can't connect yet. Coding agents and the GitHub App work today.");
     const { addConnector, CONNECTOR_LABEL } = await import("@/lib/integrations");
     const kind = str(form, "kind");
     await addConnector(db, viewer, viewer.team.id, kind);
