@@ -566,6 +566,26 @@ alter table audit_event alter column org_id drop not null;
 `,
   },
   {
+    id: "010_T-33_workspace_setup",
+    sql: `
+-- Create a workspace, invite people by email, create teams and pick leads (T-33).
+-- Pending invites also let someone create an account (T-36 early-access gate).
+create table workspace_invite (
+  id text primary key,
+  org_id text not null references org(id) on delete cascade,
+  email text not null,
+  invited_by text not null references account(id),
+  role text not null default 'member' check (role in ('owner', 'admin', 'member')),
+  unit_id text references unit(id) on delete set null,
+  status text not null default 'pending' check (status in ('pending', 'accepted', 'revoked')),
+  created_at timestamptz not null default now(),
+  accepted_at timestamptz
+);
+create index workspace_invite_email_idx on workspace_invite (lower(email), status);
+create index workspace_invite_org_idx on workspace_invite (org_id, status);
+`,
+  },
+  {
     id: "010_T-19_answer_claims",
     sql: `
 -- Claim-by-claim answers (T-19). Each claim cites its sources; a claim with none is Beacon's

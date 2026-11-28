@@ -19,6 +19,8 @@ export async function GET(req: Request) {
       googleSub: profile.sub,
       emailVerified: profile.emailVerified,
     });
+    const { acceptPendingInvites } = await import("@/lib/auth/workspace-setup");
+    await acceptPendingInvites(db, account);
     const { token, expiresAt } = await createSession(db, account.id);
     const jar = await cookies();
     jar.set(SESSION_COOKIE, token, { path: "/", httpOnly: true, sameSite: "lax", expires: expiresAt });

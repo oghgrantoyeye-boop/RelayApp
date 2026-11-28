@@ -109,6 +109,19 @@ export async function migrate(db: Db) {
 type Holder = { promise?: Promise<Db> };
 const holder: Holder = ((globalThis as unknown as { __relayDb?: Holder }).__relayDb ??= {});
 
+/** True when a durable Postgres URL is configured (Neon/Supabase/etc.). */
+export function hasHostedDatabase(env: Record<string, string | undefined> = process.env as Record<string, string | undefined>): boolean {
+  return !!(env.DATABASE_URL?.trim() || env.POSTGRES_URL?.trim());
+}
+
+/**
+ * On Vercel without DATABASE_URL, data lives in memory and resets when a server restarts.
+ * Show a banner so preview/production operators know to attach Postgres.
+ */
+export function needsHostedDbWarning(env: Record<string, string | undefined> = process.env as Record<string, string | undefined>): boolean {
+  return !!env.VERCEL && !hasHostedDatabase(env);
+}
+
 /** The app's shared database: migrated, and seeded with Northwind Labs on first run. */
 export function getDb(): Promise<Db> {
   if (!holder.promise) {
@@ -118,6 +131,11 @@ export function getDb(): Promise<Db> {
       // With no database configured, Relay runs on an embedded Postgres. Locally it's stored in
       // .data/. On Vercel (read-only disk, short-lived servers) the demo data lives in memory and is
       // reseeded whenever a new server starts. That's fine for a demo; set DATABASE_URL to keep data.
+      if (needsHostedDbWarning()) {
+        console.warn(
+          "[beacon] Vercel is running without DATABASE_URL (or POSTGRES_URL). Demo data is in memory and will reset when this server restarts. Attach a Neon/Supabase Postgres URL so data survives redeploys.",
+        );
+      }
       const dataDir = process.env.RELAY_DB_DIR || (process.env.VERCEL ? "memory" : path.join(process.cwd(), ".data", "pglite"));
       let db: Db;
       try {
