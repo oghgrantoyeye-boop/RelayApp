@@ -9,7 +9,7 @@ import { deliver } from "./deliver";
 import { COMMITMENT_SELECT } from "./data";
 import { canSeeDerived, deriveMarkings, PermissionError, visibleLevel, type Level } from "./permissions";
 import { showCommitment, showContext, showRequest, showSource, showUpdateItem, KIND_LABEL } from "./render";
-import { answerFromPublished, routeQuestion, writeLevels } from "./ai/tasks";
+import { answerFromPublished, routeQuestion, writeLevels, type Clarify } from "./ai/tasks";
 import { jaccard, overlap, tokens, type Doc } from "./ai/offline";
 import { notifyCommitmentChange } from "./commitments";
 import { learnQuietly } from "./context-learn";
@@ -145,7 +145,13 @@ export async function clusterKeyFor(db: Db, assigneeMemberId: string, text: stri
 }
 
 /** Ask a team's agent. It answers from published material, or routes the question to a person. */
-export async function askTeam(db: Db, viewer: Viewer, unitId: string, text: string, opts: { blocking?: boolean; neededBy?: string } = {}): Promise<AskResult> {
+export async function askTeam(
+  db: Db,
+  viewer: Viewer,
+  unitId: string,
+  text: string,
+  opts: { blocking?: boolean; neededBy?: string; parentId?: string; noClarify?: boolean } = {},
+): Promise<AskResult> {
   const question = text.trim();
   if (!question) throw new Error("Type a question first.");
   const unit = await db.one(`select * from unit where id = $1`, [unitId]);
@@ -161,16 +167,30 @@ export async function askTeam(db: Db, viewer: Viewer, unitId: string, text: stri
     detail: { sources: sources.length, levels: Object.fromEntries(sources.map((s) => [s.ref, s.level])) },
   });
 
-  const result = await answerFromPublished({ question, teamName: unit.name, today: today(), sources });
+  const result = await answerFromPublished({ question, teamName: unit.name, today: today(), sources, noClarify: opts.noClarify || !!opts.parentId });
   const qid = newId("qn");
+  // A follow-up question is written from everything the agent read, so it carries all their markings.
+  const clarify = result.clarify ? JSON.stringify(result.clarify) : null;
   if (result.answered) {
     const used = sources.filter((s) => result.source_refs.includes(s.ref));
-    const markings = deriveMarkings(used);
+    const markings = deriveMarkings(result.clarify ? sources : used);
     await db.query(
-      `insert into question (id, org_id, asker_id, unit_id, text, outcome, answer_text, source_refs, marking_ids, claims, gaps, created_at) values ($1, $2, $3, $4, $5, 'answered', $6, $7, $8, $9, $10, $11)`,
-      [qid, unit.org_id, viewer.user.id, unitId, question, result.answer, JSON.stringify(used.map((u) => u.ref)), markings, JSON.stringify(result.claims), JSON.stringify(result.gaps), now()],
+      `insert into question (id, org_id, asker_id, unit_id, text, outcome, answer_text, source_refs, marking_ids, claims, gaps, clarify, parent_id, created_at)
+       values ($1, $2, $3, $4, $5, 'answered', $6, $7, $8, $9, $10, $11, $12, $13)`,
+      [qid, unit.org_id, viewer.user.id, unitId, question, result.answer, JSON.stringify(used.map((u) => u.ref)), markings, JSON.stringify(result.claims), JSON.stringify(result.gaps), clarify, opts.parentId ?? null, now()],
     );
-    await audit(db, { orgId: viewer.orgId, actorId: agent.id, onBehalfOfId: viewer.user.id, action: "agent_answer", targetKind: "question", targetId: qid, detail: { sources: used.map((u) => u.ref), markings, by: result.by } });
+    await audit(db, { orgId: viewer.orgId, actorId: agent.id, onBehalfOfId: viewer.user.id, action: "agent_answer", targetKind: "question", targetId: qid, detail: { sources: used.map((u) => u.ref), markings, clarify: !!clarify, by: result.by } });
+    return { questionId: qid };
+  }
+  if (result.clarify) {
+    // Ask before routing: the reply decides what to answer, or whom to send it to.
+    const markings = deriveMarkings(sources);
+    await db.query(
+      `insert into question (id, org_id, asker_id, unit_id, text, outcome, answer_text, source_refs, marking_ids, gaps, clarify, parent_id, created_at)
+       values ($1, $2, $3, $4, $5, 'clarify', $6, '[]', $7, $8, $9, $10, $11)`,
+      [qid, unit.org_id, viewer.user.id, unitId, question, result.clarify.question, markings, JSON.stringify(result.gaps), clarify, opts.parentId ?? null, now()],
+    );
+    await audit(db, { orgId: viewer.orgId, actorId: agent.id, onBehalfOfId: viewer.user.id, action: "agent_clarify", targetKind: "question", targetId: qid, detail: { by: result.by } });
     return { questionId: qid };
   }
 
@@ -202,8 +222,8 @@ export async function askTeam(db: Db, viewer: Viewer, unitId: string, text: stri
   const answer = `${unit.name} hasn't published an answer to this yet. I sent it to ${who}.${others} ${when}`;
   const markings = partial ? deriveMarkings([partial]) : [];
   await db.query(
-    `insert into question (id, org_id, asker_id, unit_id, text, outcome, answer_text, source_refs, marking_ids, request_id, gaps, created_at) values ($1, $2, $3, $4, $5, 'routed', $6, $7, $8, $9, $10, $11)`,
-    [qid, unit.org_id, viewer.user.id, unitId, question, answer, JSON.stringify(partial ? [partial.ref] : []), markings, reqId, JSON.stringify(result.gaps), now()],
+    `insert into question (id, org_id, asker_id, unit_id, text, outcome, answer_text, source_refs, marking_ids, request_id, gaps, parent_id, created_at) values ($1, $2, $3, $4, $5, 'routed', $6, $7, $8, $9, $10, $11, $12)`,
+    [qid, unit.org_id, viewer.user.id, unitId, question, answer, JSON.stringify(partial ? [partial.ref] : []), markings, reqId, JSON.stringify(result.gaps), opts.parentId ?? null, now()],
   );
   await audit(db, { orgId: viewer.orgId,
     actorId: agent.id,
@@ -224,7 +244,32 @@ export async function getQuestion(db: Db, viewer: Viewer, id: string) {
   if (q.asker_id !== viewer.user.id || !canSeeDerived(policy, viewer.reader, q.marking_ids)) return null;
   const refs: string[] = q.source_refs ?? [];
   const sources = (await publishedSourcesFor(db, q.unit_id, viewer)).filter((s) => refs.includes(s.ref));
-  return { question: q, sources, claims: claimViews(q.claims ?? [], sources), gaps: (q.gaps ?? []) as string[] };
+  const followUp = await db.one(`select id from question where parent_id = $1 limit 1`, [id]);
+  return {
+    question: q,
+    sources,
+    claims: claimViews(q.claims ?? [], sources),
+    gaps: (q.gaps ?? []) as string[],
+    clarify: (q.clarify ?? null) as Clarify | null,
+    /** The question the asker's reply started, if they replied. */
+    followUpId: (followUp?.id ?? null) as string | null,
+  };
+}
+
+/**
+ * The asker's reply to an agent's follow-up continues the question: Beacon asks again with the
+ * reply attached, and won't ask a second follow-up. Only the asker can reply.
+ */
+export async function continueQuestion(db: Db, viewer: Viewer, questionId: string, reply: string, opts: { blocking?: boolean } = {}): Promise<AskResult> {
+  const text = reply.trim().slice(0, 500);
+  if (!text) throw new Error("Type a reply first.");
+  const q = await db.one(`select * from question where id = $1`, [questionId]);
+  if (!q || q.asker_id !== viewer.user.id) throw new PermissionError("Only the person who asked can reply.");
+  const follow = (q.clarify as { question: string } | null)?.question;
+  if (!follow) throw new Error("That question has no follow-up to reply to.");
+  const answered = await db.one(`select id from question where parent_id = $1`, [questionId]);
+  if (answered) return { questionId: answered.id };
+  return askTeam(db, viewer, q.unit_id, `${q.text} (${text})`, { parentId: questionId, noClarify: true, blocking: opts.blocking });
 }
 
 export type ClaimTag = SourceProvenance | "inference";

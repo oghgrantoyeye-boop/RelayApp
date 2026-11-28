@@ -2,7 +2,8 @@ import Link from "next/link";
 import type { ChatMsg } from "@/lib/assistant";
 import { Avatar } from "@/components/ui";
 import { Markdown } from "@/components/Markdown";
-import { chatDecide } from "@/app/actions";
+import { chatDecide, chatSend } from "@/app/actions";
+import { FollowUp } from "@/components/FollowUp";
 import { FullPathInput } from "@/components/Nav";
 import { AnswerClaims } from "@/components/AnswerClaims";
 
@@ -17,7 +18,24 @@ export function ChatThread({ messages, me, empty }: { messages: ChatMsg[]; me: s
           <div className="chat-body">
             <div className="chat-who">{m.role === "user" ? "You" : m.agentLabel}</div>
             <div className="chat-text">{m.role === "agent" ? <Markdown text={m.text} /> : <p style={{ margin: 0, whiteSpace: "pre-wrap" }}>{m.text}</p>}</div>
-            {m.answer && <AnswerClaims claims={m.answer.claims} gaps={m.answer.gaps} />}
+            {m.answer && (
+              <AnswerClaims
+                claims={m.answer.claims}
+                gaps={m.answer.gaps}
+                followUp={
+                  m.answer.clarify && (
+                    <FollowUp
+                      question={m.answer.clarify.question}
+                      options={m.answer.clarify.options}
+                      action={chatSend}
+                      field="text"
+                      done={m.answer.clarify.done}
+                      hidden={<><FullPathInput /><input type="hidden" name="target" value={m.target} /><input type="hidden" name="replyTo" value={m.id} /></>}
+                    />
+                  )
+                }
+              />
+            )}
             {m.refs.length > 0 && (
               <div className="chat-refs">
                 {m.refs.map((r, i) => (

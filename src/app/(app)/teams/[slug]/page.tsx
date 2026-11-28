@@ -10,7 +10,8 @@ import { agentStats, getQuestion } from "@/lib/agent";
 import { fmt } from "@/lib/clock";
 import { Avatar, Flash, Icon, KindPill, LevelTag, Pill, StatePill, TeamChip, Topbar } from "@/components/ui";
 import { CommitmentLine } from "@/components/Commitment";
-import { askAgent, sendRequest, toggleFollow } from "@/app/actions";
+import { askAgent, replyToAgent, sendRequest, toggleFollow } from "@/app/actions";
+import { FollowUp } from "@/components/FollowUp";
 import { teamConnectors, CONNECTOR_LABEL } from "@/lib/integrations";
 import { teamContext } from "@/lib/context";
 import { TeamContext } from "@/components/TeamContext";
@@ -44,6 +45,16 @@ export default async function TeamPage({ params, searchParams }: { params: Promi
   const stats = isGroup ? null : await agentStats(db, team.id);
   const asked = q ? await getQuestion(db, viewer, q) : null;
   const lead = members.find((m) => m.role === "lead");
+  const followUp = asked?.clarify ? (
+    <FollowUp
+      question={asked.clarify.question}
+      options={asked.clarify.options}
+      action={replyToAgent}
+      field="reply"
+      done={!!asked.followUpId}
+      hidden={<><input type="hidden" name="questionId" value={asked.question.id} /><input type="hidden" name="slug" value={team.slug} /></>}
+    />
+  ) : null;
   const tools = isGroup ? [] : await teamConnectors(db, team.id);
   const context = isGroup ? null : await teamContext(db, viewer, team.id);
 
@@ -96,7 +107,9 @@ export default async function TeamPage({ params, searchParams }: { params: Promi
                     <div className="small muted">You asked</div>
                     <div style={{ fontWeight: 500 }}>{asked.question.text}</div>
                     {asked.question.outcome === "answered" && asked.claims.length > 0 ? (
-                      <AnswerClaims claims={asked.claims} gaps={asked.gaps} />
+                      <AnswerClaims claims={asked.claims} gaps={asked.gaps} followUp={asked.clarify && followUp} />
+                    ) : asked.question.outcome === "clarify" ? (
+                      <div style={{ marginTop: 8 }}>{followUp}</div>
                     ) : (
                       <>
                         <div className="ai-body" style={{ marginTop: 8 }}>{asked.question.answer_text}</div>
@@ -104,7 +117,7 @@ export default async function TeamPage({ params, searchParams }: { params: Promi
                       </>
                     )}
                     <div className="row small muted" style={{ marginTop: 8 }}>
-                      {asked.question.outcome === "answered" ? <Pill tone="green">Answered by the agent</Pill> : <Pill tone="violet">Routed to a person</Pill>}
+                      {asked.question.outcome === "answered" ? <Pill tone="green">Answered by the agent</Pill> : asked.question.outcome === "clarify" ? <Pill tone="amber">Waiting for your reply</Pill> : <Pill tone="violet">Routed to a person</Pill>}
                       {asked.sources.length > 0 && <span>Sources:</span>}
                       {asked.sources.map((s) => (
                         <Link key={s.ref} href={s.href ?? `/teams/${team.slug}`} className="chip" title={s.text}>{s.label} <LevelTag level={s.level} /></Link>

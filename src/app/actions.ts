@@ -92,6 +92,17 @@ export async function askAgent(form: FormData) {
   });
 }
 
+/** The asker's reply to an agent's follow-up question on the team page. */
+export async function replyToAgent(form: FormData) {
+  const slug = str(form, "slug");
+  return run(`/teams/${slug}`, async () => {
+    const { db, viewer } = await currentViewer();
+    const { continueQuestion } = await import("@/lib/agent");
+    const { questionId } = await continueQuestion(db, viewer, str(form, "questionId"), str(form, "reply"));
+    return `/teams/${slug}?q=${questionId}#agent`;
+  });
+}
+
 export async function sendRequest(form: FormData) {
   const slug = str(form, "slug");
   return run(`/teams/${slug}`, async () => {
@@ -372,7 +383,7 @@ export async function chatSend(form: FormData) {
     const text = str(form, "text");
     const mention = await resolveMention(db, text);
     if (mention) target = mention.agent.id;
-    await sendChat(db, viewer, { target, text });
+    await sendChat(db, viewer, { target, text, replyTo: str(form, "replyTo") || undefined });
     if (form.get("from") === "dock") (await cookies()).set(DOCK_COOKIE, target, { path: "/", sameSite: "lax", httpOnly: true });
     // The full chat view follows the conversation the message went to.
     if (path.startsWith("/messages")) return `/messages?with=${encodeURIComponent(target)}`;
