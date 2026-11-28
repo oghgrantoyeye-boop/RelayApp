@@ -179,12 +179,12 @@ export default function Home() {
       <Integrations />
 
       {/* Product showcase */}
-      <section className="section showcase on-dark" id="showcase" aria-labelledby="show-title">
+      <section className="section showcase" id="showcase" aria-labelledby="show-title">
         <div className="wrap">
           <Reveal className="section-head">
             <span className="eyebrow">Product</span>
             <h2 id="show-title" className="h2">See the whole organization, then ask it anything.</h2>
-            <p className="lede" style={{ color: "#c9d1dc" }}>
+            <p className="lede">
               Initiatives, owners, dependencies and decisions in one operating picture, with answers drawn only from what each person is allowed to see.
             </p>
           </Reveal>
@@ -287,17 +287,17 @@ export default function Home() {
               decided, with AI agents that answer, route and follow up inside clear boundaries.
             </p>
             <div className="not-list">
-              <div><b>Not a chatbot.</b><span>It works from shared context, ownership and permissions, not a blank prompt.</span></div>
-              <div><b>Not a knowledge base.</b><span>It brings the right information to the people who need it, without waiting to be searched.</span></div>
-              <div><b>Not a project tracker.</b><span>It connects work across the tools teams already use.</span></div>
-              <div><b>Not workflow automation.</b><span>It coordinates people and agents around decisions, not just triggers.</span></div>
+              <div><b>An AI teammate for every team.</b><span>Each one is sandboxed to its team&apos;s tools and access, never more.</span></div>
+              <div><b>Answers come with sources.</b><span>And they respect who is allowed to see what.</span></div>
+              <div><b>From questions to real work.</b><span>Teammates range from answering questions to workers that draft code, research and legal documents. Start from a ready-made one or build your own.</span></div>
+              <div><b>Agents draft, people approve.</b><span>Nothing reaches another team until a person signs off, and every action is logged.</span></div>
             </div>
           </Reveal>
         </div>
       </section>
 
       {/* Final CTA */}
-      <section className="final on-dark" aria-labelledby="final-title">
+      <section className="final" aria-labelledby="final-title">
         <SignalField />
         <div className="wrap" style={{ position: "relative" }}>
           <span className="eyebrow">Early access</span>
