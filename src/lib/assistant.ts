@@ -270,7 +270,7 @@ function setupRefs(viewer: Viewer): Reply["refs"] {
     { label: "Connect GitHub or Claude Code", href: "/connect" },
     { label: "Write a first update", href: "/write" },
     { label: "Invite people", href: "/workspace/people" },
-    ...(viewer.team ? [{ label: viewer.team.name, href: `/teams/${viewer.team.slug}` }] : []),
+    ...(viewer.team ? [{ label: "Your team page", href: `/teams/${viewer.team.slug}` }] : []),
   ];
 }
 

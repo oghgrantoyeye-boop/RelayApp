@@ -219,13 +219,18 @@ tr:hover td { background: #fafafb; }
 .dock-dot { width: 8px; height: 8px; border-radius: 50%; background: #a78bfa; box-shadow: 0 0 0 3px rgba(167,139,250,.35); }
 
 .chat-page { display: flex; flex: 1; min-height: 0; }
-.contacts { flex: 0 0 280px; border-right: 1px solid var(--line); padding: 10px; display: flex; flex-direction: column; gap: 2px; overflow-y: auto; max-height: calc(100vh - 49px); }
+.contacts { flex: 0 0 280px; border-right: 1px solid var(--line); padding: 10px; display: flex; flex-direction: column; gap: 2px; overflow-y: auto; min-height: 0; }
 .contacts .section { font-size: 12px; color: var(--muted); padding: 12px 8px 4px; }
 .contact { display: flex; gap: 9px; align-items: center; padding: 7px 8px; border-radius: 8px; color: var(--ink); }
 .contact:hover { background: var(--hover); }
 .contact[aria-current="page"] { background: #ede9fe; }
 .contact .av-wrap { width: 30px; height: 30px; }
-.chat-main { flex: 1; min-width: 0; display: flex; flex-direction: column; padding: 16px 24px; max-width: 860px; }
+.chat-main { flex: 1; min-width: 0; min-height: 0; display: flex; flex-direction: column; padding: 16px 24px; max-width: 860px; }
+/* The chat page fills the window: the menu, header and composer stay put and only the messages scroll. */
+@media (min-width: 761px) {
+  .main:has(> .chat-page) { height: 100vh; overflow: hidden; }
+  .chat-scroll.page { min-height: 0; }
+}
 .chat-main-head { display: flex; gap: 12px; align-items: center; padding-bottom: 12px; border-bottom: 1px solid var(--line); }
 .chat-main-head .av-wrap { width: 36px; height: 36px; }
 
