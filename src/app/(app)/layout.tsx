@@ -11,6 +11,7 @@ import { NavLink, PathInput, PersonaSwitcher } from "@/components/Nav";
 import { Avatar, Icon } from "@/components/ui";
 import { BeaconMark } from "@/components/site/Brand";
 import { resetDemo, setPersona } from "@/app/actions";
+import { workersEnabled } from "@/lib/flags";
 
 export const metadata: Metadata = {
   title: "Beacon demo",
@@ -60,7 +61,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
               <input type="search" name="q" placeholder="Search teams, people, what they own" aria-label="Search the directory" />
             </form>
             <NavLink href="/guide"><Icon name="spark" />Demo guide</NavLink>
-            <a href="/agents/new" className="b bp sm nv-new"><Icon name="agent" />New teammate</a>
+            {workersEnabled() && <a href="/agents/new" className="b bp sm nv-new"><Icon name="agent" />New teammate</a>}
             <NavLink href="/messages"><Icon name="chat" />Messages</NavLink>
             <NavLink href="/agents"><Icon name="agent" />Agents</NavLink>
             <NavLink href="/feed"><Icon name="feed" />My feed</NavLink>
@@ -72,9 +73,9 @@ export default async function RootLayout({ children }: { children: React.ReactNo
               <Icon name="write" />Write update{drafts!.n > 0 && <span className="count">{drafts!.n} draft{drafts!.n > 1 ? "s" : ""}</span>}
             </NavLink>
             <NavLink href="/meetings"><Icon name="meetings" />Meetings</NavLink>
-            <NavLink href="/map"><Icon name="map" />Team map</NavLink>
+            {workersEnabled() && <NavLink href="/map"><Icon name="map" />Team map</NavLink>}
             <NavLink href="/directory"><Icon name="directory" />Directory</NavLink>
-            <NavLink href="/digest"><Icon name="digest" />Leadership digest{!isLeadership && <span className="count">view</span>}</NavLink>
+            {workersEnabled() && <NavLink href="/digest"><Icon name="digest" />Leadership digest{!isLeadership && <span className="count">view</span>}</NavLink>}
             <NavLink href="/inbox">
               <Icon name="inbox" />Inbox{inbox!.n > 0 && <span className="count">{inbox!.n}</span>}
             </NavLink>

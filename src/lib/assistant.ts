@@ -12,6 +12,7 @@ import { getFeed } from "./feed";
 import { commitmentViews } from "./commitments";
 import { deliver } from "./deliver";
 import { getAgent, listAgents, type AgentRow } from "./agents";
+import { workersEnabled, WORKERS_OFF_MESSAGE } from "./flags";
 import { PermissionError } from "./permissions";
 
 export type ChatTarget = "me" | string; // "me", or an agent's user id
@@ -126,7 +127,17 @@ async function replyTo(db: Db, viewer: Viewer, agent: AgentRow | null, text: str
     return { text: `${t.team.name}. ${t.why}. You can ask its agent here, or @mention it.`, refs: [{ label: t.team.name, href: `/teams/${t.team.slug}` }], actions: [] };
   }
 
-  if (DRAFT.test(text)) {
+  // Work-performing agents are deferred (see src/lib/flags.ts): say so instead of offering a job.
+  if (!workersEnabled() && (DRAFT.test(text) || RESEARCH.test(text))) {
+    const team = agent?.team ?? viewer.units.find((u) => Object.keys(u.how_to_ask ?? {}).length > 0);
+    return {
+      text: `${WORKERS_OFF_MESSAGE} Ask me what a team owns, knows or is working on, and I'll answer with sources or ask the team for you.`,
+      refs: team ? [{ label: team.name, href: `/teams/${team.slug}` }] : [],
+      actions: [],
+    };
+  }
+
+  if (workersEnabled() && DRAFT.test(text)) {
     const unit = agent && inTeam ? agent.team : viewer.units.find((u) => Object.keys(u.how_to_ask ?? {}).length > 0);
     if (!unit || !inTeam) return { text: `Only ${agent?.team.name ?? "the team"} can ask its agent to draft an update.`, refs: [], actions: [] };
     if (!can("draft_update")) return { text: `Drafting updates isn't one of my jobs. ${agent!.team.name}'s lead can change that on my profile.`, refs: [{ label: "Profile", href: `/agents/${agent!.team.slug}?agent=${agent!.id}` }], actions: [] };
@@ -137,7 +148,7 @@ async function replyTo(db: Db, viewer: Viewer, agent: AgentRow | null, text: str
     };
   }
 
-  if (agent && inTeam && can("documents") && REVIEW.test(text)) {
+  if (workersEnabled() && agent && inTeam && can("documents") && REVIEW.test(text)) {
     return {
       text: "I'll open the document in my sandbox and write a first-pass checklist: names, figures that need a source, and points to check. I don't make the final call, and nothing leaves the team.",
       refs: [],
@@ -145,7 +156,7 @@ async function replyTo(db: Db, viewer: Viewer, agent: AgentRow | null, text: str
     };
   }
 
-  if (agent && inTeam && can("code") && CODE.test(text)) {
+  if (workersEnabled() && agent && inTeam && can("code") && CODE.test(text)) {
     return {
       text: "I'll check out the repository in a fresh sandbox, make the change on a new branch, run the tests and open a pull request. I can't merge; an engineer reviews it.",
       refs: [],
@@ -153,7 +164,7 @@ async function replyTo(db: Db, viewer: Viewer, agent: AgentRow | null, text: str
     };
   }
 
-  if (RESEARCH.test(text) && agent && inTeam) {
+  if (workersEnabled() && RESEARCH.test(text) && agent && inTeam) {
     if (!can("research")) return { text: "Research isn't one of my jobs.", refs: [], actions: [] };
     return {
       text: "I'll research that and write a brief with sources. It costs a little of my monthly budget, so I'll wait for your go-ahead.",

@@ -14,6 +14,9 @@ import { commitmentViews } from "@/lib/commitments";
 import { getDraft, publishDraft } from "@/lib/updates";
 import { recentSourceItems } from "@/lib/integrations";
 
+// These tests cover work-performing agents, which are off by default (src/lib/flags.ts).
+process.env.BEACON_WORKERS = "on";
+
 let db: Db;
 const v = async (id: string): Promise<Viewer> => (await loadViewer(db, id))!;
 

@@ -11,6 +11,9 @@ import { conversation, decideAction, sendChat } from "@/lib/assistant";
 import { createAgent, listAgents } from "@/lib/agents";
 import { DEMOS } from "@/lib/demos";
 
+// These tests cover work-performing agents, which are off by default (src/lib/flags.ts).
+process.env.BEACON_WORKERS = "on";
+
 for (const pack of DEMOS) {
   describe(`${pack.org.name}: talking to agents`, () => {
     let db: Db;

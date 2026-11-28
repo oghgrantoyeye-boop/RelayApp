@@ -1,3 +1,5 @@
+import { notFound } from "next/navigation";
+import { workersEnabled } from "@/lib/flags";
 import { currentViewer } from "@/lib/session";
 import { commitmentViews } from "@/lib/commitments";
 import { loadPolicy, refRequest } from "@/lib/data";
@@ -15,6 +17,7 @@ const POS: Record<string, [number, number]> = {
 };
 
 export default async function MapPage() {
+  if (!workersEnabled()) notFound();
   const { db, viewer, demo } = await currentViewer();
   const policy = await loadPolicy(db);
   const teams = await db.query(

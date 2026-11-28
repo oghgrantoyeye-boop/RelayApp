@@ -1,3 +1,4 @@
+import { workersEnabled } from "@/lib/flags";
 import Link from "next/link";
 import { cookies } from "next/headers";
 import type { Db } from "@/lib/db";
@@ -84,7 +85,7 @@ export async function Dock({ db, viewer, demo }: { db: Db; viewer: Viewer; demo:
       <Composer action={chatSend} target={target} from="dock" names={names} placeholder={agent ? `Message ${agent.name}` : "Ask, or @mention an agent"} suggestions={messages.length === 0 ? suggestionsFor(agent, viewer, demo) : undefined} />
       <div className="dock-foot small">
         <Link href={`/messages?with=${encodeURIComponent(target)}`}>Open full chat</Link>
-        <Link href="/agents/new">+ New teammate</Link>
+        {workersEnabled() && <Link href="/agents/new">+ New teammate</Link>}
       </div>
     </DockShell>
   );

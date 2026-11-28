@@ -1,3 +1,5 @@
+import { notFound } from "next/navigation";
+import { workersEnabled } from "@/lib/flags";
 import { currentViewer } from "@/lib/session";
 import { buildDigest } from "@/lib/digest";
 import { fmt } from "@/lib/clock";
@@ -6,6 +8,7 @@ import { CommitmentLine } from "@/components/Commitment";
 import { sendDigest } from "@/app/actions";
 
 export default async function DigestPage({ searchParams }: { searchParams: Promise<{ msg?: string }> }) {
+  if (!workersEnabled()) notFound();
   const { msg } = await searchParams;
   const { db, viewer, demo } = await currentViewer();
   const d = await buildDigest(db, viewer.reader);

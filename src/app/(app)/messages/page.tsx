@@ -1,3 +1,4 @@
+import { workersEnabled } from "@/lib/flags";
 import Link from "next/link";
 import { currentViewer } from "@/lib/session";
 import { chatContacts, conversation } from "@/lib/assistant";
@@ -43,7 +44,7 @@ export default async function MessagesPage({ searchParams }: { searchParams: Pro
   return (
     <>
       <Topbar crumbs={["Messages"]}>
-        <div className="actions"><Link href="/agents/new" className="b bp sm">+ New teammate</Link></div>
+        {workersEnabled() && (<div className="actions"><Link href="/agents/new" className="b bp sm">+ New teammate</Link></div>)}
       </Topbar>
       <div className="chat-page">
         <nav className="contacts" aria-label="Conversations">

@@ -6,6 +6,7 @@ import type { Db, Row } from "./db";
 import { now } from "./clock";
 import { audit, newId, ORG_ID, type Viewer } from "./data";
 import { PermissionError } from "./permissions";
+import { workersEnabled, WORKERS_OFF_MESSAGE } from "./flags";
 
 /** What an agent can do. Q&A abilities only read; worker abilities run in the agent's sandbox. */
 export const AGENT_ACTIONS = [
@@ -107,7 +108,9 @@ const AGENT_SELECT = `
 /** Every agent in the organization. Names and jobs are public, like the directory. */
 export async function listAgents(db: Db): Promise<AgentRow[]> {
   const rows = await db.query(`${AGENT_SELECT} order by u.name, (a.id = 'agent_' || m.unit_id) desc, p.created_at`);
-  return rows.map(toAgent);
+  const agents = rows.map(toAgent);
+  // With work-performing agents off, worker teammates a team made earlier are hidden, not deleted.
+  return workersEnabled() ? agents : agents.filter((a) => a.tier === "qa");
 }
 
 export async function getAgent(db: Db, id: string): Promise<AgentRow | null> {
@@ -140,6 +143,7 @@ export async function createAgent(db: Db, viewer: Viewer, input: NewAgent): Prom
   if (!purpose) throw new Error("Say what the agent's job is.");
   const actions = input.actions.filter((a) => AGENT_ACTIONS.some((x) => x.id === a));
   if (actions.length === 0) throw new Error("Pick at least one thing the agent can do.");
+  if (!workersEnabled() && tierOf(actions) === "worker") throw new Error(WORKERS_OFF_MESSAGE);
   // It can only read tools its own team connected.
   const own = await db.query(`select id from connector where unit_id = $1`, [unit.id]);
   const connectorIds = input.connectorIds.filter((c) => own.some((o) => o.id === c));

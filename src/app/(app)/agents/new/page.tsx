@@ -1,3 +1,5 @@
+import { notFound } from "next/navigation";
+import { workersEnabled } from "@/lib/flags";
 import Link from "next/link";
 import { currentViewer } from "@/lib/session";
 import { AGENT_ACTIONS, APPROVAL, SCHEDULE, galleryFor, teamsFor, tierOf } from "@/lib/agents";
@@ -6,6 +8,7 @@ import { createAgentAction } from "@/app/actions";
 import { Avatar, Flash, Pill, Topbar } from "@/components/ui";
 
 export default async function NewAgentPage({ searchParams }: { searchParams: Promise<{ template?: string; team?: string; msg?: string }> }) {
+  if (!workersEnabled()) notFound();
   const sp = await searchParams;
   const { db, viewer, demo } = await currentViewer();
   const teams = teamsFor(viewer);

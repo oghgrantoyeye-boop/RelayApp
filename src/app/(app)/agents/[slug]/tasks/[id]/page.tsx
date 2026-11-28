@@ -1,3 +1,4 @@
+import { workersEnabled } from "@/lib/flags";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { currentViewer } from "@/lib/session";
@@ -14,6 +15,7 @@ export const maxDuration = 300;
 const STEP_ICON: Record<string, string> = { start: "▶", search: "⌕", read: "≡", note: "i", comment: "✎", redirect: "↪", takeover: "✋", done: "✓", error: "!" };
 
 export default async function TaskPage({ params, searchParams }: { params: Promise<{ slug: string; id: string }>; searchParams: Promise<{ msg?: string }> }) {
+  if (!workersEnabled()) notFound();
   const { slug, id } = await params;
   const { msg } = await searchParams;
   const { db, viewer } = await currentViewer();

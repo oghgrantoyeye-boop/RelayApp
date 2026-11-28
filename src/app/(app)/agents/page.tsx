@@ -1,3 +1,4 @@
+import { workersEnabled } from "@/lib/flags";
 import Link from "next/link";
 import { currentViewer } from "@/lib/session";
 import { listAgents, TIER_LABEL } from "@/lib/agents";
@@ -12,7 +13,7 @@ export default async function AgentsPage() {
   return (
     <>
       <Topbar crumbs={["Agents"]}>
-        <div className="actions"><Link href="/agents/new" className="b bp sm">+ New teammate</Link></div>
+        {workersEnabled() && (<div className="actions"><Link href="/agents/new" className="b bp sm">+ New teammate</Link></div>)}
       </Topbar>
       <div className="content">
         <div className="page-head">

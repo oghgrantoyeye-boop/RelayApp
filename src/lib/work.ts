@@ -2,6 +2,7 @@
 // update from its connected tools. Every run is shared with the whole team, which can comment,
 // redirect it or take it over. Runs are logged, cost is tracked against the agent's monthly budget,
 // and nothing the agent produces is shared outside the team until a person publishes it.
+import { workersEnabled, WORKERS_OFF_MESSAGE } from "./flags";
 import { activeDemo } from "./demo";
 import type { Db, Row } from "./db";
 import { addDays, fmt, now, today } from "./clock";
@@ -45,6 +46,7 @@ function assertMember(viewer: Viewer, unitId: string, what: string) {
 }
 
 export async function startTask(db: Db, viewer: Viewer, unitId: string, input: { kind: TaskKind; instructions: string; title?: string; agentId?: string }) {
+  if (!workersEnabled()) throw new Error(WORKERS_OFF_MESSAGE);
   assertMember(viewer, unitId, "give its agent work");
   const instructions = input.instructions.trim();
   if (input.kind !== "draft_update" && !instructions) throw new Error(input.kind === "research" ? "Say what to research." : "Say what it should work on.");

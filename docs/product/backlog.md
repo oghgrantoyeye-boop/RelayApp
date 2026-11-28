@@ -78,6 +78,7 @@ No pull requests per task: both lanes commit straight to the default branch,
 | Variable | Used for | Status |
 | --- | --- | --- |
 | `ANTHROPIC_API_KEY` | Every AI task (answers, learning, summaries, research). Without it the app uses the offline writer. | Read today in `src/lib/ai/llm.ts` |
+| `BEACON_WORKERS` | `on` turns back on work-performing agents, the agent gallery, the digest and the map. Off by default. | Read since T-01 |
 | `RELAY_LLM_PROVIDER` | `claude` or `offline`. Defaults to `claude` when a key is set. | Read today |
 | `DATABASE_URL` | Postgres (Neon, Supabase). Required on Vercel for anything real: without it data lives in memory and resets when a server restarts. | Read today |
 | `SLACK_WEBHOOK_URL` | One incoming webhook for notifications. Replaced by the Slack app in T-40. | Read today |
@@ -108,7 +109,7 @@ The model adapter supports Claude only. An OpenAI key would need a second provid
 
 ## Foundation
 
-- [~] **T-01 Feature flag for deferred features.** (Claude) Mock: all. Add `BEACON_WORKERS` (default off)
+- [x] **T-01 Feature flag for deferred features.** (Claude) Mock: all. Add `BEACON_WORKERS` (default off)
   in `src/lib/flags.ts`. Off hides New teammate, the agent gallery, worker tiers, the task
   workspace, the digest and the map, and returns 404 from their routes; the agent panel says it
   can't do work yet and offers to ask the team instead. Acceptance: with the flag off, no page or

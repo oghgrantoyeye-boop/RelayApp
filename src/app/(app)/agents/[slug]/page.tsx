@@ -1,3 +1,4 @@
+import { workersEnabled } from "@/lib/flags";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { currentViewer } from "@/lib/session";
@@ -17,6 +18,7 @@ export const maxDuration = 300;
 
 
 export default async function AgentPage({ params, searchParams }: { params: Promise<{ slug: string }>; searchParams: Promise<{ msg?: string; agent?: string }> }) {
+  const workers = workersEnabled();
   const { slug } = await params;
   const { msg, agent: agentParam } = await searchParams;
   const { db, viewer, demo } = await currentViewer();
@@ -72,14 +74,14 @@ export default async function AgentPage({ params, searchParams }: { params: Prom
             <Avatar name={profile.name} agent size={44} />
             <div>
               <h1>{profile.name} <Pill tone={profile.tier === "worker" ? "violet" : "gray"} dot={false}>{TIER_LABEL[profile.tier]}</Pill></h1>
-              <p>{custom ? `A teammate on ${team.name}, added by ${profile.createdBy ?? "the team"}. ` : `${team.name}'s built-in agent. `}{profile.purpose} People approve anything that leaves the team.</p>
+              <p>{custom ? `A teammate on ${team.name}, added by ${profile.createdBy ?? "the team"}. ` : `${team.name}'s built-in agent. `}{profile.purpose}{workers ? " People approve anything that leaves the team." : " It answers questions and sends the rest to the right person."}</p>
             </div>
           </div>
         </div>
 
         <div className="two">
           <div className="primary">
-            {isMember ? (
+            {workers && (isMember ? (
               <section className="card">
                 <div className="row"><span className="ai-head"><Icon name="agent" size={14} />Give the agent work</span></div>
                 <p className="small muted" style={{ marginTop: 4 }}>Every task is visible to all of {team.name}. Anyone on the team can comment, redirect it or take it over.</p>
@@ -103,9 +105,9 @@ export default async function AgentPage({ params, searchParams }: { params: Prom
               <section className="card">
                 <p>Only {team.name} can give its agent work. You can ask it questions on <Link href={`/teams/${team.slug}#agent`} style={{ color: "var(--blue)" }}>{team.name}&apos;s page</Link>; it answers at your level of access.</p>
               </section>
-            )}
+            ))}
 
-            {isMember && (
+            {workers && isMember && (
               <section>
                 <h2>Task runs</h2>
                 {tasks.length === 0 ? (
@@ -160,7 +162,7 @@ export default async function AgentPage({ params, searchParams }: { params: Prom
                 <div><dt>Can</dt><dd>{profile.actions.map((a) => AGENT_ACTIONS.find((x) => x.id === a)?.label).filter(Boolean).join("; ")}</dd></div>
                 <div><dt>Approvals</dt><dd>{APPROVAL[profile.approval]}</dd></div>
                 <div><dt>Runs</dt><dd>{SCHEDULE[profile.schedule]}</dd></div>
-                <div><dt>Sandbox</dt><dd>Each job runs in its own isolated container</dd></div>
+                {workers && <div><dt>Sandbox</dt><dd>Each job runs in its own isolated container</dd></div>}
                 <div><dt>Reads for others</dt><dd>Only what the person asking may see</dd></div>
               </dl>
             </section>
@@ -175,16 +177,16 @@ export default async function AgentPage({ params, searchParams }: { params: Prom
                   </li>
                 ))}
               </ul>
-              {isMember && <Link href={`/agents/new?team=${team.id}`} className="small" style={{ color: "var(--blue)" }}>+ Add a teammate</Link>}
+              {workers && isMember && <Link href={`/agents/new?team=${team.id}`} className="small" style={{ color: "var(--blue)" }}>+ Add a teammate</Link>}
             </section>
-            <section>
+            {workers && <section>
               <h2>Budget</h2>
               <div className="row" style={{ justifyContent: "space-between" }}><span>${spent.toFixed(2)} used</span><span className="muted">of ${budget.toFixed(0)} this month</span></div>
               <div style={{ height: 8, background: "var(--line-2)", borderRadius: 4, marginTop: 6, overflow: "hidden" }} role="img" aria-label={`${Math.round(pct)}% of the monthly budget used`}>
                 <div style={{ width: `${pct}%`, height: "100%", background: pct > 85 ? "#dc2626" : "var(--blue)" }} />
               </div>
               <p className="small muted" style={{ marginTop: 6 }}>Work stops when the budget runs out. Token costs only; web searches are billed separately.</p>
-            </section>
+            </section>}
             <section>
               <h2>What it can read</h2>
               <ul className="small" style={{ margin: 0, paddingLeft: 16, display: "grid", gap: 4 }}>
