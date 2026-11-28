@@ -684,4 +684,13 @@ create table answer_feedback (
 );
 `,
   },
+  {
+    id: "018_T-27_question_group",
+    sql: `
+-- Multi-team questions (T-27): one question sent to several teams. Each team gets its own question
+-- row (and request, if routed); group_id links them so the asker sees them as one.
+alter table question add column group_id text;
+create index question_group_idx on question (group_id) where group_id is not null;
+`,
+  },
 ];

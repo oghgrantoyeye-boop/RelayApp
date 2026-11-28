@@ -40,6 +40,11 @@ function Detail({ q }: { q: MyQuestion }) {
         ))}
       </ol>
       {q.why && <p className="small muted" style={{ margin: "0 0 8px" }}>{q.why}</p>}
+      {q.alsoAsked.length > 0 && (
+        <p className="small muted" style={{ margin: "0 0 8px" }}>
+          Also asked {q.alsoAsked.map((a, i) => <span key={a.slug}>{i > 0 && (i === q.alsoAsked.length - 1 ? " and " : ", ")}<Link href={`/teams/${a.slug}`}>{a.team}</Link></span>)}, as one question.
+        </p>
+      )}
       {q.reply && (
         <div className="route"><strong>{q.reply.by}:</strong> {q.reply.text}</div>
       )}

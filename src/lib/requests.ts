@@ -224,6 +224,8 @@ export interface MyQuestion {
   /** What the team or Beacon asked the asker, while it waits on them. */
   ask: string | null;
   clarifyOptions: string[];
+  /** T-27: the other teams this same question went to. */
+  alsoAsked: { team: string; slug: string }[];
 }
 
 const latest = (...vals: unknown[]) => new Date(Math.max(...vals.map(time)));
@@ -236,7 +238,7 @@ export async function myQuestions(db: Db, viewer: Viewer): Promise<MyQuestion[]>
   const me = viewer.user.id;
   const reqs = await db.query(
     `select r.*, tu.name as to_name, tu.slug as to_slug, ow.name as owner_name, cl.name as claimer_name, ab.name as answerer_name,
-            q.id as qid, q.parent_id as q_parent
+            q.id as qid, q.parent_id as q_parent, q.group_id as q_group
        from request r join unit tu on tu.id = r.to_unit_id
        left join member om on om.id = r.assignee_member_id left join app_user ow on ow.id = om.user_id
        left join app_user cl on cl.id = r.claimed_by left join app_user ab on ab.id = r.answered_by
@@ -252,6 +254,7 @@ export async function myQuestions(db: Db, viewer: Viewer): Promise<MyQuestion[]>
     [me, viewer.orgId],
   );
   const out: MyQuestion[] = [];
+  const groups = new Map<string, string | null>();
 
   for (const r of reqs) {
     const state = requestState(r);
@@ -273,7 +276,9 @@ export async function myQuestions(db: Db, viewer: Viewer): Promise<MyQuestion[]>
     else steps.push({ label: "Answered", sub: r.answered_at ? fmtDateTimeShort(r.answered_at) : "Not yet", done: !!r.answered_at });
     if (state === "resolved") steps.push({ label: "Resolved", sub: fmtDateTimeShort(r.resolved_at), done: true });
 
+    groups.set(r.id, r.q_group ?? null);
     out.push({
+      alsoAsked: [],
       key: r.id,
       requestId: r.id,
       questionId: r.qid ?? null,
@@ -295,7 +300,9 @@ export async function myQuestions(db: Db, viewer: Viewer): Promise<MyQuestion[]>
   for (const q of qs) {
     if (q.outcome === "clarify" && q.has_follow_up) continue; // the follow-up is listed instead
     const clarify = q.outcome === "clarify";
+    groups.set(q.id, q.group_id ?? null);
     out.push({
+      alsoAsked: [],
       key: q.id,
       requestId: null,
       questionId: q.id,
@@ -314,6 +321,10 @@ export async function myQuestions(db: Db, viewer: Viewer): Promise<MyQuestion[]>
       ask: clarify ? (q.clarify?.question ?? q.answer_text) : null,
       clarifyOptions: clarify ? (q.clarify?.options ?? []) : [],
     });
+  }
+  for (const q of out) {
+    const g = groups.get(q.key);
+    if (g) q.alsoAsked = out.filter((o) => o !== q && groups.get(o.key) === g).map((o) => ({ team: o.team, slug: o.slug }));
   }
   return out.sort((a, b) => b.lastChange.getTime() - a.lastChange.getTime());
 }
