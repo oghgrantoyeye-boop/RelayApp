@@ -74,4 +74,16 @@ describe("routing to the owner or the team queue", () => {
     expect(d).toHaveLength(1);
     expect(d[0].subject).toMatch(/in the Platform queue/);
   });
+
+  it("a team without a lead still gets questions in its queue, and an urgent one reaches everyone on it", async () => {
+    await db.query(`update member set role = 'member' where unit_id = $1 and role = 'lead'`, [PLATFORM]);
+    const route = await chooseRoute(db, PLATFORM, "Can Platform support single sign-on for the merchant admin console?");
+    expect(route.destination).toBe("team_queue");
+    expect(route.lead).toBeNull();
+    const { questionId } = await askTeam(db, await v("priya"), PLATFORM, "Can Platform support single sign-on for the merchant admin console?", { blocking: true });
+    const q = (await getQuestion(db, await v("priya"), questionId))!;
+    expect(q.question.answer_text).toMatch(/Everyone on Platform has been notified now/);
+    const told = await db.query(`select distinct recipient_id from delivery where kind = 'ask_now' and body like '%merchant admin console%'`);
+    expect(told.length).toBeGreaterThan(1);
+  });
 });
