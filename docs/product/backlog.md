@@ -189,7 +189,7 @@ The model adapter supports Claude only. An OpenAI key would need a second provid
   suggested replies; `question.outcome` gains `clarify`; the reply continues the question. The
   general Beacon agent asks which team when two match. Acceptance: the M3 exchange works end to
   end in the demo. Depends: T-19. M.
-- [ ] **T-21 Answer feedback.** Mock: M3. Thumbs up or down with an optional note; a thumbs down
+- [~] **T-21 Answer feedback.** (Claude) Mock: M3. Thumbs up or down with an optional note; a thumbs down
   lowers confidence in the entries used. S.
 
 ## M4 and M5: routing, the team queue and request status
