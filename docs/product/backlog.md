@@ -177,7 +177,7 @@ The model adapter supports Claude only. An OpenAI key would need a second provid
 - [~] **T-17 What Beacon can see.** (Claude) Mock: M2, M6. Per team: sources with Live or Planned, last
   sync, and gaps. Adds `connector.mode`. Acceptance: matches M2's card; planned tools never show as
   Live. S.
-- [~] **T-18 Sources carry provenance and freshness.** (Claude) Mock: M3. `publishedSources` includes
+- [x] **T-18 Sources carry provenance and freshness.** (Claude) Mock: M3. `publishedSources` includes
   active entries and adds `provenance` and `lastSeen` to every source. Pending entries are never
   used for other teams. Acceptance: test that a pending claim can't appear in another team's
   answer. Depends: T-10. S.
