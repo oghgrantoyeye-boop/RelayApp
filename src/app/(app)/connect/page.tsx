@@ -10,7 +10,7 @@ import { canSetBudget, capResetsAt, monthSpend } from "@/lib/ai/spend";
 import {
   API_TOKEN_ONCE_COOKIE,
   demoApiToken,
-  hookSettingsJson,
+  connectCommand,
   isApiToken,
 } from "@/lib/auth/api-tokens";
 import { githubAppConfigured } from "@/lib/github/app";
@@ -36,7 +36,7 @@ export default async function ConnectPage({ searchParams }: { searchParams: Prom
   const prefix = typeof viewer.user.api_token_prefix === "string" ? viewer.user.api_token_prefix : "";
   const hasToken = !!viewer.user.api_token_hash || !!viewer.user.api_token || isApiToken(once);
   const revealToken = isSample ? demoApiToken(viewer.user.id) : isApiToken(once) ? once : "";
-  const settings = revealToken ? hookSettingsJson(origin, revealToken) : null;
+  const command = revealToken ? connectCommand(origin, revealToken) : null;
   return (
     <>
       <Topbar crumbs={[viewer.team.name, "Integrations"]} />
@@ -122,8 +122,11 @@ export default async function ConnectPage({ searchParams }: { searchParams: Prom
         <h2 style={{ marginBottom: 10 }}>Your own tools</h2>
         <div className="stack">
           <section className="card">
-            <h2>Coding agents (Claude Code)</h2>
-            <p className="muted">When a session ends, a small hook sends Beacon what you asked for, the agent&apos;s closing notes and your recent commits. Beacon drafts &ldquo;what I worked on&rdquo; and strips anything that looks like a secret.</p>
+            <h2>Coding agents (Claude Code, Codex, Cursor)</h2>
+            <p className="muted">
+              When your coding agent finishes a session or a turn, Beacon gets what you asked for, the agent&apos;s closing notes and your recent commits.
+              Never code, diffs or files. It keeps one draft for you per day, grouped by repo, and strips anything that looks like a secret. Nothing is shared until you publish it.
+            </p>
             <div className="row" style={{ gap: 8, margin: "12px 0", flexWrap: "wrap" }}>
               <Pill tone={hasToken || isSample ? "green" : "gray"}>{hasToken || isSample ? "Token active" : "No token"}</Pill>
               {!isSample && prefix && <span className="mono small muted">{prefix}…</span>}
@@ -138,22 +141,23 @@ export default async function ConnectPage({ searchParams }: { searchParams: Prom
                 </>
               )}
             </div>
-            {settings ? (
+            {command ? (
               <ol style={{ margin: "10px 0 0", paddingLeft: 18, display: "flex", flexDirection: "column", gap: 8 }}>
-                <li>Copy <span className="mono">integrations/claude-code/relay-hook.mjs</span> from the Beacon repo to <span className="mono">~/.claude/hooks/</span>.</li>
                 <li>
-                  Add this to <span className="mono">~/.claude/settings.json</span>.
+                  Run this in a terminal on your computer. It needs Node 18 or later.
                   {isSample
                     ? ` This is ${viewer.user.name}'s demo token.`
-                    : ` This is ${viewer.user.name}'s personal token. Copy it now. Revoke it anytime above.`}
-                  <pre className="code">{settings}</pre>
+                    : ` It holds ${viewer.user.name}'s personal token, so copy it now. Revoke it anytime above.`}
+                  <pre className="code" style={{ whiteSpace: "pre-wrap", wordBreak: "break-all" }}>{command}</pre>
+                  <span className="small muted">It saves the token in ~/.beacon/config.json, readable only by you, and adds Beacon to Claude Code, Codex and Cursor if it finds them. Your other hooks stay as they are.</span>
                 </li>
-                <li>Finish a session. The draft shows up under Write update.</li>
+                <li>Restart any agent that was open, then work as usual. Claude Code reports when a session ends; Codex and Cursor after each turn.</li>
+                <li>Today&apos;s draft shows up under Write update. Check the connection with <span className="mono">node ~/.beacon/beacon.mjs status</span>, or remove it with <span className="mono">node ~/.beacon/beacon.mjs disconnect</span>.</li>
               </ol>
             ) : hasToken ? (
-              <p className="muted small">Token on file ({prefix}…). Rotate to see a new one.</p>
+              <p className="muted small">Token on file ({prefix}…). Rotate to see the connect command with a new token.</p>
             ) : (
-              <p className="muted small">Issue a personal token to see the hook install command.</p>
+              <p className="muted small">Issue a personal token to see the one command that connects your coding agents.</p>
             )}
             <form action={simulate} style={{ marginTop: 12 }}>
               <input type="hidden" name="kind" value="session" />

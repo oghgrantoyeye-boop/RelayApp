@@ -7,8 +7,7 @@ import {
   issueApiToken,
   revokeApiToken,
   isApiToken,
-  hookInstallCommand,
-  hookSettingsJson,
+  connectCommand,
   demoApiToken,
   findUserIdByApiToken,
 } from "@/lib/auth/api-tokens";
@@ -71,12 +70,9 @@ describe("Claude Code tokens (T-45)", () => {
     expect(await findUserIdByApiToken(db, demo)).toBe(userId);
   });
 
-  it("shows a hook install command that includes the token", () => {
-    const cmd = hookInstallCommand("https://beacon.example", "rly_testtoken123456");
-    expect(cmd).toContain("RELAY_URL=https://beacon.example");
-    expect(cmd).toContain("RELAY_TOKEN=rly_testtoken123456");
-    const settings = JSON.parse(hookSettingsJson("https://beacon.example", "rly_testtoken123456"));
-    expect(settings.hooks.SessionEnd[0].hooks[0].command).toBe(cmd);
+  it("shows one connect command with the URL and token", () => {
+    const cmd = connectCommand("https://beacon.example", "rly_testtoken123456");
+    expect(cmd).toBe("curl -fsSL https://beacon.example/beacon.mjs | node --input-type=module - connect --url https://beacon.example --token rly_testtoken123456");
   });
 
   it("loadViewer still works after a rotate (prefix only in the row)", async () => {

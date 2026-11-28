@@ -308,6 +308,27 @@ other questions. Then GitHub, then the planned tools.
   from workspace sources with citations. Memory lives in Beacon so it carries across models
   (T-61). Plan and open decisions: "Beacon: audit and integrations plan" doc. L.
 
+- [ ] **T-63 Local coding agents: Claude Code, Codex and Cursor.** Approved by Ovo (Nov 28),
+  in progress. One script (`public/beacon.mjs`, installed to `~/.beacon/`) with `connect`,
+  `status`, `disconnect` and `hook` commands. `connect` stores the token in `~/.beacon/config.json`
+  (0600) and adds Beacon to Claude Code (SessionEnd hook), Codex (`notify`) and Cursor (hooks) when
+  each is found, keeping other hooks. Reports go to one rolling draft per person per day, items
+  grouped by repo, always reviewed before publishing; prompts and notes are sent and scrubbed of
+  secrets. Later: Beacon MCP server, and publishing the installer to npm. Plan: "Beacon: audit and
+  integrations plan" doc. M.
+
+- [ ] **T-64 Slack app.** Requirement from Ovo (Nov 28), planned after T-63, not approved to
+  build yet. A Slack admin installs Beacon; each team picks public channels to learn from (never DMs
+  or private channels). @Beacon and /beacon answer in a thread with sources; a gap goes to the owner
+  as a DM and their reply is learned. Secrets: SLACK_CLIENT_ID, SLACK_CLIENT_SECRET,
+  SLACK_SIGNING_SECRET. Plan, diagram and open decisions: "Beacon: audit and integrations plan"
+  doc. L.
+- [ ] **T-65 Google Docs.** Requirement from Ovo (Nov 28), planned after T-63, not approved to
+  build yet. Read-only Google sign-in by an admin; each team picks docs and folders (Google file
+  picker suggested, so no Google security review). Docs are split into passages tagged with their
+  team and sharing list, re-read when changed, and only quoted to people who can open them.
+  Secrets: GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET. Plan: same doc. M.
+
 ## Suggested order
 
 - **Claude:** T-00 (website), T-01, T-02, T-50, T-03, then T-10, T-11, T-12, T-13, T-15, T-18, T-19,
