@@ -64,83 +64,64 @@ export default async function WorkspacePeoplePage({
         <div className="page-head">
           <div>
             <h1>People and teams</h1>
-            <p>Invite people by email, create teams, and pick who leads each one.</p>
+            <p>Invite people, create teams, and pick who leads each one.</p>
           </div>
         </div>
 
         <div className="two" style={{ marginBottom: 28 }}>
           <section className="primary">
             <div>
-              <h2>
-                Teams ({teams.length})
-              </h2>
+              <h2>Teams ({teams.length})</h2>
               {teams.length === 0 ? (
                 <div className="card empty">No teams yet. Create one on the right.</div>
               ) : (
-                <div className="tablewrap">
-                  <table>
-                    <thead>
-                      <tr>
-                        <th>Team</th>
-                        <th>Lead</th>
-                        <th>Change lead</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {teams.map((t) => {
-                        const lead = leadByUnit[t.id];
-                        return (
-                          <tr key={t.id}>
-                            <td>
-                              <Link href={`/teams/${t.slug}`} style={{ fontWeight: 500 }}>
-                                {t.name}
-                              </Link>
-                            </td>
-                            <td>{lead?.name ?? <span className="muted">No lead</span>}</td>
-                            <td>
-                              <form action={setLeadAction} className="row" style={{ gap: 8, flexWrap: "nowrap" }}>
-                                <input type="hidden" name="orgId" value={orgId} />
-                                <input type="hidden" name="unitId" value={t.id} />
-                                <select
-                                  name="leadUserId"
-                                  defaultValue={lead?.id ?? ""}
-                                  required
-                                  aria-label={`Lead for ${t.name}`}
-                                  style={{ flex: "1 1 auto", minWidth: 0, maxWidth: 220 }}
-                                >
-                                  {!lead && (
-                                    <option value="" disabled>
-                                      Choose someone
-                                    </option>
-                                  )}
-                                  {people.map((p) => (
-                                    <option key={p.id} value={p.id}>
-                                      {p.name}
-                                    </option>
-                                  ))}
-                                </select>
-                                <button type="submit" className="b sm">
-                                  Save
-                                </button>
-                              </form>
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                </div>
+                <ul className="list card tight">
+                  {teams.map((t) => {
+                    const lead = leadByUnit[t.id];
+                    return (
+                      <li key={t.id} style={{ alignItems: "center" }}>
+                        <div className="grow">
+                          <Link href={`/teams/${t.slug}`} style={{ fontWeight: 600 }}>
+                            {t.name}
+                          </Link>
+                          <div className="small muted" style={{ marginTop: 2 }}>
+                            {lead ? `Lead: ${lead.name}` : "No lead yet"}
+                          </div>
+                        </div>
+                        <form action={setLeadAction} className="row" style={{ gap: 8, flex: "none" }}>
+                          <input type="hidden" name="orgId" value={orgId} />
+                          <input type="hidden" name="unitId" value={t.id} />
+                          <select
+                            name="leadUserId"
+                            defaultValue={lead?.id ?? ""}
+                            required
+                            aria-label={`Set lead for ${t.name}`}
+                            style={{ width: 200 }}
+                          >
+                            {!lead && (
+                              <option value="" disabled>
+                                Choose lead
+                              </option>
+                            )}
+                            {people.map((p) => (
+                              <option key={p.id} value={p.id}>
+                                {p.name}
+                              </option>
+                            ))}
+                          </select>
+                          <button type="submit" className="b sm">
+                            Save
+                          </button>
+                        </form>
+                      </li>
+                    );
+                  })}
+                </ul>
               )}
             </div>
 
             <div>
-              <h2>
-                People ({people.length})
-              </h2>
-              <p className="small muted" style={{ margin: "-4px 0 8px" }}>
-                {people.length} {people.length === 1 ? "member" : "members"} · {teams.length}{" "}
-                {teams.length === 1 ? "team" : "teams"}
-              </p>
+              <h2>People ({people.length})</h2>
               {people.length === 0 ? (
                 <div className="card empty">No people in this workspace yet.</div>
               ) : (
@@ -150,7 +131,7 @@ export default async function WorkspacePeoplePage({
                       p.title ||
                       (p.org_role === "owner" ? "Owner" : p.org_role === "admin" ? "Admin" : "Member");
                     return (
-                      <li key={p.id}>
+                      <li key={p.id} style={{ alignItems: "center" }}>
                         <Avatar name={p.name} />
                         <div className="grow">
                           <div style={{ fontWeight: 500 }}>{p.name}</div>
@@ -167,7 +148,9 @@ export default async function WorkspacePeoplePage({
           <aside>
             <section className="card">
               <h2>Invite people</h2>
-              <p className="small muted">They join after signing in with this email.</p>
+              <p className="small muted">
+                Adds them when they sign in with this email. Invite email isn&apos;t sent yet.
+              </p>
               <form action={invitePersonAction} className="stack" style={{ gap: 10, marginTop: 12 }}>
                 <input type="hidden" name="orgId" value={orgId} />
                 <label className="field">
@@ -192,7 +175,7 @@ export default async function WorkspacePeoplePage({
               {pending.length > 0 && (
                 <ul className="list" style={{ marginTop: 14, borderTop: "1px solid var(--line)", paddingTop: 10 }}>
                   {pending.map((i) => (
-                    <li key={i.id} style={{ padding: "8px 0" }}>
+                    <li key={i.id} style={{ padding: "8px 0", alignItems: "center" }}>
                       <div className="grow">
                         <div style={{ fontWeight: 500 }}>{i.email}</div>
                         <div className="small muted">
