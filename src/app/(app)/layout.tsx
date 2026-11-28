@@ -15,7 +15,7 @@ import { workersEnabled } from "@/lib/flags";
 
 export const metadata: Metadata = {
   title: "Beacon demo",
-  description: "Beacon's working prototype, with a fictional company. Every team has a page; its updates, asks and commitments reach the right teams automatically.",
+  description: "Beacon's working prototype, with a fictional company. Ask any team, get answers with sources, and the rest goes to the right person.",
   icons: { icon: "/icon.svg" },
 };
 
@@ -62,25 +62,30 @@ export default async function RootLayout({ children }: { children: React.ReactNo
             </form>
             <NavLink href="/guide"><Icon name="spark" />Demo guide</NavLink>
             {workersEnabled() && <a href="/agents/new" className="b bp sm nv-new"><Icon name="agent" />New teammate</a>}
-            <NavLink href="/messages"><Icon name="chat" />Messages</NavLink>
-            <NavLink href="/agents"><Icon name="agent" />Agents</NavLink>
-            <NavLink href="/feed"><Icon name="feed" />My feed</NavLink>
+            <NavLink href="/messages"><Icon name="chat" />Ask Beacon</NavLink>
+            <NavLink href="/directory"><Icon name="directory" />Teams</NavLink>
             <NavLink href="/asks">
               <Icon name="asks" />Asks for you{asks!.n > 0 && <span className="count hot">{asks!.n}</span>}
             </NavLink>
-            <NavLink href="/commitments"><Icon name="commitments" />Commitments</NavLink>
+            <NavLink href="/feed"><Icon name="feed" />What&apos;s changing</NavLink>
             <NavLink href="/write">
               <Icon name="write" />Write update{drafts!.n > 0 && <span className="count">{drafts!.n} draft{drafts!.n > 1 ? "s" : ""}</span>}
             </NavLink>
-            <NavLink href="/meetings"><Icon name="meetings" />Meetings</NavLink>
-            {workersEnabled() && <NavLink href="/map"><Icon name="map" />Team map</NavLink>}
-            <NavLink href="/directory"><Icon name="directory" />Directory</NavLink>
-            {workersEnabled() && <NavLink href="/digest"><Icon name="digest" />Leadership digest{!isLeadership && <span className="count">view</span>}</NavLink>}
             <NavLink href="/inbox">
               <Icon name="inbox" />Inbox{inbox!.n > 0 && <span className="count">{inbox!.n}</span>}
             </NavLink>
             <NavLink href="/audit"><Icon name="audit" />Audit log</NavLink>
             <NavLink href="/connect"><Icon name="connect" />Integrations</NavLink>
+            {workersEnabled() && (
+              <>
+                <div className="section">Deferred</div>
+                <NavLink href="/agents"><Icon name="agent" />Agents</NavLink>
+                <NavLink href="/commitments"><Icon name="commitments" />Commitments</NavLink>
+                <NavLink href="/meetings"><Icon name="meetings" />Meetings</NavLink>
+                <NavLink href="/map"><Icon name="map" />Team map</NavLink>
+                <NavLink href="/digest"><Icon name="digest" />Leadership digest{!isLeadership && <span className="count">view</span>}</NavLink>
+              </>
+            )}
             <div className="section">Your teams</div>
             {viewer.units.map((u) => (
               <NavLink key={u.id} href={`/teams/${u.slug}`}>

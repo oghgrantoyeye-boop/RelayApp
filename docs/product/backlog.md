@@ -115,7 +115,7 @@ The model adapter supports Claude only. An OpenAI key would need a second provid
   can't do work yet and offers to ask the team instead. Acceptance: with the flag off, no page or
   agent reply offers to do work; with it on, today's behaviour is unchanged; tests pass both ways.
   Touches: `src/app/(app)/layout.tsx`, `src/lib/assistant.ts`, agent and digest routes. S.
-- [ ] **T-02 New navigation.** Mock: M2 to M6 sidebar. Ask Beacon, Teams, Team queue, My
+- [x] **T-02 New navigation.** (Claude) Mock: M2 to M6 sidebar. Ask Beacon, Teams, Team queue, My
   questions, What's changing, Inbox, Audit log, Workspace settings. Acceptance: matches the mock's
   sidebar; Commitments, Meetings, Map and Digest are gone from the nav. Depends: T-01. S.
 - [ ] **T-03 Real model calls on Vercel.** Mock: M3. Confirm every AI task runs with

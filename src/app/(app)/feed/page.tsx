@@ -36,7 +36,7 @@ export default async function FeedPage({ searchParams }: { searchParams: Promise
 
   return (
     <>
-      <Topbar crumbs={[viewer.team.name, "My feed"]}>
+      <Topbar crumbs={[viewer.team.name, "What's changing"]}>
         <Link className="b" href="/write">Write update</Link>
       </Topbar>
       <div className="content">
