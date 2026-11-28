@@ -202,9 +202,9 @@ The model adapter supports Claude only. An OpenAI key would need a second provid
   lacks it; the viewer carries `orgId`; every query filters by it; remove the `ORG_ID` constant.
   Acceptance: a test seeds two workspaces with the same team names and finds no page, answer,
   entry or audit read that crosses. L. (Cursor)
-- [ ] **T-31 Sign-in.** Mock: M1. Google, Microsoft and email magic links (env vars above), a
+- [~] **T-31 Sign-in.** Mock: M1. Google, Microsoft and email magic links (env vars above), a
   `session` table, membership in several workspaces, and the workspace chooser. The persona
-  switcher stays only inside sample workspaces. Depends: T-30. M.
+  switcher stays only inside sample workspaces. Depends: T-30. M. (Cursor)
 - [ ] **T-32 Sample workspaces side by side.** Mock: M1. Each demo pack seeds its own workspace;
   Reset resets only that one; no more truncating every table. Depends: T-30. M.
 - [ ] **T-33 Create a workspace and invite people.** Mock: M1, M6. Create, invite by email, create
