@@ -330,6 +330,7 @@ const MEETINGS: Mtg[] = [
 
 export const haldenMoss: DemoPack = {
   id: "architecture",
+  hidden: true,
   audience: "Architecture firm",
   org: { name: "Halden & Moss Architects", short: "Halden & Moss", headcount: 200, domain: "haldenmoss", about: "a fictional 200-person architecture firm with civic, workplace and healthcare studios" },
   summary:

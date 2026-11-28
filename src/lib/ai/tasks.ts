@@ -192,6 +192,11 @@ export interface AnswerOutput {
   source_refs: string[];
   /** Closest published context when the agent couldn't fully answer. */
   partial?: off.Doc;
+  /**
+   * Answered in part, but what's missing is what the person mainly asked, so the rest should go to
+   * the team. The claims are still shown; the question is routed for the missing part.
+   */
+  needsTeam?: boolean;
   by: string;
 }
 
@@ -211,6 +216,7 @@ const ANSWER_SCHEMA = {
       },
     },
     gaps: { type: "array", items: { type: "string" } },
+    needs_team: { type: "boolean" },
     clarify: {
       type: "object",
       additionalProperties: false,
@@ -226,7 +232,7 @@ export async function answerFromPublished(input: AnswerInput): Promise<AnswerOut
   const ranked = off.rank(input.question, input.sources).slice(0, 12);
   const llm = getLLM();
   if (ranked.length > 0) {
-    const out = await llm.json<{ answered: boolean; claims: AnswerClaim[]; gaps: string[]; clarify?: Clarify }>("answer_question", {
+    const out = await llm.json<{ answered: boolean; claims: AnswerClaim[]; gaps: string[]; needs_team?: boolean; clarify?: Clarify }>("answer_question", {
       system:
         `You are the ${input.teamName} team's agent in Beacon. You answer colleagues from other teams using ONLY the sources given, ` +
         "which are already limited to what this person may see. Answer as a short list of claims, each one sentence. " +
@@ -234,6 +240,8 @@ export async function answerFromPublished(input: AnswerInput): Promise<AnswerOut
         "it will be shown as your inference. Never add facts, never promise anything for the team. " +
         "In gaps, say in a few words each thing the question asks that the sources don't answer. " +
         "If the sources don't answer the question at all (for example it asks for a date and none is given), set answered to false. " +
+        "If they answer only around it and the part you couldn't answer is what the person mainly asked, set needs_team to true: " +
+        "your claims are still shown, and the question goes to the team for the rest. " +
         (input.noClarify
           ? "Leave clarify.question empty: the asker already answered a follow-up."
           : "If the right answer, or the right person to ask, depends on something the question doesn't say, put ONE short follow-up in clarify.question " +
@@ -257,7 +265,7 @@ export async function answerFromPublished(input: AnswerInput): Promise<AnswerOut
       // An answer needs at least one sourced claim; inference alone is not an answer.
       if (!out.answered || refs.length === 0)
         return { answered: false, answer: "", claims: [], gaps, source_refs: [], partial: ranked[0]?.doc, clarify, by: llm.name };
-      return { answered: true, answer: claims.map((c) => c.text).join(" "), claims, gaps, source_refs: refs, clarify, by: llm.name };
+      return { answered: true, answer: claims.map((c) => c.text).join(" "), claims, gaps, source_refs: refs, clarify, needsTeam: !!out.needs_team && gaps.length > 0, by: llm.name };
     }
   }
   return { ...offlineAnswer(input, ranked), by: "Offline writer" };
@@ -269,6 +277,9 @@ function cleanClarify(c: Clarify | undefined, off: boolean | undefined): Clarify
   const options = (c.options ?? []).map((o) => String(o).trim()).filter(Boolean).slice(0, 3);
   return question && options.length >= 2 ? { question: question.slice(0, 200), options: options.map((o) => o.slice(0, 60)) } : undefined;
 }
+
+/** Question words that say what kind of answer is wanted, not what it's about. */
+const GENERIC = new Set(["support", "use", "work", "help", "need", "want", "get", "make", "know", "tell", "team", "anyone", "someone", "us", "our", "ok", "possible", "able"].map(off.stem));
 
 function offlineAnswer(input: AnswerInput, ranked: { doc: off.Doc; score: number }[]): Omit<AnswerOutput, "by"> {
   const none = (gaps: string[], partial?: off.Doc) => ({ answered: false, answer: "", claims: [], gaps, source_refs: [], partial });
@@ -287,14 +298,22 @@ function offlineAnswer(input: AnswerInput, ranked: { doc: off.Doc; score: number
     return { answered: true, answer: dated.doc.text, claims: [{ text: dated.doc.text, refs: [dated.doc.ref] }], gaps: [], source_refs: [dated.doc.ref] };
   }
   const used = [top, ...relevant.filter((r) => r !== top && r.score === top.score && !r.doc.ref.startsWith("ownership:"))].slice(0, 2);
-  // Word matching can't tell what an answer is missing, so the offline writer only names gaps when
-  // it can't answer at all. The model names them for partial answers.
+  // Words of the question that nothing used mentions. Two or more, one of them new to the team, mean the sources answer around
+  // the question rather than the question itself: "merchant admin console" when all Platform has
+  // said is about internal tools. Then the claims are shown and the rest goes to the team.
+  const covered = new Set(used.flatMap((u) => off.tokens(u.doc.text)));
+  const team = new Set(off.tokens(input.teamName));
+  const missing = [...new Set(off.tokens(input.question))].filter((w) => !covered.has(w) && !team.has(w) && !GENERIC.has(w));
+  // ...and at least one of them is something the team has never mentioned at all.
+  const ever = new Set(input.sources.flatMap((d) => off.tokens(d.text)));
+  const needsTeam = missing.length >= 2 && missing.some((w) => !ever.has(w));
   return {
     answered: true,
     answer: used.map((u) => u.doc.text).join(" "),
     claims: used.map((u) => ({ text: u.doc.text, refs: [u.doc.ref] })),
-    gaps: [],
+    gaps: needsTeam ? [`Nothing ${input.teamName} has shared mentions ${missing.length > 1 ? `${missing.slice(0, -1).join(", ")} or ${missing.at(-1)}` : missing[0]}.`] : [],
     source_refs: used.map((u) => u.doc.ref),
+    needsTeam,
   };
 }
 

@@ -94,6 +94,8 @@ export interface SampleSession {
 
 export interface DemoPack {
   id: string;
+  /** Not offered on the demo picker until its story is rewritten around team context (T-51). */
+  hidden?: boolean;
   /** Who this demo is for, shown on the picker: "Mid-size software company". */
   audience: string;
   org: {
@@ -153,6 +155,8 @@ export interface DemoPack {
     writeExamples: Record<string, string>;
     /** Example question for a team's agent, by team. */
     askExamples: Record<string, string>;
+    /** A suggested reply in the team queue, by the question it answers, so the guide can be clicked through. */
+    answerExamples?: Record<string, string>;
     searchHint: string;
     researchHint: string;
     /** Coding-agent sessions for software teams; empty for orgs without them. */
@@ -176,5 +180,11 @@ export interface DemoPack {
     answer: { as: string; team: string; question: string; contains: string; source: string };
     /** Someone outside the marking asks about the confidential subject; this word must not leak. */
     leak: { as: string; team: string; question: string; secret: string };
+    /**
+     * The team-context story (M3 to M5): a question no one owns gets what the team has shared plus
+     * the team queue; a teammate answers; the asker closes it; the next person is answered from
+     * what Beacon learned.
+     */
+    story?: { as: string; team: string; question: string; answerer: string; next: string; nextQuestion: string; contains: string };
   };
 }

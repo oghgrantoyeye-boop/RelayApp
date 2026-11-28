@@ -41,6 +41,27 @@ export interface Source extends Doc {
 
 const iso = (d: unknown): string => (d ? new Date(d as string).toISOString() : now().toISOString());
 
+/**
+ * A context entry as one source line. Something learned from an answer is titled by the question it
+ * answered, so it reads as that question and the team's answer rather than "Knows: Do our tools…".
+ */
+function contextText(kind: string, title: string, body: string | null | undefined): string {
+  const asked = /^(do|does|did|can|could|is|are|was|will|would|should|how|what|when|where|who|which|why)\b/i.test(title);
+  if (asked && body) return `${title.replace(/[?.]*$/, "?")} ${body}`;
+  return `${CONTEXT_KIND_LABEL[kind] ?? kind}: ${title}${body ? `. ${body}` : ""}`;
+}
+
+/** Where a context entry came from, in words safe for any reader: the kind of source, never who or which channel. */
+const LEARNED_FROM: Record<string, string> = {
+  answer: "Learned from an answer", agent_chat: "Learned from a conversation", update: "Learned from an update", slack: "Learned from Slack",
+  meeting: "Learned from a meeting", source_doc: "Seen in documents", pr: "Seen in GitHub", coding_session: "Seen in Claude Code",
+};
+function contextLabel(tag: string, refs: { kind: string }[]): string {
+  if (tag === "confirmed") return "Confirmed by the team";
+  const latest = refs.at(-1)?.kind;
+  return (latest && LEARNED_FROM[latest]) || (tag === "seen" ? "Seen in tools" : "Learned");
+}
+
 /** Everything the team has published that this asker may see, rendered at their level. */
 async function publishedSources(db: Db, unitId: string, reader: Parameters<typeof visibleLevel>[1]): Promise<Source[]> {
   const unit = await db.one(`select org_id, slug from unit where id = $1`, [unitId]);
@@ -79,10 +100,10 @@ async function publishedSources(db: Db, unitId: string, reader: Parameters<typeo
     const tag = contextTag(e);
     out.push({
       ref: `context:${e.id}`,
-      text: `${CONTEXT_KIND_LABEL[e.kind] ?? e.kind}: ${shown.title}${shown.body ? `. ${shown.body}` : ""}`,
+      text: contextText(e.kind, shown.title, shown.body),
       markingIds: e.marking_ids ?? [],
       level,
-      label: tag === "confirmed" ? "Confirmed by the team" : tag === "seen" ? "Seen in tools" : "Learned",
+      label: contextLabel(tag, e.source_refs ?? []),
       provenance: tag,
       lastSeen: iso(tag === "confirmed" ? e.confirmed_at ?? e.last_seen_at : e.last_seen_at),
     });
@@ -214,7 +235,10 @@ export async function askTeam(
   const qid = newId("qn");
   // A follow-up question is written from everything the agent read, so it carries all their markings.
   const clarify = result.clarify ? JSON.stringify(result.clarify) : null;
-  if (result.answered) {
+  // A partial answer whose missing part is the point of the question is shown and also routed,
+  // unless the agent first asks a follow-up: then the reply decides where the rest goes.
+  const answerAndRoute = result.answered && !!result.needsTeam && !result.clarify;
+  if (result.answered && !answerAndRoute) {
     const used = sources.filter((s) => result.source_refs.includes(s.ref));
     const markings = deriveMarkings(result.clarify ? sources : used);
     await db.query(
@@ -265,11 +289,15 @@ export async function askTeam(
     ? immediate ? "They've been notified now." : `It's in their next batch of asks (${fmtDateTime(nextBatch)} UTC), so they can answer everyone at once.`
     : immediate ? (lead ? `${lead.name}, the team lead, has been notified now.` : `Everyone on ${unit.name} has been notified now.`) : "";
   const partial = result.partial ? sources.find((s) => s.ref === result.partial!.ref) : undefined;
-  const answer = `${unit.name} hasn't shared an answer to this yet. ${route.reason}${others}${when ? ` ${when}` : ""}`;
-  const markings = partial ? deriveMarkings([partial]) : [];
+  // What the agent could answer, shown alongside the routing, with the markings of what it used.
+  const shownSources = answerAndRoute ? sources.filter((s) => result.source_refs.includes(s.ref)) : partial ? [partial] : [];
+  const opening = answerAndRoute ? `That's what ${unit.name} has shared, but not the rest of your question.` : `${unit.name} hasn't shared an answer to this yet.`;
+  const answer = `${opening} ${route.reason}${others}${when ? ` ${when}` : ""}`;
+  const markings = deriveMarkings(shownSources);
   await db.query(
-    `insert into question (id, org_id, asker_id, unit_id, text, outcome, answer_text, source_refs, marking_ids, request_id, gaps, parent_id, created_at) values ($1, $2, $3, $4, $5, 'routed', $6, $7, $8, $9, $10, $11, $12)`,
-    [qid, unit.org_id, viewer.user.id, unitId, question, answer, JSON.stringify(partial ? [partial.ref] : []), markings, reqId, JSON.stringify(result.gaps), opts.parentId ?? null, now()],
+    `insert into question (id, org_id, asker_id, unit_id, text, outcome, answer_text, source_refs, marking_ids, request_id, claims, gaps, parent_id, created_at) values ($1, $2, $3, $4, $5, 'routed', $6, $7, $8, $9, $10, $11, $12, $13)`,
+    [qid, unit.org_id, viewer.user.id, unitId, question, answer, JSON.stringify(shownSources.map((x) => x.ref)), markings, reqId,
+      JSON.stringify(answerAndRoute ? result.claims : []), JSON.stringify(result.gaps), opts.parentId ?? null, now()],
   );
   await audit(db, { orgId: viewer.orgId,
     actorId: agent.id,

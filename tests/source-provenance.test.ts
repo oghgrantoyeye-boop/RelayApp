@@ -33,7 +33,7 @@ describe("sources carry provenance and freshness", () => {
       expect(Number.isNaN(Date.parse(s.lastSeen))).toBe(false);
     }
     const ctx = sources.find((s) => s.ref.startsWith("context:"))!;
-    expect(ctx).toMatchObject({ provenance: "seen", label: "Seen in tools" });
+    expect(ctx).toMatchObject({ provenance: "seen", label: "Seen in GitHub" });
     expect(ctx.lastSeen.slice(0, 10)).toBe("2026-12-06");
     expect(sources.filter((s) => s.ref.startsWith("update_item:")).every((s) => s.provenance === "confirmed")).toBe(true);
   });

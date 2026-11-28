@@ -1,5 +1,5 @@
 import type { Db, Row } from "../db";
-import { DEMOS } from "../demos";
+import { LISTED_DEMOS } from "../demos";
 import { membershipsFor } from "./accounts";
 
 export interface WorkspaceChoice {
@@ -31,7 +31,7 @@ export async function listWorkspaceChoices(db: Db, accountId?: string | null): P
 
   const seeded = await db.query<{ id: string; name: string; settings: Row }>(`select id, name, settings from org order by name`);
   const samples: WorkspaceChoice[] = [];
-  for (const pack of DEMOS) {
+  for (const pack of LISTED_DEMOS) {
     const org = seeded.find((o) => o.id === pack.id || o.settings?.demo === pack.id);
     samples.push({
       id: pack.id,

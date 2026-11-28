@@ -365,6 +365,7 @@ const MEETINGS: Mtg[] = [
 
 export const harborview: DemoPack = {
   id: "cityhall",
+  hidden: true,
   audience: "City hall",
   org: { name: "City of Harborview", short: "Harborview", headcount: 1100, domain: "harborview", about: "a fictional mid-size city government with about 1,100 staff" },
   summary:

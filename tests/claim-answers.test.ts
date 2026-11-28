@@ -34,7 +34,15 @@ describe("claim-by-claim answers", () => {
     });
     expect(out.answered).toBe(true);
     expect(out.claims).toEqual([{ text: "Platform owns single sign-on for staff tools.", refs: ["a"] }]);
-    expect(out.gaps).toEqual([]);
+    // The source is about staff tools; the question is about merchants' admin consoles.
+    expect(out.needsTeam).toBe(true);
+    expect(out.gaps).toEqual(["Nothing Platform has shared mentions merchant, admin or console."]);
+    const staff = await answerFromPublished({
+      question: "Does Platform own single sign-on for staff tools?", teamName: "Platform", today: "2026-12-06",
+      sources: [src("a", "Platform owns single sign-on for staff tools.", "confirmed", "2026-11-18T00:00:00Z")],
+    });
+    expect(staff.needsTeam).toBe(false);
+    expect(staff.gaps).toEqual([]);
     const when = await answerFromPublished({ question: "When will merchant sign-on ship?", teamName: "Platform", today: "2026-12-06", sources: [src("a", "Merchant sign-on is planned.", "confirmed", "2026-11-18T00:00:00Z")] });
     expect(when.answered).toBe(false);
     expect(when.gaps[0]).toMatch(/date/i);
@@ -80,7 +88,8 @@ describe("claim-by-claim answers", () => {
     expect(got.question.outcome).toBe("answered");
     const learned = got.claims.find((c) => c.tag === "learned");
     expect(learned?.text).toMatch(/load-test/i);
-    expect(learned?.source?.label).toBe("Learned");
+    // The kind of source, never who said it or where: other teams read this.
+    expect(learned?.source?.label).toBe("Learned from an answer");
     const sources = await publishedSourcesFor(db, sid("platform"), priya);
     expect(sources.length).toBeGreaterThan(0);
     // Every source links somewhere the reader can open it: the team page, or the meeting.

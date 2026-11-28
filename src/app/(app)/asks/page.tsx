@@ -10,8 +10,10 @@ import { LearnedFromAnswer } from "@/components/LearnedFromAnswer";
 export default async function AsksPage({ searchParams }: { searchParams: Promise<{ msg?: string; tab?: string; answered?: string }> }) {
   const { msg, tab: tabParam, answered } = await searchParams;
   const tab = tabParam === "team" ? "team" : "for_you";
-  const { db, viewer } = await currentViewer();
+  const { db, viewer, demo, isSample } = await currentViewer();
   const { clusters, nextBatch, pending, counts } = await getAsks(db, viewer, tab);
+  // In a sample workspace the guide's reply is filled in, so the story can be clicked through.
+  const example = (title: string) => (isSample ? demo.ui.answerExamples?.[title] : undefined);
   const learned = answered ? await learnedFromAnswer(db, viewer, answered) : null;
   const here = `/asks?${tab === "team" ? "tab=team&" : ""}answered=${encodeURIComponent(answered ?? "")}`;
   const teamIds = viewer.reader.unitIds;
@@ -118,7 +120,7 @@ export default async function AsksPage({ searchParams }: { searchParams: Promise
               <form action={answerAsk} style={{ marginTop: 12, display: "flex", flexDirection: "column", gap: 8 }}>
                 <input type="hidden" name="key" value={c.key} />
                 <input type="hidden" name="tab" value={tab} />
-                <textarea name="answer" rows={2} placeholder="Answer once. It goes to everyone who asked." aria-label="Your answer" />
+                <textarea name="answer" rows={2} defaultValue={example(c.title) ?? ""} placeholder="Answer once. It goes to everyone who asked." aria-label="Your answer" />
                 <p className="small muted" style={{ margin: 0 }}>The answer stays private to the people who asked. Beacon learns the general fact for {c.requests[0].to_name}&apos;s page and shows you what it learned.</p>
                 <div className="row small">
                   <label className="check"><input type="checkbox" name="commit" /> Also commit to deliver by</label>
