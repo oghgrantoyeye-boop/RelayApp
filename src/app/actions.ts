@@ -238,6 +238,24 @@ export async function markInboxRead() {
   redirect("/inbox");
 }
 
+export async function issueCodingToken() {
+  return run("/connect", async () => {
+    const { db, viewer } = await currentViewer();
+    const { issueApiToken } = await import("@/lib/auth/api-tokens");
+    await issueApiToken(db, viewer.user);
+    return withMsg("/connect", "Issued a new Claude Code token. Update your settings.json with the command below.");
+  });
+}
+
+export async function revokeCodingToken() {
+  return run("/connect", async () => {
+    const { db, viewer } = await currentViewer();
+    const { revokeApiToken } = await import("@/lib/auth/api-tokens");
+    await revokeApiToken(db, viewer.user);
+    return withMsg("/connect", "Revoked your Claude Code token. Hooks using it will stop working until you issue a new one.");
+  });
+}
+
 export async function simulate(form: FormData) {
   return run("/connect", async () => {
     const { db, viewer } = await currentViewer();
