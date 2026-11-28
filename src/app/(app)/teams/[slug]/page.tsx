@@ -121,7 +121,7 @@ export default async function TeamPage({ params, searchParams }: { params: Promi
                       {asked.question.outcome === "answered" ? <Pill tone="green">Answered by the agent</Pill> : asked.question.outcome === "clarify" ? <Pill tone="amber">Waiting for your reply</Pill> : <Pill tone="violet">Routed to a person</Pill>}
                       {asked.sources.length > 0 && <span>Sources:</span>}
                       {asked.sources.map((s) => (
-                        <span key={s.ref} className="chip" title={s.text}>{s.label} <LevelTag level={s.level} /></span>
+                        <Link key={s.ref} href={s.href ?? `/teams/${team.slug}`} className="chip" title={s.text}>{s.label} <LevelTag level={s.level} /></Link>
                       ))}
                     </div>
                   </div>
