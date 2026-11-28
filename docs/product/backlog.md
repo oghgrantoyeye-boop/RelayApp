@@ -108,7 +108,7 @@ The model adapter supports Claude only. An OpenAI key would need a second provid
 
 ## Foundation
 
-- [ ] **T-01 Feature flag for deferred features.** Mock: all. Add `BEACON_WORKERS` (default off)
+- [~] **T-01 Feature flag for deferred features.** (Claude) Mock: all. Add `BEACON_WORKERS` (default off)
   in `src/lib/flags.ts`. Off hides New teammate, the agent gallery, worker tiers, the task
   workspace, the digest and the map, and returns 404 from their routes; the agent panel says it
   can't do work yet and offers to ask the team instead. Acceptance: with the flag off, no page or
