@@ -3,6 +3,7 @@ import { cookies } from "next/headers";
 import { getDb } from "./db";
 import { loadViewer } from "./data";
 import { activeDemo } from "./demo";
+import { setAiScope } from "./ai/scope";
 import { accountFromSession, SESSION_COOKIE } from "./auth/accounts";
 import { isSampleOrg } from "./auth/workspaces";
 
@@ -33,6 +34,7 @@ export async function currentViewer() {
       const viewer = await loadViewer(db, membership.user_id, org.id);
       if (viewer) {
         const demo = await activeDemo(db, org.id);
+        setAiScope(db, org.id);
         return {
           db,
           viewer,
@@ -60,6 +62,8 @@ export async function currentViewer() {
     const any = await db.one(`select id from app_user where org_id = $1 and kind = 'human' order by name limit 1`, [activeOrg]);
     viewer = any ? await loadViewer(db, any.id, activeOrg) : null;
   }
+  // Model calls in this request count against this workspace's AI budget (T-35).
+  setAiScope(db, activeOrg);
   return {
     db,
     viewer: viewer!,

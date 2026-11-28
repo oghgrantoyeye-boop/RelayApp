@@ -3,6 +3,7 @@
 // Swap providers here (Bedrock, Vertex, on-premises) without touching feature code.
 import Anthropic from "@anthropic-ai/sdk";
 import { createHash } from "node:crypto";
+import { getAiScope } from "./scope";
 
 export interface JsonRequest {
   system: string;
@@ -47,12 +48,39 @@ function fail(message: string) {
   console.warn(`[beacon] ${message}; using offline writer`);
 }
 
+/**
+ * The workspace this call is for has reached its monthly AI budget (T-35): the call isn't made and
+ * the offline writer answers, with a note saying why.
+ */
+async function overBudget(task: string): Promise<boolean> {
+  const scope = getAiScope();
+  if (!scope?.db || !scope.orgId) return false;
+  const { monthSpend, capResetsAt } = await import("./spend");
+  const spend = await monthSpend(scope.db, scope.orgId);
+  if (!spend.capped) return false;
+  fail(`This workspace reached its monthly AI budget of $${spend.cap} on ${task}; the offline writer answers until ${capResetsAt().toISOString().slice(0, 10)}`);
+  return true;
+}
+
+/** Count a call against the workspace it was for. Never blocks the answer if recording fails. */
+async function record(task: string, inputTokens: number, outputTokens: number) {
+  const scope = getAiScope();
+  if (!scope?.db) return;
+  try {
+    const { recordUsage } = await import("./spend");
+    await recordUsage(scope.db, { orgId: scope.orgId ?? null, task, inputTokens, outputTokens });
+  } catch (err) {
+    console.error("[beacon] recording AI usage failed:", err);
+  }
+}
+
 class ClaudeLLM implements LLM {
   name = "Claude";
   // Explicit base URL, so an ANTHROPIC_BASE_URL meant for another tool doesn't redirect the app's calls.
   private client = new Anthropic({ timeout: 45_000, maxRetries: 1, baseURL: process.env.RELAY_ANTHROPIC_BASE_URL || "https://api.anthropic.com" });
 
   async research(req: { system: string; prompt: string }, onStep: (s: ResearchStep) => void): Promise<ResearchResult> {
+    if (await overBudget("research")) throw new Error("This workspace reached its monthly AI budget. Research runs again next month, or an admin can raise the budget on Integrations.");
     const client = new Anthropic({ timeout: 600_000, maxRetries: 1, baseURL: process.env.RELAY_ANTHROPIC_BASE_URL || "https://api.anthropic.com" });
     let messages: Anthropic.Beta.BetaMessageParam[] = [{ role: "user", content: req.prompt }];
     const out: ResearchResult = { text: "", sources: [], inputTokens: 0, outputTokens: 0, searches: 0 };
@@ -102,6 +130,7 @@ class ClaudeLLM implements LLM {
     }
     // Keep only sources the answer could have cited: everything the searches returned, capped.
     out.sources = out.sources.slice(0, 12);
+    await record("research", out.inputTokens, out.outputTokens);
     return out;
   }
   private cache = new Map<string, unknown>();
@@ -109,6 +138,7 @@ class ClaudeLLM implements LLM {
   async json<T>(task: string, req: JsonRequest): Promise<T | null> {
     const key = createHash("sha256").update(task + req.system + req.prompt).digest("hex");
     if (this.cache.has(key)) return this.cache.get(key) as T;
+    if (await overBudget(task)) return null;
     try {
       const res = await this.client.beta.messages.create({
         model: MODEL,
@@ -120,8 +150,10 @@ class ClaudeLLM implements LLM {
         messages: [{ role: "user", content: req.prompt }],
       });
       usage.calls++;
-      usage.inputTokens += res.usage.input_tokens + (res.usage.cache_read_input_tokens ?? 0) + (res.usage.cache_creation_input_tokens ?? 0);
+      const inputTokens = res.usage.input_tokens + (res.usage.cache_read_input_tokens ?? 0) + (res.usage.cache_creation_input_tokens ?? 0);
+      usage.inputTokens += inputTokens;
       usage.outputTokens += res.usage.output_tokens;
+      await record(task, inputTokens, res.usage.output_tokens);
       if (res.stop_reason === "refusal" || res.stop_reason === "max_tokens") {
         fail(`Claude stopped (${res.stop_reason}) on ${task}`);
         return null;
