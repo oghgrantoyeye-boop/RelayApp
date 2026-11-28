@@ -68,6 +68,7 @@ export async function Dock({ db, viewer, demo }: { db: Db; viewer: Viewer; demo:
       </div>
       <div className="chat-scroll">
         <ChatThread
+          scope="dock"
           messages={messages}
           me={viewer.user.name}
           empty={
@@ -82,7 +83,7 @@ export async function Dock({ db, viewer, demo }: { db: Db; viewer: Viewer; demo:
           }
         />
       </div>
-      <Composer action={chatSend} target={target} from="dock" names={names} placeholder={agent ? `Message ${agent.name}` : "Ask, or @mention an agent"} suggestions={messages.length === 0 ? suggestionsFor(agent, viewer, demo) : undefined} />
+      <Composer agentLabel={title} action={chatSend} target={target} from="dock" names={names} placeholder={agent ? `Message ${agent.name}` : "Ask, or @mention an agent"} suggestions={messages.length === 0 ? suggestionsFor(agent, viewer, demo) : undefined} />
       <div className="dock-foot small">
         <Link href={`/messages?with=${encodeURIComponent(target)}`}>Open full chat</Link>
         {workersEnabled() && <Link href="/agents/new">+ New teammate</Link>}

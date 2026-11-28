@@ -7,14 +7,15 @@ import { FollowUp } from "@/components/FollowUp";
 import { FullPathInput } from "@/components/Nav";
 import { AnswerClaims } from "@/components/AnswerClaims";
 import { RateAnswer } from "@/components/RateAnswer";
+import { LiveTurn } from "./LiveTurn";
 
 const backFor = (target: string) => (target === "me" ? "/messages" : `/messages?with=${encodeURIComponent(target)}`);
 
 /** One conversation with an agent: messages, the sources each answer used, and actions to approve. */
-export function ChatThread({ messages, me, empty }: { messages: ChatMsg[]; me: string; empty: React.ReactNode }) {
-  if (messages.length === 0) return <div className="chat-empty">{empty}</div>;
+export function ChatThread({ messages, me, empty, scope }: { messages: ChatMsg[]; me: string; empty: React.ReactNode; scope: "dock" | "page" }) {
   return (
     <ol className="chat-list" aria-live="polite">
+      {messages.length === 0 && <li className="chat-empty">{empty}</li>}
       {messages.map((m) => (
         <li key={m.id} className={`chat-msg ${m.role}`}>
           <Avatar name={m.role === "user" ? me : m.agentLabel ?? "Your Beacon agent"} agent={m.role === "agent"} size={26} />
@@ -66,6 +67,7 @@ export function ChatThread({ messages, me, empty }: { messages: ChatMsg[]; me: s
           </div>
         </li>
       ))}
+      <LiveTurn scope={scope} me={me} count={messages.length} />
     </ol>
   );
 }
