@@ -208,7 +208,7 @@ The model adapter supports Claude only. An OpenAI key would need a second provid
   again; every change audited. Acceptance: status tests for each transition. Depends: T-22. M.
 - [~] **T-26 My questions page.** (Claude) Mock: M5. The progress steps, the reply, That answers it and
   Ask a follow-up, and the table of past questions with where they went. Depends: T-25. M.
-- [ ] **T-27 Multi-team questions.** Mock: M3. When several teams match, list them and let the
+- [~] **T-27 Multi-team questions.** (Claude) Mock: M3. When several teams match, list them and let the
   person send to one or more, linked by one question. Depends: T-22. M.
 
 ## M1 and M6: workspaces and sign-in
