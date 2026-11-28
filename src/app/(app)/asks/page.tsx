@@ -40,12 +40,14 @@ export default async function AsksPage({ searchParams }: { searchParams: Promise
               <div className="row">
                 {c.urgent && <Pill tone="amber">Soon</Pill>}
                 {c.askers.length > 1 && <Pill tone="blue">{c.askers.length} people asked</Pill>}
+                {c.destination === "team_queue" && <Pill tone="violet">{c.requests[0].to_name} queue</Pill>}
                 {c.ownership && <span className="small muted">About {c.ownership}</span>}
                 {c.neededBy && <span className="small muted">· needed by {fmt(c.neededBy)}</span>}
                 <span className="small muted" style={{ marginLeft: "auto" }}>{c.delivered ? "Delivered" : "In your next batch"}</span>
               </div>
               <div style={{ fontWeight: 600, fontSize: 14, marginTop: 8 }}>{c.title} <LevelTag level={c.level} /></div>
               {c.details && c.details !== `Asked the ${c.requests[0].to_name ?? ""} agent.` && <p className="muted" style={{ marginTop: 4 }}>{c.details}</p>}
+              {c.reason && <p className="small muted" style={{ marginTop: 4 }}>{c.reason}</p>}
               {c.restricted && <p className="small" style={{ marginTop: 6, color: "#92400e" }}>Some details are hidden from you: {c.restricted}.</p>}
               <div className="row small muted" style={{ marginTop: 8 }}>
                 <span className="avs">{c.askers.map((a, i) => <Avatar key={i} name={a.name} />)}</span>
