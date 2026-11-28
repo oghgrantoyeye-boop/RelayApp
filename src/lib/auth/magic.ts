@@ -11,6 +11,11 @@ const TTL_MIN = 30;
 export async function requestMagicLink(db: Db, email: string): Promise<{ ok: true; devLink?: string }> {
   const normalized = email.trim().toLowerCase();
   if (!normalized.includes("@")) throw new Error("Enter a valid email address");
+  // On a deployed site the link must go by email. Showing it on the page would let anyone
+  // sign in as any address, so without EMAIL_SERVER email sign-in is off there.
+  if (!emailConfigured() && process.env.VERCEL) {
+    throw new Error("Email sign-in isn't set up yet. Use Google or Microsoft.");
+  }
   const token = randomToken(32);
   const expires = new Date(now().getTime() + TTL_MIN * 60 * 1000);
   await db.query(`delete from magic_link where email = $1 or expires_at < $2`, [normalized, now().toISOString()]);
