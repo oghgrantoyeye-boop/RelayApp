@@ -13,30 +13,31 @@ The why behind each task is in [`roadmap.md`](roadmap.md), and the product spec 
 - Every task names the **mock** it moves toward (M1 to M6, below), its **acceptance** checks, the
   files it **touches**, its **size** (S under a day, M one to three days, L about a week) and what
   it **depends on**.
-- One task, one pull request. Keep `npm test` green and add tests for what you build. Tests use the
+- Keep `npm test` green and add tests for what you build. Tests use the
   fake model and never call a real one.
 - Integrations are real, not demo data. Where a task needs a live account (Slack, GitHub), it says
   which environment variables it reads. Keep the sample workspaces working with seeded data.
 - This is Next.js 16. Read the guide in `node_modules/next/dist/docs/` before changing routing,
   server actions or caching (see `AGENTS.md`). Migrations in `src/lib/migrations.ts` are
   append-only.
-- When a task is done, tick it here in the same pull request.
+- When a task is done, tick it here in its last commit.
 
 ## Two lanes: Claude and Cursor
 
-Two agents build at the same time. Each lane owns a set of files, so their pull requests rarely
-touch the same lines.
+Two agents build at the same time. Each lane owns a set of files, so their commits rarely touch
+the same lines. The goal is a product people can really use: real sign-in, real workspaces and
+real integrations come early, and the demos stay as sample workspaces anyone can open.
 
 | Lane | Tasks | Mainly touches |
 | --- | --- | --- |
-| **Claude** | T-01, T-02, T-03, T-10 to T-27, T-50 to T-53 | `src/lib/agent.ts`, `src/lib/assistant.ts`, `src/lib/ai/*`, `src/lib/context-*.ts`, `src/lib/feed.ts`, `src/lib/commitments.ts`, `src/lib/demos/*`, team, asks, feed and guide pages, the marketing site |
-| **Cursor** | T-04, T-30 to T-34, T-40 to T-47 | `src/lib/session.ts`, `src/lib/data.ts` (viewer and `org_id`), `src/lib/db.ts`, `src/lib/seed.ts`, new `src/lib/auth/*`, `src/lib/slack/*`, `src/lib/github/*`, `src/app/api/slack/*`, `src/app/api/github/*`, sign-in and settings pages |
+| **Claude** | T-00 (first), then T-01, T-02, T-03, T-10 to T-27, T-50 to T-53 | `src/lib/agent.ts`, `src/lib/assistant.ts`, `src/lib/ai/*`, `src/lib/context-*.ts`, `src/lib/feed.ts`, `src/lib/commitments.ts`, `src/lib/demos/*`, team, asks, feed and guide pages, the marketing site |
+| **Cursor** | T-30 to T-33 (first), then T-04, T-34, T-40 to T-47 | `src/lib/session.ts`, `src/lib/data.ts` (viewer and `org_id`), `src/lib/db.ts`, `src/lib/seed.ts`, new `src/lib/auth/*`, `src/lib/slack/*`, `src/lib/github/*`, `src/app/api/slack/*`, `src/app/api/github/*`, sign-in and settings pages |
 
 Shared files and how to handle them:
 
-- **`src/lib/migrations.ts`:** append one entry per pull request, id `NNN_task-id_short_name`
-  (for example `007_T-40_slack_install`). If a rebase shows both lanes added one, keep both and put
-  yours last, renumbering yours.
+- **`src/lib/migrations.ts`:** append one entry per task, id `NNN_task-id_short_name`
+  (for example `007_T-40_slack_install`). If `git pull --rebase` shows both lanes added one, keep
+  both and put yours last, renumbering yours.
 - **`src/app/actions.ts` and `src/app/(app)/layout.tsx`:** add, don't reorganize. New server
   actions for a lane go in a new file (`src/app/actions/slack.ts`, `src/app/actions/context.ts`).
 - **New tables** in either lane include `org_id` from the start, so T-30 doesn't have to backfill
@@ -45,16 +46,21 @@ Shared files and how to handle them:
   land, build against the function names in this file (`learnFrom`, `chooseRoute`) behind a stub,
   or pick another task.
 
-## Claiming a task
+## Claiming and shipping a task
 
-1. Set the task's line below to `[~]` with your lane and branch, for example
-   `- [~] **T-40 ...** (Cursor, cursor/T-40-slack-install)`, and push that change first, alone,
-   to the base branch (or in your pull request if you open it right away).
-2. One task, one branch, one pull request. Branch names: `claude/T-NN-short-name` or
-   `cursor/T-NN-short-name`. Base branch: `claude/dazzling-archimedes-x7233q` (the repo default).
-3. Before merging, rebase on the latest base and run `npm run typecheck`, `npm test` and `npm run build`. Merge only
-   when checks are green.
-4. When it merges, change `[~]` to `[x]` in the same pull request.
+No pull requests per task: both lanes commit straight to the default branch,
+`claude/dazzling-archimedes-x7233q`.
+
+1. **Claim it.** Change the task's box to `[~]` and add your lane, for example
+   `- [~] **T-40 ...** (Cursor)`. Commit that line alone and push it right away, so the other lane
+   sees it before starting.
+2. **Build it** in small commits on your local copy of the default branch. Commit messages start
+   with the task id: `T-40: Slack OAuth install`.
+3. **Before every push:** `git pull --rebase`, then `npm run typecheck`, `npm test` and
+   `npm run build`. Push only when all three pass. Never force-push.
+4. **Finish it.** Change `[~]` to `[x]` in the last commit of the task.
+5. **If a push breaks the build** (Vercel shows it on the default branch), the lane that pushed it
+   fixes it next, before anything else.
 
 ## The goal screens
 
@@ -86,9 +92,23 @@ The model adapter supports Claude only. An OpenAI key would need a second provid
 
 ---
 
+## First: the website
+
+- [~] **T-00 Rewrite the website to the new spec.** Done before anything else. The landing page
+  (`src/app/(site)/page.tsx`, `src/components/site/*`, `src/app/(site)/layout.tsx`, the early-access
+  page) says what Beacon is now: it helps people understand what other teams do, own and know;
+  answers questions with sources, saying where each point came from and what's missing; and gets
+  the rest to the right team or person. Remove the risk, deadline and slipped-launch framing from
+  the hero, mockups and flow (keep at most one example of a deadline question, as a use case).
+  Don't promise agents that do work. Only GitHub, Claude Code and Slack show as available; the
+  rest stay marked planned. Replace the risk dashboard mockups with a team page and a sourced
+  answer drawn from the goal mocks (M2, M3). Acceptance: no page on the site says "at risk",
+  "slipped", "does the legwork" or that agents do work; the integrations list matches what's live;
+  `npm run build` passes; it reads well on a phone. (Claude)
+
 ## Foundation
 
-- [~] **T-01 Feature flag for deferred features.** (Claude, claude/T-01-feature-flag) Mock: all. Add `BEACON_WORKERS` (default off)
+- [ ] **T-01 Feature flag for deferred features.** Mock: all. Add `BEACON_WORKERS` (default off)
   in `src/lib/flags.ts`. Off hides New teammate, the agent gallery, worker tiers, the task
   workspace, the digest and the map, and returns 404 from their routes; the agent panel says it
   can't do work yet and offers to ask the team instead. Acceptance: with the flag off, no page or
@@ -233,8 +253,7 @@ other questions. Then GitHub, then the planned tools.
 - [ ] **T-51 Rewrite the Northwind story.** The spec's narrative, as in M3 to M5: Ava asks
   whether Platform can support merchant sign-on; clarify; team queue; Ken answers; Beacon learns.
   Update `types.ts`, `tests/demos.test.ts`, `/guide`. Hide the other demos until rewritten. L.
-- [ ] **T-52 Rewrite the marketing site.** Hero, product section and mockups to the spec's TL;DR;
-  replace the risk dashboard with a team page and a sourced answer. M.
+- [ ] **T-52 Marketing follow-ups.** Anything T-00 leaves, plus `marketing/launch-campaign.md`. S.
 - [ ] **T-53 Docs.** README and HANDOFF point to the new spec; `SPEC.md` marked historical. S.
 
 ## Later
@@ -245,6 +264,8 @@ other questions. Then GitHub, then the planned tools.
 
 ## Suggested order
 
-If you want a path rather than a menu: T-01, T-02, T-03, T-04, then T-10, T-11, T-12, T-15, T-18,
-T-19 (that's M2 and M3 working on the demo), then T-22, T-23, T-24, T-25, T-26 (M4 and M5), then
-T-40, T-41, T-42 (real Slack), then T-30 to T-33 before any pilot.
+- **Claude:** T-00 (website), then T-01, T-02, T-50, T-51 (cleanup and the new demo story), then
+  T-03, T-10, T-11, T-12, T-15, T-18, T-19, T-20 (M2 and M3), then T-22 to T-26 (M4 and M5).
+- **Cursor, starting now in parallel:** T-30, T-31, T-32, T-33 (real sign-in and workspaces, with
+  the demos as sample workspaces), then T-04, T-40, T-44, T-45 (real Slack, GitHub and Claude Code
+  connections), then T-34, T-41, T-42, T-43 once the Claude lane's T-11, T-19 and T-23 are in.

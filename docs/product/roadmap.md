@@ -14,7 +14,7 @@ Written Nov 28, 2026, against `claude/dazzling-archimedes-x7233q` at `8bfe8f1`.
   say what the spec says, and parking what the spec defers.
 - **Phases 1 to 3** match the spec's suggested phases one for one. Team context is learned from
   conversations and activity first; teams correct it rather than write it (decided Nov 28).
-- **Phase 4** adds workspaces and sign-in, which the spec needs before a pilot.
+- **Phase 4** adds workspaces and sign-in. It runs early, in parallel, so Beacon is usable for real.
 - **Later** is the spec's execution layer. Most of it is already built, so the plan is to park it,
   not delete it.
 - **Decisions needed** lists the spec's open questions that block a phase, each with a recommended
@@ -318,7 +318,8 @@ sources; admins can tune which changes need confirmation.
 
 Goal: each organization is its own workspace that people sign in to, with its data kept apart
 from every other workspace. Demos become sample workspaces that sit side by side instead of
-replacing each other. This can run in parallel with Phases 2 and 3, and must land before a pilot.
+replacing each other. It starts right away, in parallel with Phases 0 and 1, because the goal is a product real teams
+can use, not only a demo. The demos stay, as sample workspaces.
 
 Today there is one hard-coded organization (`ORG_ID = "northwind"` in `src/lib/data.ts`), every
 demo is seeded under that id, "Choose a demo" truncates every table (`loadDemo` in
