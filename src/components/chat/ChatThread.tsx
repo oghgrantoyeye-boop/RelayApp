@@ -6,6 +6,9 @@ import { chatDecide, chatSend } from "@/app/actions";
 import { FollowUp } from "@/components/FollowUp";
 import { FullPathInput } from "@/components/Nav";
 import { AnswerClaims } from "@/components/AnswerClaims";
+import { RateAnswer } from "@/components/RateAnswer";
+
+const backFor = (target: string) => (target === "me" ? "/messages" : `/messages?with=${encodeURIComponent(target)}`);
 
 /** One conversation with an agent: messages, the sources each answer used, and actions to approve. */
 export function ChatThread({ messages, me, empty }: { messages: ChatMsg[]; me: string; empty: React.ReactNode }) {
@@ -36,6 +39,7 @@ export function ChatThread({ messages, me, empty }: { messages: ChatMsg[]; me: s
                 }
               />
             )}
+            {m.answer?.questionId && m.answer.claims.length > 0 && <RateAnswer questionId={m.answer.questionId} back={backFor(m.target)} vote={m.answer.vote} />}
             {m.refs.length > 0 && (
               <div className="chat-refs">
                 {m.refs.map((r, i) => (
