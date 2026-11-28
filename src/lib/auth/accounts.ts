@@ -2,6 +2,7 @@ import type { Db, Row } from "../db";
 import { newId } from "../data";
 import { hashToken, randomToken } from "./crypto";
 import { now } from "../clock";
+import { canCreateAccount, EarlyAccessError, recordSignInLead } from "./early-access";
 
 export const SESSION_COOKIE = "beacon_session";
 const SESSION_DAYS = 30;
@@ -17,6 +18,11 @@ export async function upsertAccount(
   if (!account && input.microsoftSub) account = await db.one(`select * from account where microsoft_sub = $1`, [input.microsoftSub]);
   if (!account) account = await db.one(`select * from account where email = $1`, [email]);
   if (!account) {
+    // New accounts need early access: an approved lead, a pending invite (T-33), or an admin email.
+    if (!(await canCreateAccount(db, email))) {
+      await recordSignInLead(db, email, input.name);
+      throw new EarlyAccessError();
+    }
     const id = newId("acct");
     await db.query(
       `insert into account (id, email, name, google_sub, microsoft_sub) values ($1, $2, $3, $4, $5)`,
