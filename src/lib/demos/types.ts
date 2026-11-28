@@ -156,6 +156,8 @@ export interface DemoPack {
     /** Coding-agent sessions for software teams; empty for orgs without them. */
     sampleSessions: Record<string, SampleSession>;
   };
+  /** An agent teammate the upstream owner creates in the guide, prefilled on the New teammate page. */
+  agentTemplate: { team: string; name: string; purpose: string; /** The first job the guide gives it, offered as a one-click suggestion. */ firstJob: string; actions: ("answer" | "research" | "draft_update" | "triage" | "meetings" | "documents" | "code" | "post")[] };
   /** About five steps, each showing one clear win. */
   guide: GuideStep[];
   /** Optional extras after the main steps. */

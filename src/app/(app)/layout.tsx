@@ -5,6 +5,8 @@ import "../globals.css";
 import { cookies } from "next/headers";
 import { currentViewer, GUIDE_COOKIE } from "@/lib/session";
 import { GuideBar } from "@/components/GuideBar";
+import { Dock } from "@/components/chat/Dock";
+import { Suspense } from "react";
 import { NavLink, PathInput, PersonaSwitcher } from "@/components/Nav";
 import { Avatar, Icon } from "@/components/ui";
 import { BeaconMark } from "@/components/site/Brand";
@@ -58,6 +60,9 @@ export default async function RootLayout({ children }: { children: React.ReactNo
               <input type="search" name="q" placeholder="Search teams, people, what they own" aria-label="Search the directory" />
             </form>
             <NavLink href="/guide"><Icon name="spark" />Demo guide</NavLink>
+            <a href="/agents/new" className="b bp sm nv-new"><Icon name="agent" />New teammate</a>
+            <NavLink href="/messages"><Icon name="chat" />Messages</NavLink>
+            <NavLink href="/agents"><Icon name="agent" />Agents</NavLink>
             <NavLink href="/feed"><Icon name="feed" />My feed</NavLink>
             <NavLink href="/asks">
               <Icon name="asks" />Asks for you{asks!.n > 0 && <span className="count hot">{asks!.n}</span>}
@@ -67,9 +72,6 @@ export default async function RootLayout({ children }: { children: React.ReactNo
               <Icon name="write" />Write update{drafts!.n > 0 && <span className="count">{drafts!.n} draft{drafts!.n > 1 ? "s" : ""}</span>}
             </NavLink>
             <NavLink href="/meetings"><Icon name="meetings" />Meetings</NavLink>
-            {Object.keys(viewer.team.how_to_ask ?? {}).length > 0 && (
-              <NavLink href={`/agents/${viewer.team.slug}`}><Icon name="agent" />{viewer.team.name} agent</NavLink>
-            )}
             <NavLink href="/map"><Icon name="map" />Team map</NavLink>
             <NavLink href="/directory"><Icon name="directory" />Directory</NavLink>
             <NavLink href="/digest"><Icon name="digest" />Leadership digest{!isLeadership && <span className="count">view</span>}</NavLink>
@@ -103,6 +105,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
             </div>
           </nav>
           <main className="main">{Number.isInteger(guideStep) && <GuideBar demo={demo} step={guideStep} firstName={firstName} fullName={fullName} />}{children}</main>
+          <Suspense fallback={null}><Dock db={db} viewer={viewer} demo={demo} /></Suspense>
         </div>
       </body>
     </html>

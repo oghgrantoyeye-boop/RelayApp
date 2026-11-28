@@ -313,4 +313,43 @@ alter table team_update drop constraint team_update_source_check;
 alter table team_update add constraint team_update_source_check check (source in ('manual', 'meeting', 'coding_agent', 'github', 'agent'));
 `,
   },
+  {
+    id: "005_agents_everywhere",
+    sql: `
+-- The agent panel on every page: each person's conversation with their own agent and team agents.
+create table chat_message (
+  id text primary key,
+  org_id text not null references org(id),
+  user_id text not null references app_user(id),
+  role text not null check (role in ('user', 'agent')),
+  target text not null,
+  agent_label text,
+  text text not null,
+  refs jsonb not null default '[]',
+  actions jsonb not null default '[]',
+  created_at timestamptz not null
+);
+create index chat_user_idx on chat_message (user_id, created_at);
+
+-- Worker agents do more than research and drafting: they review documents and change code.
+alter table task_run drop constraint task_run_kind_check;
+alter table task_run add constraint task_run_kind_check check (kind in ('research', 'draft_update', 'review_doc', 'code'));
+alter table task_run drop constraint task_run_status_check;
+alter table task_run add constraint task_run_status_check check (status in ('queued', 'running', 'done', 'failed', 'stopped', 'needs_key', 'needs_sandbox'));
+
+-- Agents a team creates: what each may read, what it may do, and what needs a person's approval.
+create table agent_profile (
+  agent_id text primary key references app_user(id),
+  unit_id text not null references unit(id),
+  purpose text not null,
+  connector_ids text[] not null default '{}',
+  actions text[] not null default '{}',
+  approval text not null default 'outside_team' check (approval in ('always', 'outside_team')),
+  kind text not null default 'custom',
+  schedule text not null default 'on_request' check (schedule in ('on_request', 'daily', 'weekly')),
+  created_by text references app_user(id),
+  created_at timestamptz not null
+);
+`,
+  },
 ];

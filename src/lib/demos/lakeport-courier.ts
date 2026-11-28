@@ -38,7 +38,7 @@ const PEOPLE: Person[] = [
   ["noah", "Noah Fischer", "Courts and crime reporter", "city", "member"],
   ["bea", "Bea Santos", "Health reporter", "city", "member"],
   ["hugh", "Hugh Barlow", "Investigations editor", "investigations", "lead"],
-  ["lena", "Lena Kowalski", "Investigative reporter", "investigations", "member"],
+  ["lena", "Lena Kovac", "Investigative reporter", "investigations", "member"],
   ["kofi", "Kofi Mensah", "Data reporter", "investigations", "member"],
   ["pete", "Pete Dunlop", "Sports editor", "sports", "lead"],
   ["carly", "Carly Vance", "Sports reporter", "sports", "member"],
@@ -238,8 +238,8 @@ const DOCS: SourceDoc[] = [
   ["cn_std_slack", "message", null, "Renée Gagnon in #standards-legal", "Lena is sending the operator a new right-of-reply letter on the staffing figure. They get 48 hours.", null, "Renée Gagnon", "2026-12-04T21:10:00Z"],
   ["cn_std_slack", "message", null, "Catherine Boyd in #standards-legal", "Let's not give the desk a date until the operator's reply is in. Tentatively Dec 9.", null, "Catherine Boyd", "2026-12-05T09:05:00Z"],
   // Investigations
-  ["cn_inv_drive", "doc", null, "Care home investigation: draft 4", "4,800 words on three Linden Care Group homes. 1,140 inspection reports analyzed. Two families interviewed.", null, "Lena Kowalski", "2026-12-02T10:00:00Z"],
-  ["cn_inv_slack", "message", null, "Lena Kowalski in #investigations", "The former manager is fine with us sharing her recording with Legal. Sending it to Renée now.", null, "Lena Kowalski", "2026-12-05T10:00:00Z"],
+  ["cn_inv_drive", "doc", null, "Care home investigation: draft 4", "4,800 words on three Linden Care Group homes. 1,140 inspection reports analyzed. Two families interviewed.", null, "Lena Kovac", "2026-12-02T10:00:00Z"],
+  ["cn_inv_slack", "message", null, "Lena Kovac in #investigations", "The former manager is fine with us sharing her recording with Legal. Sending it to Renée now.", null, "Lena Kovac", "2026-12-05T10:00:00Z"],
   ["cn_inv_slack", "message", null, "Hugh Barlow in #investigations", "If Legal clears it Dec 9, I can finish the final edit by Dec 10 with Alex on the fact-check.", null, "Hugh Barlow", "2026-12-05T11:30:00Z"],
   // Desk
   ["cn_desk_drive", "doc", null, "News budget, week of Dec 7", "Saturday A1: care home investigation, two-page spread on A4 and A5. Backup: council budget explainer. Pages close 9 pm Dec 11.", null, "Gord Patterson", "2026-12-02T10:00:00Z"],
@@ -260,7 +260,7 @@ Renée Gagnon: Status first. Linden Care Group's lawyer sent a letter on Dec 3 d
 Hugh Barlow: What does that do to Dec 5? I need two days for the final edit, and pages close Dec 11.
 Renée Gagnon: Dec 5 is gone. The operator has 48 hours to answer the new right-of-reply letter. If nothing new comes back, I can finish the legal read by Dec 9.
 Catherine Boyd: Let's not promise a date until the operator replies. I'll confirm the new date with the desk by Dec 8.
-Lena Kowalski: I'll get the former manager's recording to Renée by Dec 6.
+Lena Kovac: I'll get the former manager's recording to Renée by Dec 6.
 Hugh Barlow: Then the decision is we keep the Dec 12 front page and do the final edit Dec 9 and 10.
 Catherine Boyd: Agreed. The desk and Audience should hear this before they plan backups.
 Alex Ferreira: I'll have the fact-check of the data table done by Dec 8.
@@ -397,18 +397,28 @@ export const lakeportCourier: DemoPack = {
       { as: "fiona", note: "The editor-in-chief, who wants the newsroom's week on one page." },
     ],
   },
+  agentTemplate: {
+    team: "standards",
+    name: "Legal read prep",
+    firstJob: "Review the letter from Linden Care Group's lawyer",
+    purpose: "Before each legal read, review the documents: list every named person and allegation, check the right-of-reply letters went out, flag publication bans, and draft Standards' weekly update. Renée makes every legal call.",
+    actions: ["documents", "research", "draft_update"],
+  },
   guide: [
     { title: "See what's at risk", as: "lena", href: "/feed",
       text: "Under Needs your attention, Lena's final edit is marked At risk. Beacon shows why: it waits on the legal read, which missed Dec 5. Below, the desk's decision to lead Saturday's front page with it.",
       why: "Lena sees the whole chain in one place: Legal, her story, the front page and the Saturday launch." },
-    { title: "Ask instead of chasing", as: "lena", href: "/teams/standards?ask=When+will+the+legal+read+be+done%3F#agent",
-      text: "Ask the Standards agent when the legal read will be done. The question is filled in. There's no new date yet, so the agent sends it to Renée, the lawyer, and says 3 others asked the same thing.",
+    { title: "Ask your agent instead of chasing", as: "lena", href: "/feed?agent=When+will+the+legal+read+be+done%3F&to=me",
+      text: "The agent panel on the right has the question filled in. Press Send. Your agent sees that Standards and legal owns it and asks Standards and legal's agent. There's no new date yet, so it goes to Renée, and 3 others asked too.",
       why: "The desk, Audience and Photo were asking too. Renée gets one question instead of four messages, and nobody has to chase Lena." },
+    { title: "Add an agent teammate", as: "renee", href: "/agents/new?template=demo",
+      text: "Renée adds Legal read prep, a Worker for Standards and legal. It's filled in: what it can read, what it can do and what needs Renée's OK. Click Add, then click \"Review the letter from Linden Care Group's lawyer\" in the chat and Approve.",
+      why: "Renée gets a prep checklist for every legal read: names, figures and disputed points. She still makes every legal call." },
     { title: "Post the new date", as: "renee", href: "/write?example=1",
       text: "Renée's notes are filled in. Click Split into items. At the top, Beacon flags that one line moves the Dec 5 promise to Dec 9. Scroll down and click Publish.",
       why: "Renée writes her notes once. Beacon works out who's waiting and updates the promise." },
-    { title: "Everyone waiting hears about it", as: "lena", href: "/teams/standards?ask=When+will+the+legal+read+be+done%3F#agent",
-      text: "Back as Lena, ask the Standards agent the same question. This time it answers right away, from Renée's update. The Inbox in the sidebar has the new date too.",
+    { title: "Everyone waiting hears about it", as: "lena", href: "/feed?agent=When+will+the+legal+read+be+done%3F&to=me",
+      text: "Back as Lena, the panel has the same question ready. Send it. This time your agent answers straight from Renée's update, with the source. The Inbox in the sidebar has the new date too.",
       why: "The desk, Audience and Photo get the news at the same moment, so nobody draws a backup front page for nothing." },
     { title: "See the week on one page", as: "fiona", href: "/digest", compare: "lena",
       text: "Fiona sees one short paragraph per desk, plus every deadline that slipped. The business office paragraph covers a print schedule change, so it's confidential. Open the page as Lena: that paragraph isn't there.",
@@ -417,7 +427,7 @@ export const lakeportCourier: DemoPack = {
   explore: [
     { title: "Answer four people at once", as: "renee", href: "/asks", text: "Four questions about the same date, merged into one. Answer once and everyone who asked gets the reply." },
     { title: "Turn a meeting into updates", as: "renee", href: "/meetings/mt_legal", text: "Summarize the legal read meeting. Beacon writes the decisions and turns each action item into a commitment for its owner." },
-    { title: "Give the team's agent a task", as: "renee", href: "/agents/standards", text: "Ask the agent to research something or draft an update from the team's legal notes and messages." },
+    { title: "Meet every agent teammate", as: "renee", href: "/agents", text: "Every team's built-in agent plus the teammates teams added: Q&A agents that answer, and Workers that research, review documents or change code. Message any of them." },
     { title: "See how desks depend on each other", as: "fiona", href: "/map", text: "Who owes whom, and who is asking whom, across the newsroom." },
     { title: "Check who saw what", as: "fiona", href: "/audit", text: "Every read, share and answer, including what each agent read and for whom." },
   ],

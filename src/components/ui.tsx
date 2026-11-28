@@ -65,11 +65,19 @@ export function initials(name: string): string {
     .toUpperCase();
 }
 
-/** An illustrated headshot for a person (see /api/avatar), or "AI" for an agent. */
+/** An illustrated headshot (see /api/avatar). Agents get their own face and an "AI" badge. */
 export function Avatar({ name, agent, size }: { name: string; agent?: boolean; size?: number }) {
   const style = size ? { width: size, height: size } : undefined;
   if (agent || / agent$/.test(name)) {
-    return <span className="av agent" title={name} aria-hidden="true" style={style}>AI</span>;
+    return (
+      <span className="av-wrap" title={name} aria-hidden="true" style={style}>
+        <span className="av photo bot" style={style}>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={`/api/avatar/${encodeURIComponent(`bot:${name}`)}`} alt="" loading="lazy" />
+        </span>
+        <span className="bot-badge">AI</span>
+      </span>
+    );
   }
   return (
     <span className="av photo" title={name} aria-hidden="true" style={style}>
@@ -81,6 +89,7 @@ export function Avatar({ name, agent, size }: { name: string; agent?: boolean; s
 
 const PATHS: Record<string, ReactNode> = {
   feed: <path d="M4 6h16M4 12h16M4 18h10" />,
+  chat: <path d="M4 5h16v11H9l-5 4z" />,
   asks: (<><path d="M4 13l2-8h12l2 8v6H4z" /><path d="M4 13h5l1 2h4l1-2h5" /></>),
   commitments: (<><circle cx="12" cy="12" r="8" /><path d="M12 8v4l3 2" /></>),
   write: (<><path d="M4 20h4L19 9l-4-4L4 16z" /><path d="M14 6l4 4" /></>),

@@ -1,6 +1,6 @@
 "use client";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 import type { ReactNode } from "react";
 
 export function NavLink({ href, children }: { href: string; children: ReactNode }) {
@@ -51,4 +51,14 @@ export function PersonaSwitcher({
 export function PathInput() {
   const path = usePathname();
   return <input type="hidden" name="path" value={path} />;
+}
+
+/** The current path with its query (minus one-off params), so a form returns to the same view. */
+export function FullPathInput() {
+  const path = usePathname();
+  const params = useSearchParams();
+  const q = new URLSearchParams(params.toString());
+  for (const k of ["msg", "agent", "to"]) q.delete(k);
+  const s = q.toString();
+  return <input type="hidden" name="path" value={`${path}${s ? `?${s}` : ""}`} />;
 }

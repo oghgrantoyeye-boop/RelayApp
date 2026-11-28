@@ -40,7 +40,7 @@ for (const pack of DEMOS) {
       const teams = new Set(pack.teams.map((t) => t.id));
       for (const step of pack.guide) {
         const m = step.href.match(/^\/(teams|agents)\/([^/#?]+)/);
-        if (m) expect(teams.has(m[2])).toBe(true);
+        if (m && m[2] !== "new") expect(teams.has(m[2])).toBe(true);
         const mt = step.href.match(/^\/meetings\/([^/#?]+)/);
         if (mt) expect(pack.meetings.some((x) => x[0] === mt[1])).toBe(true);
       }

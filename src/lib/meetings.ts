@@ -90,7 +90,7 @@ export async function summarizeMeeting(db: Db, viewer: Viewer, id: string): Prom
         }
       : { ...offlineSummary(meeting.transcript, attendees), by: "Offline writer" };
   await db.query(`update meeting set summary = $2, status = case when status = 'recorded' then 'summarized' else status end where id = $1`, [id, JSON.stringify(summary)]);
-  const agent = await db.one(`select a.id from app_user a join member m on m.user_id = a.id where m.unit_id = $1 and a.kind = 'agent'`, [meeting.unit_id]);
+  const agent = await db.one(`select a.id from app_user a join member m on m.user_id = a.id where m.unit_id = $1 and a.kind = 'agent' and a.id = 'agent_' || $1`, [meeting.unit_id]);
   await audit(db, { actorId: agent?.id ?? null, onBehalfOfId: viewer.user.id, action: "summarize_meeting", targetKind: "meeting", targetId: id, detail: { decisions: summary.decisions.length, actions: summary.action_items.length, by: summary.by } });
   return summary;
 }

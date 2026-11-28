@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { currentViewer } from "@/lib/session";
-import { listTasks, fmtCost } from "@/lib/work";
+import { listTasks, fmtCost, TASK_KIND_LABEL } from "@/lib/work";
 import { agentStats } from "@/lib/agent";
 import { teamConnectors, CONNECTOR_LABEL } from "@/lib/integrations";
 import { getLLM } from "@/lib/ai/llm";
@@ -9,19 +9,33 @@ import { fmtDateTime } from "@/lib/clock";
 import { Flash, Icon, Pill, Topbar } from "@/components/ui";
 import { TASK_STATUS } from "@/components/taskStatus";
 import { startTaskAction } from "@/app/actions";
+import { AGENT_ACTIONS, APPROVAL, SCHEDULE, TIER_LABEL, getAgent, listAgents } from "@/lib/agents";
+import { Avatar } from "@/components/ui";
 
 // Server actions on this page start agent work that keeps running after the response.
 export const maxDuration = 300;
 
 
-export default async function AgentPage({ params, searchParams }: { params: Promise<{ slug: string }>; searchParams: Promise<{ msg?: string }> }) {
+export default async function AgentPage({ params, searchParams }: { params: Promise<{ slug: string }>; searchParams: Promise<{ msg?: string; agent?: string }> }) {
   const { slug } = await params;
-  const { msg } = await searchParams;
+  const { msg, agent: agentParam } = await searchParams;
   const { db, viewer, demo } = await currentViewer();
   const team = await db.one(`select * from unit where slug = $1 and how_to_ask <> '{}'::jsonb`, [slug]);
   if (!team) notFound();
-  const agent = await db.one(`select a.* from app_user a join member m on m.user_id = a.id where m.unit_id = $1 and a.kind = 'agent'`, [team.id]);
+  const agent = await db.one(`select a.* from app_user a join member m on m.user_id = a.id where m.unit_id = $1 and a.kind = 'agent' and a.id = 'agent_' || $1`, [team.id]);
   if (!agent) notFound();
+  // A teammate the team added, or the team's built-in agent.
+  const teamAgents = (await listAgents(db)).filter((a) => a.team.id === team.id);
+  const profile = (agentParam ? teamAgents.find((a) => a.id === agentParam) : null) ?? (await getAgent(db, agent.id))!;
+  const custom = !profile.builtIn;
+  const shown = custom ? (await db.one(`select * from app_user where id = $1`, [profile.id]))! : agent;
+  const can = (a: string) => profile.actions.includes(a);
+  const kinds = [
+    can("research") && { id: "research", label: "Research with me" },
+    can("draft_update") && { id: "draft_update", label: "Draft our weekly update from our tools" },
+    can("documents") && { id: "review_doc", label: "Review a document" },
+    can("code") && { id: "code", label: "Change code" },
+  ].filter(Boolean) as { id: string; label: string }[];
   const lead = await db.one(`select a.name from member m join app_user a on a.id = m.user_id where m.unit_id = $1 and m.role = 'lead'`, [team.id]);
   const isMember = viewer.reader.unitIds.includes(team.id);
   const tasks = await listTasks(db, viewer, team.id);
@@ -41,22 +55,24 @@ export default async function AgentPage({ params, searchParams }: { params: Prom
         [team.id],
       )
     : [];
-  const spent = Number(agent.spent_usd);
-  const budget = Number(agent.monthly_budget_usd ?? 0);
+  const spent = Number(shown.spent_usd);
+  const budget = Number(shown.monthly_budget_usd ?? 0);
   const pct = budget ? Math.min(100, (spent / budget) * 100) : 0;
   const hasModel = !!getLLM().research;
 
   return (
     <>
-      <Topbar crumbs={[{ href: `/teams/${team.slug}`, label: team.name }, agent.name]} />
+      <Topbar crumbs={[{ href: "/agents", label: "Agents" }, { href: `/teams/${team.slug}`, label: team.name }, profile.name]}>
+        <div className="actions"><Link className="b sm bp" href={`/messages?with=${profile.id}`}>Message</Link></div>
+      </Topbar>
       <div className="content">
         <Flash msg={msg} />
         <div className="page-head">
           <div className="row" style={{ gap: 12 }}>
-            <span className="av agent" style={{ width: 40, height: 40, fontSize: 13 }}>AI</span>
+            <Avatar name={profile.name} agent size={44} />
             <div>
-              <h1>{agent.name}</h1>
-              <p>A member of {team.name}. It answers questions from other teams, does research and drafts updates for the team. People approve anything that leaves the team.</p>
+              <h1>{profile.name} <Pill tone={profile.tier === "worker" ? "violet" : "gray"} dot={false}>{TIER_LABEL[profile.tier]}</Pill></h1>
+              <p>{custom ? `A teammate on ${team.name}, added by ${profile.createdBy ?? "the team"}. ` : `${team.name}'s built-in agent. `}{profile.purpose} People approve anything that leaves the team.</p>
             </div>
           </div>
         </div>
@@ -70,11 +86,13 @@ export default async function AgentPage({ params, searchParams }: { params: Prom
                 <form action={startTaskAction} style={{ marginTop: 12, display: "flex", flexDirection: "column", gap: 10 }}>
                   <input type="hidden" name="unitId" value={team.id} />
                   <input type="hidden" name="slug" value={team.slug} />
-                  <div className="row">
-                    <label className="check"><input type="radio" name="kind" value="research" defaultChecked /> Research with me</label>
-                    <label className="check"><input type="radio" name="kind" value="draft_update" /> Draft our weekly update from our tools</label>
+                  {custom && <input type="hidden" name="agentId" value={profile.id} />}
+                  <div className="row" style={{ flexWrap: "wrap" }}>
+                    {kinds.map((k, i) => (
+                      <label key={k.id} className="check"><input type="radio" name="kind" value={k.id} defaultChecked={i === 0} /> {k.label}</label>
+                    ))}
                   </div>
-                  <textarea name="instructions" rows={3} placeholder={`For research: what should it find out? For example: ${demo.ui.researchHint}`} aria-label="Instructions" />
+                  <textarea name="instructions" rows={3} placeholder={can("documents") ? "Which document, and what should it check? For example: review the latest draft" : can("code") ? "What should it change? For example: fix the flaky load test" : `For research: what should it find out? For example: ${demo.ui.researchHint}`} aria-label="Instructions" />
                   <div className="row">
                     {!hasModel && <span className="small" style={{ color: "#92400e" }}>Research needs ANTHROPIC_API_KEY. Drafting updates works without it.</span>}
                     <button className="b bp" type="submit" style={{ marginLeft: "auto" }}>Start</button>
@@ -101,7 +119,7 @@ export default async function AgentPage({ params, searchParams }: { params: Prom
                           const [tone, label] = TASK_STATUS[t.status] ?? ["gray", t.status];
                           return (
                             <tr key={t.id}>
-                              <td><Link href={`/agents/${team.slug}/tasks/${t.id}`} style={{ fontWeight: 500 }}>{t.title}</Link><div className="small muted">{t.kind === "research" ? "Research" : "Draft update"}</div></td>
+                              <td><Link href={`/agents/${team.slug}/tasks/${t.id}`} style={{ fontWeight: 500 }}>{t.title}</Link><div className="small muted">{TASK_KIND_LABEL[t.kind] ?? t.kind}</div></td>
                               <td>{t.requester_name}</td>
                               <td><Pill tone={tone}>{label}</Pill></td>
                               <td className="mono">{fmtCost(t.cost_usd)}</td>
@@ -138,10 +156,26 @@ export default async function AgentPage({ params, searchParams }: { params: Prom
                 <div><dt>Team</dt><dd>{team.name}</dd></div>
                 <div><dt>Manager</dt><dd>{lead?.name ?? "–"}</dd></div>
                 <div><dt>Model</dt><dd>{hasModel ? "Claude" : "Offline writer (no API key)"}</dd></div>
-                <div><dt>Answers itself</dt><dd>{stats.answered} of {stats.total} questions, last 30 days</dd></div>
-                <div><dt>Needs approval to</dt><dd>Share anything outside {team.name}, or confirm commitments</dd></div>
+                {!custom && <div><dt>Answers itself</dt><dd>{stats.answered} of {stats.total} questions, last 30 days</dd></div>}
+                <div><dt>Can</dt><dd>{profile.actions.map((a) => AGENT_ACTIONS.find((x) => x.id === a)?.label).filter(Boolean).join("; ")}</dd></div>
+                <div><dt>Approvals</dt><dd>{APPROVAL[profile.approval]}</dd></div>
+                <div><dt>Runs</dt><dd>{SCHEDULE[profile.schedule]}</dd></div>
+                <div><dt>Sandbox</dt><dd>Each job runs in its own isolated container</dd></div>
                 <div><dt>Reads for others</dt><dd>Only what the person asking may see</dd></div>
               </dl>
+            </section>
+            <section>
+              <h2>Agents on {team.name}</h2>
+              <ul className="list tight">
+                {teamAgents.map((a) => (
+                  <li key={a.id}>
+                    <Avatar name={a.name} agent size={22} />
+                    <Link className="grow" href={`/agents/${team.slug}${a.builtIn ? "" : `?agent=${a.id}`}`} style={{ fontWeight: a.id === profile.id ? 600 : 400 }}>{a.name}</Link>
+                    <span className="small muted">{TIER_LABEL[a.tier]}</span>
+                  </li>
+                ))}
+              </ul>
+              {isMember && <Link href={`/agents/new?team=${team.id}`} className="small" style={{ color: "var(--blue)" }}>+ Add a teammate</Link>}
             </section>
             <section>
               <h2>Budget</h2>
@@ -155,7 +189,10 @@ export default async function AgentPage({ params, searchParams }: { params: Prom
               <h2>What it can read</h2>
               <ul className="small" style={{ margin: 0, paddingLeft: 16, display: "grid", gap: 4 }}>
                 <li>{counts.items} published updates and answers</li>
-                <li>{counts.docs} items from {tools.length} connected tools: {tools.map((t) => CONNECTOR_LABEL[t.kind] ?? t.kind).filter((v, i, a) => a.indexOf(v) === i).join(", ")}</li>
+                {(() => {
+                  const mineTools = profile.connectorIds.length ? tools.filter((t) => profile.connectorIds.includes(t.id)) : tools;
+                  return <li>{mineTools.length} of {tools.length} connected tools: {mineTools.map((t) => `${CONNECTOR_LABEL[t.kind] ?? t.kind} (${t.name})`).join(", ")}</li>;
+                })()}
                 <li>{counts.meetings} {counts.meetings === 1 ? "meeting" : "meetings"} it attended</li>
               </ul>
             </section>
