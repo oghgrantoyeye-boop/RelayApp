@@ -287,10 +287,10 @@ export default function Home() {
               decided, with AI agents that answer, route and follow up inside clear boundaries.
             </p>
             <div className="not-list">
-              <div><b>Not a chatbot.</b><span>It works from shared context, ownership and permissions, not a blank prompt.</span></div>
-              <div><b>Not a knowledge base.</b><span>It brings the right information to the people who need it, without waiting to be searched.</span></div>
-              <div><b>Not a project tracker.</b><span>It connects work across the tools teams already use.</span></div>
-              <div><b>Not workflow automation.</b><span>It coordinates people and agents around decisions, not just triggers.</span></div>
+              <div><b>An AI teammate for every team.</b><span>Each one is sandboxed to its team&apos;s tools and access, never more.</span></div>
+              <div><b>Answers come with sources.</b><span>And they respect who is allowed to see what.</span></div>
+              <div><b>From questions to real work.</b><span>Teammates range from answering questions to workers that draft code, research and legal documents. Start from a ready-made one or build your own.</span></div>
+              <div><b>Agents draft, people approve.</b><span>Nothing reaches another team until a person signs off, and every action is logged.</span></div>
             </div>
           </Reveal>
         </div>
