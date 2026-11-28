@@ -222,3 +222,11 @@ fieldset.field legend { font-size: 12px; color: var(--muted); margin-bottom: 4px
   .chat-page { flex-direction: column; }
   .contacts { flex-basis: auto; max-height: 220px; border-right: 0; border-bottom: 1px solid var(--line); }
 }
+
+/* Team context (T-15) */
+.ctx-group + .ctx-group { border-top: 1px solid var(--line, #e5e5e5); }
+.ctx-entry { display: flex; gap: 12px; align-items: flex-start; }
+.ctx-kind { display: inline-block; min-width: 96px; font-size: 12px; text-transform: uppercase; letter-spacing: 0.04em; color: var(--muted, #6b6b6b); margin-right: 6px; }
+.ctx-acts { flex: none; gap: 6px; }
+.ctx-fix summary { display: inline-block; margin-top: 6px; list-style: none; cursor: pointer; }
+.ctx-fix summary::-webkit-details-marker { display: none; }

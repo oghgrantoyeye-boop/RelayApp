@@ -166,7 +166,7 @@ The model adapter supports Claude only. An OpenAI key would need a second provid
 - [~] **T-14 Seed by learning.** (Claude) Mock: M2. The sample workspaces build their team context by
   running `learnFrom` over their seeded updates, answers, meetings and documents. Acceptance:
   Platform's page in Northwind looks like M2 without hand-written context. Depends: T-12, T-13. S.
-- [~] **T-15 "What Beacon knows about us" section.** (Claude) Mock: M2. Entries grouped by kind with
+- [x] **T-15 "What Beacon knows about us" section.** (Claude) Mock: M2. Entries grouped by kind with
   provenance tags, sources and freshness; Looks right, Fix (inline edit) and Remove with undo, for
   team members; others see it read-only at the shared level. Every action writes an audit event
   and feeds back into learning. Acceptance: matches M2; removing an entry stops it being
