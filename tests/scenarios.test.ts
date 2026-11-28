@@ -180,17 +180,16 @@ describe("team agents and requests", () => {
     expect(d).toHaveLength(1);
   });
 
-  it("answers once for everyone, keeps it private unless published, then answers it next time", async () => {
+  it("answers once for everyone, keeps the answer private, learns the fact and answers it next time", async () => {
     const aisha = await v("aisha");
-    const r = await answerCluster(db, aisha, "ck_limits_date", { answer: "The leak fix merged. We'll land the change by Dec 9.", publish: true, publishLevel: "summary" });
+    const r = await answerCluster(db, aisha, "ck_limits_date", { answer: "The leak fix merged. We'll land the change by Dec 9." });
     expect(r.recipients).toBe(3);
     for (const who of ["hannah", "maya", "grace"]) {
       expect((await db.query(`select * from delivery where recipient_id = $1 and kind = 'answer'`, [sid(who)])).length).toBe(1);
     }
-    const item = (await db.one(`select * from update_item where id = $1`, [r.publishedId]))!;
-    expect(item.max_level).toBe("summary");
-    // Payments follows Platform at full detail, but the publisher capped this answer at Summary.
-    expect((await levelOf("hannah", "update_item", item.id)).level).toBe("summary");
+    // Nothing is published from an answer any more: Beacon learns from it instead.
+    expect(await db.query(`select id from update_item where source_kind = 'answer' and source_ref = $1`, [r.requestId])).toHaveLength(0);
+    expect(r.learned.length).toBeGreaterThan(0);
     const { questionId } = await askTeam(db, await v("ravi"), sid("platform"), "When will the rate-limit change land?");
     const q = (await getQuestion(db, await v("ravi"), questionId))!;
     expect(q.question.outcome).toBe("answered");

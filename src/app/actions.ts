@@ -213,17 +213,14 @@ export async function answerAsk(form: FormData) {
       await declineCluster(db, viewer, key, str(form, "answer"));
       return withMsg(back, "Declined. Everyone who asked was told.");
     }
-    const lvl = str(form, "publishLevel");
     const r = await answerCluster(db, viewer, key, {
       answer: str(form, "answer"),
-      publish: form.get("publish") === "on",
-      publishLevel: isLevel(lvl) ? lvl : undefined,
       commitDue: form.get("commit") === "on" ? str(form, "due") || undefined : undefined,
     });
-    const parts = [`Answered ${r.recipients} ${r.recipients === 1 ? "person" : "people"} at once.`];
-    if (r.publishedId) parts.push("Published to your team page, so the agent can answer it next time.");
+    const parts = [`Answered ${r.recipients} ${r.recipients === 1 ? "person" : "people"} at once. It stays private to them.`];
     if (r.commitmentId) parts.push("Added a commitment.");
-    return withMsg(back, parts.join(" "));
+    const sep = back.includes("?") ? "&" : "?";
+    return withMsg(`${back}${sep}answered=${encodeURIComponent(r.requestId)}`, parts.join(" "));
   });
 }
 

@@ -4,12 +4,16 @@ import { addDays, fmt, fmtDateTime, today } from "@/lib/clock";
 import { Avatar, Flash, LevelTag, Pill, Topbar } from "@/components/ui";
 import Link from "next/link";
 import { answerAsk, queueAction, sendMyBatch } from "@/app/actions";
+import { learnedFromAnswer } from "@/lib/context";
+import { LearnedFromAnswer } from "@/components/LearnedFromAnswer";
 
-export default async function AsksPage({ searchParams }: { searchParams: Promise<{ msg?: string; tab?: string }> }) {
-  const { msg, tab: tabParam } = await searchParams;
+export default async function AsksPage({ searchParams }: { searchParams: Promise<{ msg?: string; tab?: string; answered?: string }> }) {
+  const { msg, tab: tabParam, answered } = await searchParams;
   const tab = tabParam === "team" ? "team" : "for_you";
   const { db, viewer } = await currentViewer();
   const { clusters, nextBatch, pending, counts } = await getAsks(db, viewer, tab);
+  const learned = answered ? await learnedFromAnswer(db, viewer, answered) : null;
+  const here = `/asks?${tab === "team" ? "tab=team&" : ""}answered=${encodeURIComponent(answered ?? "")}`;
   const teamIds = viewer.reader.unitIds;
   const teammates = await db.query(
     `select distinct a.id, a.name, m.unit_id from member m join app_user a on a.id = m.user_id where m.unit_id = any($1) and a.kind = 'human' and a.id <> $2 order by a.name`,
@@ -26,6 +30,7 @@ export default async function AsksPage({ searchParams }: { searchParams: Promise
       </Topbar>
       <div className="content">
         <Flash msg={msg} />
+        {learned && <LearnedFromAnswer team={learned.team} slug={learned.slug} entries={learned.entries} back={here} />}
         <div className="page-head">
           <div>
             <h1>{tab === "team" ? "Team queue" : "Asks for you"}</h1>
@@ -48,7 +53,7 @@ export default async function AsksPage({ searchParams }: { searchParams: Promise
         </div>
         {clusters.length === 0 && (
           <div className="card empty">
-            {tab === "team" ? "Your team's queue is empty. The agent answered everything else from what the team shared." : "Nothing waiting on you. Team agents answer what your team has already published."}
+            {tab === "team" ? "Your team's queue is empty. The agent answered everything else from what the team shared." : "Nothing waiting on you. Team agents answer what Beacon has learned about your team."}
           </div>
         )}
         <div className="stack" style={{ gap: 14 }}>
@@ -114,14 +119,7 @@ export default async function AsksPage({ searchParams }: { searchParams: Promise
                 <input type="hidden" name="key" value={c.key} />
                 <input type="hidden" name="tab" value={tab} />
                 <textarea name="answer" rows={2} placeholder="Answer once. It goes to everyone who asked." aria-label="Your answer" />
-                <div className="row small">
-                  <label className="check"><input type="checkbox" name="publish" defaultChecked={c.askers.length > 1} /> Publish to my team&apos;s page so the agent can answer it next time, at</label>
-                  <select name="publishLevel" defaultValue="summary" aria-label="Publish level">
-                    <option value="full">Full detail</option>
-                    <option value="summary">Summary</option>
-                    <option value="headline">Headline</option>
-                  </select>
-                </div>
+                <p className="small muted" style={{ margin: 0 }}>The answer stays private to the people who asked. Beacon learns the general fact for {c.requests[0].to_name}&apos;s page and shows you what it learned.</p>
                 <div className="row small">
                   <label className="check"><input type="checkbox" name="commit" /> Also commit to deliver by</label>
                   <input type="date" name="due" defaultValue={addDays(today(), 3)} aria-label="Commitment due date" />

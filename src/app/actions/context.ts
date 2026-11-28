@@ -10,15 +10,18 @@ const str = (f: FormData, k: string) => String(f.get(k) ?? "").trim();
 
 async function act(form: FormData, fn: (id: string) => Promise<string>): Promise<never> {
   const slug = str(form, "slug").replace(/[^a-z0-9-]/gi, "");
-  const back = `/teams/${slug}`;
+  // The team queue shows what Beacon learned from an answer and lets the answerer confirm it there.
+  const from = str(form, "back");
+  const asks = /^\/asks(\?[\w=&%-]*)?$/.test(from) ? from : null;
+  const back = asks ?? `/teams/${slug}`;
   let msg: string;
   try {
     msg = await fn(str(form, "id"));
   } catch (e) {
     msg = `Error: ${(e as Error).message}`;
   }
-  revalidatePath(back);
-  redirect(`${back}?msg=${encodeURIComponent(msg)}#knows`);
+  revalidatePath(asks ? "/asks" : back);
+  redirect(asks ? `${asks}${asks.includes("?") ? "&" : "?"}msg=${encodeURIComponent(msg)}` : `${back}?msg=${encodeURIComponent(msg)}#knows`);
 }
 
 export async function confirmContext(form: FormData) {

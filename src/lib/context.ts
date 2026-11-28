@@ -155,3 +155,56 @@ export async function restoreEntry(db: Db, viewer: Viewer, id: string) {
   await db.query(`update context_entry set status = 'active', updated_at = $2 where id = $1`, [id, now()]);
   await audit(db, { orgId: viewer.orgId, actorId: viewer.user.id, action: "context_restore", targetKind: "context_entry", targetId: id, detail: { unit: row.unit_id } });
 }
+
+export interface LearnedView {
+  id: string;
+  kind: string;
+  kindLabel: string;
+  title: string;
+  body: string;
+  /** pending: waits for a teammate before other teams see it. active: already on the team page. retired: dropped. */
+  status: "pending" | "active" | "retired";
+  confirmed: boolean;
+  /** Why it waits for a teammate, when it does. */
+  why: string | null;
+}
+
+/**
+ * What Beacon learned from one answer (T-24), for the person who just answered and their team.
+ * Only the team the question was sent to sees it: the entries are its own context, in full.
+ */
+export async function learnedFromAnswer(db: Db, viewer: Viewer, requestId: string): Promise<{ team: string; slug: string; entries: LearnedView[] } | null> {
+  const req = await db.one(
+    `select r.to_unit_id, u.name, u.slug from request r join unit u on u.id = r.to_unit_id where r.id = $1 and u.org_id = $2`,
+    [requestId, viewer.orgId],
+  );
+  if (!req || !viewer.reader.unitIds.includes(req.to_unit_id)) return null;
+  const rows = await db.query(
+    `select * from context_entry where unit_id = $1 and source_refs @> $2::jsonb order by first_seen_at`,
+    [req.to_unit_id, JSON.stringify([{ kind: "answer", ref: requestId }])],
+  );
+  const entries = rows.map((row): LearnedView => {
+    const marked = (row.marking_ids ?? []).length > 0;
+    const why =
+      row.status !== "pending"
+        ? null
+        : row.kind === "responsibility"
+          ? "This says who owns what, so a teammate confirms it before other teams see it."
+          : row.kind === "capability"
+            ? `This says what ${req.name} can take on, so a teammate confirms it before other teams see it.`
+            : marked
+              ? "The question was marked, so a teammate confirms this before other teams see it."
+              : "It came from something fewer people can see, so a teammate confirms it before other teams see it.";
+    return {
+      id: row.id,
+      kind: row.kind,
+      kindLabel: CONTEXT_KIND_LABEL[row.kind] ?? row.kind,
+      title: row.title,
+      body: row.body,
+      status: row.status,
+      confirmed: row.provenance !== "learned",
+      why,
+    };
+  });
+  return { team: req.name, slug: req.slug, entries };
+}
