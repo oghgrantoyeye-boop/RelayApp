@@ -154,7 +154,7 @@ The model adapter supports Claude only. An OpenAI key would need a second provid
   rules (low-risk kinds apply as "learned"; ownership, capabilities and marked sources wait for
   confirmation). Runs with `after()`. Acceptance: unit tests feed sample answers and PRs and get
   the expected entries and pending claims. Depends: T-10. L.
-- [~] **T-12 Learn from answered asks and agent chats.** (Claude) Mock: M2, M4. Call `learnFrom` from
+- [x] **T-12 Learn from answered asks and agent chats.** (Claude) Mock: M2, M4. Call `learnFrom` from
   `answerCluster` (the answerer's reply) and from team members' messages in `chat_message`.
   Acceptance: answering a routed question in the demo creates a learned or pending entry on the
   team page. Depends: T-11. S.

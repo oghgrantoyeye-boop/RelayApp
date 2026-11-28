@@ -14,6 +14,7 @@ import { deliver } from "./deliver";
 import { getAgent, listAgents, type AgentRow } from "./agents";
 import { workersEnabled, WORKERS_OFF_MESSAGE } from "./flags";
 import { PermissionError } from "./permissions";
+import { learnQuietly } from "./context-learn";
 
 export type ChatTarget = "me" | string; // "me", or an agent's user id
 
@@ -104,7 +105,11 @@ export async function sendChat(db: Db, viewer: Viewer, input: { target: ChatTarg
   }
   const agent = target === "me" ? null : await getAgent(db, target);
   if (target !== "me" && !agent) throw new Error("That agent doesn't exist.");
-  await save(db, viewer, { role: "user", target, agentLabel: null, text: input.text.trim().slice(0, 2000), refs: [], actions: [] });
+  const userMsgId = await save(db, viewer, { role: "user", target, agentLabel: null, text: input.text.trim().slice(0, 2000), refs: [], actions: [] });
+  // A teammate talking to their own team's agent is the team describing itself. Someone from another
+  // team asking a question is not, so Beacon only learns from members of the agent's team.
+  if (agent && viewer.reader.unitIds.includes(agent.team.id))
+    await learnQuietly(db, { unitId: agent.team.id, kind: "agent_chat", ref: userMsgId, label: `${viewer.user.name} in ${agent.name}`, text, actorId: viewer.user.id });
   const reply = await replyTo(db, viewer, agent, text);
   return save(db, viewer, { role: "agent", target, agentLabel: agent ? agent.name : MY_AGENT, ...reply });
 }
