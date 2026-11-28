@@ -249,7 +249,7 @@ other questions. Then GitHub, then the planned tools.
 
 ## Reframe (from Phase 0)
 
-- [ ] **T-50 Remove slip and at-risk framing.** No slipped or at-risk styling in the feed, team
+- [x] **T-50 Remove slip and at-risk framing.** (Claude) No slipped or at-risk styling in the feed, team
   page and inbox; "Open commitments" becomes "Active work" (as in M2). S.
 - [ ] **T-51 Rewrite the Northwind story.** The spec's narrative, as in M3 to M5: Ava asks
   whether Platform can support merchant sign-on; clarify; team queue; Ken answers; Beacon learns.

@@ -136,15 +136,15 @@ export default async function TeamPage({ params, searchParams }: { params: Promi
             </section>
 
             <section>
-              <h2>Open commitments</h2>
+              <h2>Active work</h2>
               {open.length === 0 ? (
-                <div className="card empty">Nothing open.</div>
+                <div className="card empty">Nothing in progress that {team.name} has shared.</div>
               ) : (
                 <ul className="list card tight">
                   {open.map((c) => (
                     <li key={c.id}>
-                      <span className="lead-col"><StatePill state={c.state} daysLate={c.daysLate} /></span>
-                      <CommitmentLine c={c} />
+                      {c.state === "draft" && <span className="lead-col"><StatePill state={c.state} /></span>}
+                      <CommitmentLine c={c} calm />
                     </li>
                   ))}
                 </ul>

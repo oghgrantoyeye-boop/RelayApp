@@ -210,16 +210,16 @@ async function replyTo(db: Db, viewer: Viewer, agent: AgentRow | null, text: str
 async function attention(db: Db, viewer: Viewer): Promise<Reply> {
   const feed = await getFeed(db, viewer);
   const lines: string[] = [];
-  for (const a of feed.alerts.slice(0, 4)) {
+  for (const k of feed.asksForYou.slice(0, 3)) lines.push(`- ${k.team.name} asked your team: ${k.text}`);
+  for (const d of feed.decisions.slice(0, 3)) lines.push(`- ${d.team.name} decided: ${d.text}`);
+  for (const a of feed.alerts.slice(0, 2)) {
     const why = a.state === "slipped"
       ? `was due ${fmt(a.due)}, and ${a.ownerUnit.name} is working out a new date${a.shown.reason ? ` (${a.shown.reason.replace(/\.$/, "")})` : ""}`
       : `is waiting on ${a.blockedBy ? `${a.blockedBy.ownerUnit.name}'s "${a.blockedBy.shown.title}"` : "another team"}, so its date may move`;
     lines.push(`- **${a.shown.title}** (${a.ownerUnit.name}) ${why}.`);
   }
-  for (const k of feed.asksForYou.slice(0, 2)) lines.push(`- ${k.team.name} asked your team: ${k.text}`);
-  for (const d of feed.decisions.slice(0, 2)) lines.push(`- ${d.team.name} decided: ${d.text}`);
-  if (lines.length === 0) return { text: "Nothing has changed for you. Every date your teams depend on is holding.", refs: [{ label: "My feed", href: "/feed" }], actions: [] };
-  return { text: `Here's what changed for you this week:\n${lines.join("\n")}`, refs: [{ label: "My feed", href: "/feed" }, { label: "Commitments", href: "/commitments" }], actions: [] };
+  if (lines.length === 0) return { text: "Nothing from the teams you work with affects you this week.", refs: [{ label: "What's changing", href: "/feed" }], actions: [] };
+  return { text: `Here's what changed for you this week:\n${lines.join("\n")}`, refs: [{ label: "What's changing", href: "/feed" }], actions: [] };
 }
 
 async function owed(db: Db, viewer: Viewer): Promise<Reply> {
