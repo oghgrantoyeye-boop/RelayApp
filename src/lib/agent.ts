@@ -12,6 +12,7 @@ import { showCommitment, showRequest, showSource, showUpdateItem, KIND_LABEL } f
 import { answerFromPublished, routeQuestion, writeLevels } from "./ai/tasks";
 import { jaccard, overlap, tokens, type Doc } from "./ai/offline";
 import { notifyCommitmentChange } from "./commitments";
+import { learnQuietly } from "./context-learn";
 
 export interface AskResult {
   questionId: string;
@@ -299,6 +300,17 @@ export async function answerCluster(
     refs: [{ type: "request", id: reqs[0].id, href: "/inbox" }],
   });
   await audit(db, { orgId: viewer.orgId, actorId: viewer.user.id, action: "answer_request", targetKind: "request", targetId: reqs[0].id, detail: { cluster: key, recipients: askers.length } });
+  // What the team says when it answers is the best evidence of what it knows and how it works.
+  await learnQuietly(db, {
+    unitId,
+    kind: "answer",
+    ref: reqs[0].id,
+    label: `${viewer.user.name}'s answer`,
+    question: reqs[0].title,
+    text: answer,
+    markingIds: [...new Set(reqs.map((r) => r.marking_id).filter(Boolean))] as string[],
+    actorId: viewer.user.id,
+  });
 
   let publishedId: string | null = null;
   if (input.publish) {

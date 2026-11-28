@@ -69,3 +69,16 @@ export async function learnFrom(db: Db, src: LearnSource): Promise<LearnResult> 
     });
   return result;
 }
+
+/**
+ * Learning is a side effect of the team's work, so it must never block that work: a failure
+ * is logged and the answer, message or update still goes through.
+ */
+export async function learnQuietly(db: Db, src: LearnSource): Promise<LearnResult | null> {
+  try {
+    return await learnFrom(db, src);
+  } catch (err) {
+    console.error(`[beacon] learning from ${src.kind} ${src.ref} failed:`, err);
+    return null;
+  }
+}
