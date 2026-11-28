@@ -292,6 +292,16 @@ other questions. Then GitHub, then the planned tools.
   answers and routing are trusted, each with its scope, permissions, approval and audit defined
   first.
 
+- [ ] **T-61 Multi-model chat with bring-your-own subscription.** Requirement from Ovo (Nov 28),
+  not approved to build yet. A full-page chat with a model picker so Beacon can replace the Claude
+  web app, with one shared memory across models. Realistic BYO, per provider terms as of Nov 2026:
+  per-person API keys (Anthropic, OpenAI, Google, xAI) stored encrypted; "Sign in with OpenRouter"
+  (OAuth PKCE, billed to the user's credits); "Sign in with ChatGPT" only if OpenAI grants a client
+  ID. Claude Pro/Max sign-in may not be used outside Anthropic's own apps, so Claude plans are used
+  through Claude Code reporting to Beacon. Needs: a provider layer with adapters, a "Your models"
+  settings page, shared context from what Beacon has learned, and the same picker for per-agent
+  model choice. Plan and open decisions: "Beacon: audit and integrations plan" doc. L.
+
 ## Suggested order
 
 - **Claude:** T-00 (website), T-01, T-02, T-50, T-03, then T-10, T-11, T-12, T-13, T-15, T-18, T-19,
