@@ -125,8 +125,8 @@ export interface Route {
   ownership: Row | null;
   /** The owner for destination owner; null for the team queue. */
   member: Row | null;
-  /** The team lead: notified when a team-queue ask can't wait for the queue. */
-  lead: Row;
+  /** The team lead: notified when a team-queue ask can't wait for the queue. Null if the team has none. */
+  lead: Row | null;
   /** One sentence, shown to the asker and the team, on why it went where it went. */
   reason: string;
 }
@@ -142,7 +142,6 @@ export async function chooseRoute(db: Db, unitId: string, question: string): Pro
   const unit = (await db.one(`select name from unit where id = $1`, [unitId]))!;
   const owns = await db.query(`select * from ownership_item where unit_id = $1`, [unitId]);
   const lead = await db.one(`${memberSelect} where m.unit_id = $1 and m.role = 'lead' limit 1`, [unitId]);
-  if (!lead) throw new Error("This team has no lead to route to");
   const id = confidentOwnership(question, owns.map((o) => ({ id: o.id, title: o.title, description: o.description, keywords: o.keywords })));
   const ownership = owns.find((o) => o.id === id) ?? null;
   const owner = ownership?.owner_member_id ? await db.one(`${memberSelect} where m.id = $1`, [ownership.owner_member_id]) : null;
@@ -235,7 +234,7 @@ export async function askTeam(
   const { ownership, member, lead } = route;
   const cluster = await clusterKeyFor(db, member ? { assigneeMemberId: member.id } : { queueUnitId: unitId }, question, ownership?.id ?? null);
   const notify = member ?? lead;
-  const nextBatch = nextBatchAt(notify.ask_cadence);
+  const nextBatch = nextBatchAt(notify?.ask_cadence ?? "daily");
   const immediate = !!opts.blocking || (!!opts.neededBy && opts.neededBy <= nextBatch.toISOString().slice(0, 10)) || (!!member && member.ask_cadence === "immediate");
   const reqId = newId("rq");
   await db.query(
@@ -246,7 +245,7 @@ export async function askTeam(
       route.destination, route.reason, now()],
   );
   const askers = (await db.one(`select count(distinct requester_id)::int as n from request where cluster_key = $1 and status = 'open'`, [cluster]))!.n;
-  if (immediate) {
+  if (immediate && notify) {
     await deliver(db, [notify.user_id], {
       kind: "ask_now",
       subject: `${opts.blocking ? "Blocking ask" : "Ask needed soon"} from ${viewer.user.name}${member ? "" : ` in the ${unit.name} queue`}`,
@@ -257,7 +256,7 @@ export async function askTeam(
   const others = askers > 1 ? ` ${askers - 1} other ${askers - 1 === 1 ? "person has" : "people have"} asked the same thing.` : "";
   const when = member
     ? immediate ? "They've been notified now." : `It's in their next batch of asks (${fmtDateTime(nextBatch)} UTC), so they can answer everyone at once.`
-    : immediate ? `${lead.name}, the team lead, has been notified now.` : "";
+    : immediate && lead ? `${lead.name}, the team lead, has been notified now.` : "";
   const partial = result.partial ? sources.find((s) => s.ref === result.partial!.ref) : undefined;
   const answer = `${unit.name} hasn't shared an answer to this yet. ${route.reason}${others}${when ? ` ${when}` : ""}`;
   const markings = partial ? deriveMarkings([partial]) : [];
@@ -611,7 +610,7 @@ export async function submitRequest(db: Db, viewer: Viewer, unitId: string, inpu
   const { ownership, member, lead } = route;
   const cluster = await clusterKeyFor(db, member ? { assigneeMemberId: member.id } : { queueUnitId: unitId }, input.title, ownership?.id ?? null);
   const notify = member ?? lead;
-  const nextBatch = nextBatchAt(notify.ask_cadence);
+  const nextBatch = nextBatchAt(notify?.ask_cadence ?? "daily");
   const immediate = !!input.blocking || (!!input.neededBy && input.neededBy <= nextBatch.toISOString().slice(0, 10));
   const id = newId("rq");
   await db.query(
@@ -621,7 +620,7 @@ export async function submitRequest(db: Db, viewer: Viewer, unitId: string, inpu
       input.blocking ? "blocking" : "normal", ownership?.id ?? null, member?.id ?? null, cluster, immediate ? "immediate" : "batch", immediate ? now() : null,
       route.destination, route.reason, now()],
   );
-  if (immediate)
+  if (immediate && notify)
     await deliver(db, [notify.user_id], { kind: "ask_now", subject: `${input.blocking ? "Blocking ask" : "Ask needed soon"} from ${viewer.user.name}`, body: input.title, refs: [{ type: "request", id, href: "/asks" }] });
   await audit(db, { orgId: viewer.orgId, actorId: viewer.user.id, action: "create_request", targetKind: "request", targetId: id, detail: { destination: route.destination, to: member?.user_id ?? null, delivery: immediate ? "immediate" : "batch" } });
   return { id, assignee: member?.name ?? null, destination: route.destination, reason: route.reason, ownership: ownership?.title ?? null, immediate, nextBatch };
