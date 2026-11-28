@@ -13,13 +13,15 @@ import { buildDigest } from "@/lib/digest";
 import { askTeam, getAsks, getQuestion } from "@/lib/agent";
 import { search } from "@/lib/directory";
 import { DEMOS } from "@/lib/demos";
+import { scoped } from "@/lib/scoped";
 import { activeDemo } from "@/lib/demo";
 
 for (const pack of DEMOS) {
   describe(`${pack.org.name} demo`, () => {
     let db: Db;
+    const sid = (id: string) => scoped(pack.id, id);
     const v = async (id: string): Promise<Viewer> => {
-      const viewer = await loadViewer(db, id);
+      const viewer = await loadViewer(db, sid(id), pack.id);
       if (!viewer) throw new Error(`No person ${id} in ${pack.org.name}`);
       return viewer;
     };
@@ -48,55 +50,55 @@ for (const pack of DEMOS) {
 
     it(`1. searching "${c.search.q}" finds who owns it`, async () => {
       const r = await search(db, c.search.q);
-      expect(r.teams[0].team.id).toBe(c.search.team);
+      expect(r.teams[0].team.id).toBe(sid(c.search.team));
       expect(r.teams[0].why).toBe(`Owns ${c.search.owns}`);
     });
 
     it("2. the feed shows the upstream decision and flags the downstream deadline at risk", async () => {
       const feed = await getFeed(db, await v(c.feed.as));
-      expect(feed.decisions.map((d) => d.id)).toContain(c.feed.decision);
-      expect(feed.alerts.find((a) => a.id === c.feed.atRisk)?.state).toBe("at_risk");
+      expect(feed.decisions.map((d) => d.id)).toContain(sid(c.feed.decision));
+      expect(feed.alerts.find((a) => a.id === sid(c.feed.atRisk))?.state).toBe("at_risk");
     });
 
     it("3. the waiting team sees the upstream commitment as slipped, with the reason", async () => {
-      const { owedTo } = await teamCommitments(db, await v(c.slipped.as), c.slipped.team);
-      const com = owedTo.find((x) => x.id === c.slipped.commitment)!;
+      const { owedTo } = await teamCommitments(db, await v(c.slipped.as), sid(c.slipped.team));
+      const com = owedTo.find((x) => x.id === sid(c.slipped.commitment))!;
       expect(com.state).toBe("slipped");
       expect(com.shown.reason).toContain(c.slipped.reason);
     });
 
     it("4. the upstream lead's example notes revise the commitment and notify the teams waiting", async () => {
       const lead = await v(c.revise.as);
-      const { updateId } = await analyzeUpdate(db, lead, { unitId: c.revise.team, source: "meeting", text: pack.ui.writeExamples[c.revise.team] });
+      const { updateId } = await analyzeUpdate(db, lead, { unitId: sid(c.revise.team), source: "meeting", text: pack.ui.writeExamples[c.revise.team] });
       const draft = (await getDraft(db, lead, updateId))!;
       expect(draft.items.length).toBeGreaterThanOrEqual(3);
-      const revision = draft.commitments.find((x) => x.revises_id === c.revise.commitment);
+      const revision = draft.commitments.find((x) => x.revises_id === sid(c.revise.commitment));
       expect(revision?.due_date).toBe(c.revise.due);
       await publishDraft(db, lead, updateId, {
         items: draft.items.map((i) => ({ id: i.id, include: true, kind: i.kind, text: i.text, summary: i.summary_text, headline: i.headline_text, affected: i.affected_unit_ids })),
         commitments: draft.commitments.map((x) => ({ id: x.id, confirm: true, title: x.title, due_date: x.due_date })),
       });
-      expect((await db.one(`select due_date from commitment where id = $1`, [c.revise.commitment]))!.due_date).toBe(c.revise.due);
+      expect((await db.one(`select due_date from commitment where id = $1`, [sid(c.revise.commitment)]))!.due_date).toBe(c.revise.due);
       for (const who of c.revise.notify) {
-        expect((await db.query(`select * from delivery where recipient_id = $1 and kind = 'commitment_alert'`, [who])).length).toBe(1);
+        expect((await db.query(`select * from delivery where recipient_id = $1 and kind = 'commitment_alert'`, [sid(who)])).length).toBe(1);
       }
     });
 
     it("5. the digest lists slipped commitments and shows the confidential paragraph only to those allowed", async () => {
       const d = await buildDigest(db, (await v(c.digest.allowed)).reader);
-      expect(d.slipped.map((s) => s.id)).toEqual(expect.arrayContaining(c.digest.slipped));
-      expect(d.paragraphs.some((p) => p.markingIds.includes(c.digest.marking))).toBe(true);
+      expect(d.slipped.map((s) => s.id)).toEqual(expect.arrayContaining(c.digest.slipped.map(sid)));
+      expect(d.paragraphs.some((p) => p.markingIds.includes(sid(c.digest.marking)))).toBe(true);
       const other = await buildDigest(db, (await v(c.digest.denied)).reader);
-      expect(other.paragraphs.some((p) => p.markingIds.includes(c.digest.marking))).toBe(false);
+      expect(other.paragraphs.some((p) => p.markingIds.includes(sid(c.digest.marking)))).toBe(false);
     });
 
     it("6. the agent routes the repeated question to its owner and merges it with the others", async () => {
       const asker = await v(c.route.as);
-      const { questionId } = await askTeam(db, asker, c.route.team, c.route.question);
+      const { questionId } = await askTeam(db, asker, sid(c.route.team), c.route.question);
       const q = (await getQuestion(db, asker, questionId))!;
       expect(q.question.outcome).toBe("routed");
       const req = (await db.one(`select * from request where id = $1`, [q.question.request_id]))!;
-      expect(req.assignee_member_id).toBe(`m_${c.route.owner}_${c.route.team}`);
+      expect(req.assignee_member_id).toBe(`m_${sid(c.route.owner)}_${sid(c.route.team)}`);
       expect(req.cluster_key).toBe(c.route.cluster);
       const asks = await getAsks(db, await v(c.route.owner));
       expect(asks.clusters[0].key).toBe(c.route.cluster);
@@ -105,19 +107,19 @@ for (const pack of DEMOS) {
 
     it("follows the guide: ask, get routed, the owner posts a date, ask again and get the answer", async () => {
       const d = await v(c.route.as);
-      const first = (await getQuestion(db, d, (await askTeam(db, d, c.route.team, c.route.question)).questionId))!;
+      const first = (await getQuestion(db, d, (await askTeam(db, d, sid(c.route.team), c.route.question)).questionId))!;
       expect(first.question.outcome).toBe("routed");
       expect(first.question.answer_text).toContain(`${c.route.askers - 1} other people`);
       const owner = await v(c.revise.as);
-      const { updateId } = await analyzeUpdate(db, owner, { unitId: c.revise.team, text: pack.ui.writeExamples[c.revise.team] });
+      const { updateId } = await analyzeUpdate(db, owner, { unitId: sid(c.revise.team), text: pack.ui.writeExamples[c.revise.team] });
       const draft = (await getDraft(db, owner, updateId))!;
-      expect(draft.commitments.some((x) => x.revises_id === c.revise.commitment)).toBe(true);
+      expect(draft.commitments.some((x) => x.revises_id === sid(c.revise.commitment))).toBe(true);
       await publishDraft(db, owner, updateId, {
         items: draft.items.map((i) => ({ id: i.id, include: true, kind: i.kind, text: i.text, summary: i.summary_text, headline: i.headline_text, affected: i.affected_unit_ids })),
         commitments: draft.commitments.map((x) => ({ id: x.id, confirm: true, title: x.title, due_date: x.due_date })),
       });
       expect((await db.query(`select * from delivery where recipient_id = $1 and kind = 'commitment_alert'`, [d.user.id])).length).toBe(1);
-      const again = (await getQuestion(db, d, (await askTeam(db, d, c.route.team, c.route.question)).questionId))!;
+      const again = (await getQuestion(db, d, (await askTeam(db, d, sid(c.route.team), c.route.question)).questionId))!;
       expect(again.question.outcome).toBe("answered");
       const day = Number(c.revise.due.slice(8));
       expect(again.question.answer_text).toContain(`Dec ${day}`);
@@ -136,16 +138,19 @@ for (const pack of DEMOS) {
 
     it("6b. the agent answers from what a team published", async () => {
       const asker = await v(c.answer.as);
-      const { questionId } = await askTeam(db, asker, c.answer.team, c.answer.question);
+      const { questionId } = await askTeam(db, asker, sid(c.answer.team), c.answer.question);
       const q = (await getQuestion(db, asker, questionId))!;
       expect(q.question.outcome).toBe("answered");
       expect(q.question.answer_text).toContain(c.answer.contains);
-      expect(q.sources.map((s) => s.ref)).toContain(c.answer.source);
+      const answerRef = c.answer.source.includes(":")
+        ? c.answer.source.replace(/:(.+)$/, (_, x: string) => `:${sid(x)}`)
+        : sid(c.answer.source);
+      expect(q.sources.map((s) => s.ref)).toContain(answerRef);
     });
 
     it("never leaks the confidential subject to someone outside the marking", async () => {
       const asker = await v(c.leak.as);
-      const { questionId } = await askTeam(db, asker, c.leak.team, c.leak.question);
+      const { questionId } = await askTeam(db, asker, sid(c.leak.team), c.leak.question);
       const q = await getQuestion(db, asker, questionId);
       if (!q) return; // The answer drew on a marked item, so it carries the marking and is withheld.
       expect(JSON.stringify(q.sources)).not.toContain(c.leak.secret);

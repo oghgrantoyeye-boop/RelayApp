@@ -44,17 +44,11 @@ export async function openSampleWorkspace(form: FormData) {
   const pack = getDemo(demoId);
   const db = await getDb();
   const exists = await db.one(`select id from org where id = $1`, [pack.id]);
-  if (!exists) {
-    // Until T-32 keeps several demos at once, opening a sample that isn't loaded reseeds it alone.
-    const tables = await db.query<{ tablename: string }>(
-      `select tablename from pg_tables where schemaname = 'public' and tablename <> '_migrations'`,
-    );
-    await db.exec(`truncate ${tables.map((t) => `"${t.tablename}"`).join(", ")} restart identity cascade`);
-    await seed(db, pack.id);
-  }
+  if (!exists) await seed(db, pack.id);
+  const { scopedPersona } = await import("@/lib/scoped");
   const jar = await cookies();
   jar.set(WORKSPACE_COOKIE, pack.id, { path: "/", sameSite: "lax", httpOnly: true });
-  jar.set(PERSONA_COOKIE, pack.defaultPersona, { path: "/", sameSite: "lax", httpOnly: true });
+  jar.set(PERSONA_COOKIE, scopedPersona(pack.id, pack.defaultPersona), { path: "/", sameSite: "lax", httpOnly: true });
   jar.delete(GUIDE_COOKIE);
   revalidatePath("/", "layout");
   redirect("/guide");

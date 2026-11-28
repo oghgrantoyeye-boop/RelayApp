@@ -12,12 +12,15 @@ import { startTask } from "@/lib/work";
 import { activeDemo } from "@/lib/demo";
 import { getDemo } from "@/lib/demos";
 import { workersEnabled, WORKERS_OFF_MESSAGE } from "@/lib/flags";
+import { scoped } from "@/lib/scoped";
+
+const sid = (id: string) => scoped("software", id);
 
 delete process.env.BEACON_WORKERS;
 
 describe("work-performing agents are off by default", () => {
   let db: Db;
-  const v = async (id: string): Promise<Viewer> => (await loadViewer(db, id))!;
+  const v = async (id: string): Promise<Viewer> => (await loadViewer(db, sid(id), "software"))!;
 
   beforeEach(async () => {
     setNow("2026-12-06T09:00:00Z");
@@ -52,11 +55,11 @@ describe("work-performing agents are off by default", () => {
 
   it("tasks can't start and worker teammates can't be created", async () => {
     const marcus = await v("marcus");
-    await expect(startTask(db, marcus, "platform", { kind: "draft_update", instructions: "" })).rejects.toThrow(WORKERS_OFF_MESSAGE);
+    await expect(startTask(db, marcus, sid("platform"), { kind: "draft_update", instructions: "" })).rejects.toThrow(WORKERS_OFF_MESSAGE);
     await expect(
-      createAgent(db, marcus, { unitId: "platform", name: "Coder", purpose: "Fix bugs", connectorIds: [], actions: ["code"], approval: "outside_team", schedule: "on_request", budget: 20 }),
+      createAgent(db, marcus, { unitId: sid("platform"), name: "Coder", purpose: "Fix bugs", connectorIds: [], actions: ["code"], approval: "outside_team", schedule: "on_request", budget: 20 }),
     ).rejects.toThrow(WORKERS_OFF_MESSAGE);
-    const qa = await createAgent(db, marcus, { unitId: "platform", name: "Front desk", purpose: "Answer questions", connectorIds: [], actions: ["answer"], approval: "outside_team", schedule: "on_request", budget: 20 });
+    const qa = await createAgent(db, marcus, { unitId: sid("platform"), name: "Front desk", purpose: "Answer questions", connectorIds: [], actions: ["answer"], approval: "outside_team", schedule: "on_request", budget: 20 });
     expect((await listAgents(db)).some((a) => a.id === qa)).toBe(true);
   });
 

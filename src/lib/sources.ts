@@ -8,6 +8,7 @@ import { audit, loadViewer, newId, type Viewer } from "./data";
 import { draftFromSession, suggestAffected, type SessionInput } from "./ai/tasks";
 import { teamInfos } from "./updates";
 import { levelTexts, shorten } from "./ai/offline";
+import { localId } from "./scoped";
 
 async function createDraft(db: Db, viewer: Viewer, source: "coding_agent" | "github", body: string, items: { kind: string; text: string }[], ref: string) {
   const unitId = viewer.team.id;
@@ -87,8 +88,8 @@ export async function ingestPullRequest(db: Db, event: Row): Promise<{ updateId:
 
 /** The Connect page's "Simulate a merged pull request": the same code path, with canned input for the person's team. */
 export function samplePullRequest(viewer: Viewer, demo: DemoPack) {
-  const session = demo.ui.sampleSessions[viewer.team.id] ?? Object.values(demo.ui.sampleSessions)[0];
-  const repo = session?.repo ?? `${demo.org.domain}/${viewer.team.id}`;
+  const session = demo.ui.sampleSessions[localId(demo.id, viewer.team.id)] ?? Object.values(demo.ui.sampleSessions)[0];
+  const repo = session?.repo ?? `${demo.org.domain}/${localId(demo.id, viewer.team.id)}`;
   const title = session?.commits[0]?.replace(/^\w+\s+/, "") ?? `Update the ${viewer.team.name} onboarding checklist`;
   return {
     action: "closed",

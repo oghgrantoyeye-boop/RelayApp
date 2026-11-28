@@ -10,6 +10,7 @@ import { loadViewer, type Viewer } from "@/lib/data";
 import { conversation, decideAction, sendChat } from "@/lib/assistant";
 import { createAgent, listAgents } from "@/lib/agents";
 import { DEMOS } from "@/lib/demos";
+import { scoped } from "@/lib/scoped";
 
 // These tests cover work-performing agents, which are off by default (src/lib/flags.ts).
 process.env.BEACON_WORKERS = "on";
@@ -17,7 +18,8 @@ process.env.BEACON_WORKERS = "on";
 for (const pack of DEMOS) {
   describe(`${pack.org.name}: talking to agents`, () => {
     let db: Db;
-    const v = async (id: string): Promise<Viewer> => (await loadViewer(db, id))!;
+    const sid = (id: string) => scoped(pack.id, id);
+    const v = async (id: string): Promise<Viewer> => (await loadViewer(db, sid(id), pack.id))!;
     const c = pack.checks;
 
     beforeEach(async () => {
@@ -42,12 +44,12 @@ for (const pack of DEMOS) {
       expect(nudge).toBeTruthy();
       await decideAction(db, d, msgs[1].id, nudge.id, true);
       const owner = pack.people.find((p) => p[0] === c.route.owner)!;
-      expect((await db.query(`select * from delivery where recipient_id = $1 and kind = 'ask_now'`, [owner[0]])).length).toBeGreaterThanOrEqual(1);
+      expect((await db.query(`select * from delivery where recipient_id = $1 and kind = 'ask_now'`, [sid(owner[0])])).length).toBeGreaterThanOrEqual(1);
     });
 
     it("answers with sources when the team has published the answer", async () => {
       const a = await v(c.answer.as);
-      const team = (await listAgents(db)).find((x) => x.builtIn && x.team.id === c.answer.team)!;
+      const team = (await listAgents(db)).find((x) => x.builtIn && x.team.id === sid(c.answer.team))!;
       await sendChat(db, a, { target: team.id, text: c.answer.question });
       const [, reply] = await conversation(db, a, team.id);
       // The answer comes claim by claim, each with its tag and source (T-19).
@@ -66,11 +68,11 @@ for (const pack of DEMOS) {
     it("a team creates an agent teammate, @mentions it and approves its draft", async () => {
       const owner = await v(c.revise.as);
       const t = pack.agentTemplate;
-      const conns = pack.connectors.filter((x) => x[1] === t.team).map((x) => x[0]);
-      const id = await createAgent(db, owner, { unitId: t.team, name: t.name, purpose: t.purpose, connectorIds: conns.slice(0, 2), actions: t.actions, approval: "outside_team", schedule: "weekly", budget: 40 });
+      const conns = pack.connectors.filter((x) => x[1] === t.team).map((x) => sid(x[0]));
+      const id = await createAgent(db, owner, { unitId: sid(t.team), name: t.name, purpose: t.purpose, connectorIds: conns.slice(0, 2), actions: t.actions, approval: "outside_team", schedule: "weekly", budget: 40 });
       const agents = await listAgents(db);
       const made = agents.find((a) => a.id === id)!;
-      expect(made.team.id).toBe(t.team);
+      expect(made.team.id).toBe(sid(t.team));
       expect(made.connectorIds).toHaveLength(Math.min(2, conns.length));
       await sendChat(db, owner, { target: "me", text: `@${t.name} draft our weekly update` });
       const msgs = await conversation(db, owner, id);
@@ -90,8 +92,8 @@ for (const pack of DEMOS) {
     it("follows the guide's teammate step: add the demo's Worker and give it its first job", async () => {
       const owner = await v(c.revise.as);
       const t = pack.agentTemplate;
-      const conns = pack.connectors.filter((x) => x[1] === t.team).map((x) => x[0]);
-      const id = await createAgent(db, owner, { unitId: t.team, name: t.name, purpose: t.purpose, connectorIds: conns, actions: t.actions, approval: "outside_team", schedule: "on_request", budget: 50 });
+      const conns = pack.connectors.filter((x) => x[1] === t.team).map((x) => sid(x[0]));
+      const id = await createAgent(db, owner, { unitId: sid(t.team), name: t.name, purpose: t.purpose, connectorIds: conns, actions: t.actions, approval: "outside_team", schedule: "on_request", budget: 50 });
       expect((await listAgents(db)).find((a) => a.id === id)!.tier).toBe("worker");
       await sendChat(db, owner, { target: id, text: t.firstJob });
       const [, reply] = await conversation(db, owner, id);
@@ -107,7 +109,7 @@ for (const pack of DEMOS) {
 
     it("can't add an agent to someone else's team", async () => {
       const outsider = pack.people.find((p) => p[3] !== pack.agentTemplate.team && p[3] !== "leadership")!;
-      await expect(createAgent(db, await v(outsider[0]), { unitId: pack.agentTemplate.team, name: "X", purpose: "Y", connectorIds: [], actions: ["research"], approval: "always", schedule: "on_request", budget: 10 })).rejects.toThrow();
+      await expect(createAgent(db, await v(outsider[0]), { unitId: sid(pack.agentTemplate.team), name: "X", purpose: "Y", connectorIds: [], actions: ["research"], approval: "always", schedule: "on_request", budget: 10 })).rejects.toThrow();
     });
   });
 }

@@ -75,7 +75,8 @@ export async function buildDigest(db: Db, reader: Reader): Promise<Digest> {
 
 /** Email the digest to Leadership. Every send writes an audit event. */
 export async function sendLeadershipDigest(db: Db, viewer: Viewer) {
-  const members = await teamMembers(db, ["leadership"]);
+  const leadership = await db.one(`select id from unit where org_id = $1 and slug = 'leadership'`, [viewer.orgId]);
+  const members = await teamMembers(db, leadership ? [leadership.id] : []);
   let sent = 0;
   for (const m of members) {
     const units = await db.query(`select unit_id from member where user_id = $1`, [m.id]);

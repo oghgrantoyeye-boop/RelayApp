@@ -35,9 +35,10 @@ async function run(fallback: string, fn: () => Promise<string>): Promise<never> 
 
 export async function setPersona(form: FormData) {
   const id = str(form, "userId");
-  const { db } = await currentViewer();
-  const v = await loadViewer(db, id);
-  if (v && v.user.kind === "human") (await cookies()).set(PERSONA_COOKIE, id, { path: "/", sameSite: "lax", httpOnly: true });
+  const { db, orgId } = await currentViewer();
+  const { scoped } = await import("@/lib/scoped");
+  const v = (await loadViewer(db, id, orgId)) || (await loadViewer(db, scoped(orgId, id), orgId));
+  if (v && v.user.kind === "human") (await cookies()).set(PERSONA_COOKIE, v.user.id, { path: "/", sameSite: "lax", httpOnly: true });
   // Guide buttons carry their step number, so the guide bar can follow along on every page.
   const step = str(form, "step");
   if (step === "off") (await cookies()).delete(GUIDE_COOKIE);
@@ -53,9 +54,8 @@ export async function hideGuideBar(form: FormData) {
 }
 
 async function loadDemo(db: Db, demoId: string) {
-  const tables = await db.query<{ tablename: string }>(`select tablename from pg_tables where schemaname = 'public' and tablename <> '_migrations'`);
-  await db.exec(`truncate ${tables.map((t) => `"${t.tablename}"`).join(", ")} restart identity cascade`);
-  await seed(db, demoId);
+  const { resetWorkspace } = await import("@/lib/workspace-reset");
+  await resetWorkspace(db, demoId);
 }
 
 export async function resetDemo(form: FormData) {
@@ -66,15 +66,18 @@ export async function resetDemo(form: FormData) {
   redirect(withMsg(safePath(str(form, "path")), "Demo data reset to the Dec 6 story."));
 }
 
-/** Load another demo organization. Everything in the current one is reset. */
+/** Open another sample workspace. Other workspaces stay in the database. */
 export async function switchDemo(form: FormData) {
   const pack = getDemo(str(form, "demo"));
   const { db } = await currentViewer();
-  await loadDemo(db, pack.id);
-  (await cookies()).set(PERSONA_COOKIE, pack.defaultPersona, { path: "/", sameSite: "lax", httpOnly: true });
+  const exists = await db.one(`select id from org where id = $1`, [pack.id]);
+  if (!exists) await seed(db, pack.id);
+  const { scopedPersona } = await import("@/lib/scoped");
+  (await cookies()).set("relay_org", pack.id, { path: "/", sameSite: "lax", httpOnly: true });
+  (await cookies()).set(PERSONA_COOKIE, scopedPersona(pack.id, pack.defaultPersona), { path: "/", sameSite: "lax", httpOnly: true });
   (await cookies()).delete(GUIDE_COOKIE);
   revalidatePath("/", "layout");
-  redirect(withMsg("/guide", `Loaded the ${pack.org.name} demo.`));
+  redirect(withMsg("/guide", `Opened the ${pack.org.name} sample.`));
 }
 
 export async function askAgent(form: FormData) {
@@ -245,8 +248,10 @@ export async function simulate(form: FormData) {
       return `/write?draft=${r.updateId}`;
     }
     const { demo } = await currentViewer();
-    const sample = demo.ui.sampleSessions[viewer.team.id] ?? {
-      repo: `${demo.org.domain}/${viewer.team.id}`,
+    const { localId } = await import("@/lib/scoped");
+    const teamKey = localId(demo.id, viewer.team.id);
+    const sample = demo.ui.sampleSessions[teamKey] ?? {
+      repo: `${demo.org.domain}/${teamKey}`,
       diffstat: "2 files changed, 18 insertions(+), 6 deletions(-)",
       branch: "main",
       prompts: [`Tidy up the ${viewer.team.name} onboarding checklist and fix the broken links`],
