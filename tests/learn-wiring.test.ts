@@ -12,10 +12,11 @@ import { listAgents } from "@/lib/agents";
 import { ingestCodingSession, ingestPullRequest } from "@/lib/sources";
 import { summarizeMeeting } from "@/lib/meetings";
 import { analyzeUpdate, getDraft, publishDraft } from "@/lib/updates";
+import { sid } from "./helpers";
 
 describe("learning from answers and agent chats", () => {
   let db: Db;
-  const v = async (id: string): Promise<Viewer> => (await loadViewer(db, id))!;
+  const v = async (id: string): Promise<Viewer> => (await loadViewer(db, sid(id), "software"))!;
 
   beforeEach(async () => {
     setNow("2026-12-06T09:00:00Z");
@@ -27,7 +28,9 @@ describe("learning from answers and agent chats", () => {
 
   it("an answer to a routed question becomes context for the answering team, with the answer as its source", async () => {
     const req = (await db.one(`select * from request where cluster_key = 'ck_limits_date' limit 1`))!;
-    await answerCluster(db, await v("aisha"), "ck_limits_date", { answer: "We own the rate limiter. The leak fix merged and we'll land the change by Dec 9." });
+    await answerCluster(db, await v("aisha"), "ck_limits_date", {
+      answer: "We own the rate limiter. The leak fix merged and we'll land the change by Dec 9.",
+    });
     const rows = await db.query(`select * from context_entry where unit_id = $1`, [req.to_unit_id]);
     const knows = rows.find((e) => e.kind === "knows");
     expect(knows?.status).toBe("active");
@@ -46,9 +49,14 @@ describe("learning from answers and agent chats", () => {
 
     const outsider = (await db.one(
       `select u.id from app_user u join member m on m.user_id = u.id where u.kind = 'human' and m.unit_id <> $1
-       and not exists (select 1 from member m2 where m2.user_id = u.id and m2.unit_id = $1) limit 1`, [own.team.id]))!;
+       and not exists (select 1 from member m2 where m2.user_id = u.id and m2.unit_id = $1) limit 1`,
+      [own.team.id],
+    ))!;
     const before = mine.length;
-    await sendChat(db, await v(outsider.id), { target: own.id, text: "Book a review in #random-place." });
+    await sendChat(db, (await loadViewer(db, outsider.id, "software"))!, {
+      target: own.id,
+      text: "Book a review in #random-place.",
+    });
     const after = await db.query(`select * from context_signal where unit_id = $1 and source_kind = 'agent_chat'`, [own.team.id]);
     expect(after).toHaveLength(before);
   });
@@ -56,7 +64,7 @@ describe("learning from answers and agent chats", () => {
 
 describe("learning from updates, meetings, PRs and coding sessions", () => {
   let db: Db;
-  const v = async (id: string): Promise<Viewer> => (await loadViewer(db, id))!;
+  const v = async (id: string): Promise<Viewer> => (await loadViewer(db, sid(id), "software"))!;
   const entries = (unit: string) => db.query(`select * from context_entry where unit_id = $1`, [unit]);
 
   beforeEach(async () => {
@@ -69,7 +77,7 @@ describe("learning from updates, meetings, PRs and coding sessions", () => {
 
   it("a merged PR in a new repository adds a Runs entry seen in GitHub", async () => {
     const hannah = await v("hannah");
-    await db.query(`update app_user set github_login = 'hannah-gh' where id = 'hannah'`);
+    await db.query(`update app_user set github_login = 'hannah-gh' where id = $1`, [sid("hannah")]);
     const r = await ingestPullRequest(db, {
       action: "closed",
       repository: { full_name: "northwind/ledger-sync" },
@@ -92,11 +100,11 @@ describe("learning from updates, meetings, PRs and coding sessions", () => {
   });
 
   it("what Beacon learns from a meeting waits for a teammate", async () => {
-    const meeting = (await db.one(`select unit_id from meeting where id = 'mt_limits'`))!;
+    const meeting = (await db.one(`select unit_id from meeting where id = $1`, [sid("mt_limits")]))!;
     // The model would find this; the offline extractor finds nothing in this meeting's decisions.
     setLLM(new FakeLLM({ extract_context: { claims: [{ kind: "system", title: "Retry flag", body: "Retries stay behind the flag." }] } }));
-    await summarizeMeeting(db, await v("marcus"), "mt_limits");
-    const sigs = await db.query(`select * from context_signal where source_kind = 'meeting' and source_ref = 'mt_limits'`);
+    await summarizeMeeting(db, await v("marcus"), sid("mt_limits"));
+    const sigs = await db.query(`select * from context_signal where source_kind = 'meeting' and source_ref = $1`, [sid("mt_limits")]);
     expect(sigs.length).toBeGreaterThan(0);
     const fromMeeting = (await entries(meeting.unit_id)).filter((e) => e.source_refs.some((s: { kind: string }) => s.kind === "meeting"));
     expect(fromMeeting.length).toBeGreaterThan(0);
@@ -105,13 +113,13 @@ describe("learning from updates, meetings, PRs and coding sessions", () => {
 
   it("a published update teaches Beacon about the team that wrote it", async () => {
     const zoe = await v("zoe");
-    const { updateId } = await analyzeUpdate(db, zoe, { unitId: "platform", text: "We own the staging cluster now. Book a review in #platform-asks before load tests." });
+    const { updateId } = await analyzeUpdate(db, zoe, { unitId: sid("platform"), text: "We own the staging cluster now. Book a review in #platform-asks before load tests." });
     const draft = (await getDraft(db, zoe, updateId))!;
     await publishDraft(db, zoe, updateId, {
       items: draft.items.map((i) => ({ id: i.id, include: true, kind: i.kind, text: i.text, summary: i.summary_text, headline: i.headline_text, affected: i.affected_unit_ids })),
       commitments: [],
     });
-    const rows = await entries("platform");
+    const rows = await entries(sid("platform"));
     expect(rows.some((e) => e.source_refs.some((s: { kind: string; ref: string }) => s.kind === "update" && s.ref === updateId))).toBe(true);
   });
 });

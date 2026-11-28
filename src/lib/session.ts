@@ -49,14 +49,17 @@ export async function currentViewer() {
   const orgId = (org?.id as string | undefined) ?? undefined;
   const demo = await activeDemo(db, orgId);
   const activeOrg = orgId ?? demo.id;
-  const id = jar.get(PERSONA_COOKIE)?.value ?? demo.defaultPersona;
+  const orgRow = await db.one(`select settings from org where id = $1`, [activeOrg]);
+  const { scopedPersona } = await import("./scoped");
+  const defaultPersona =
+    (orgRow?.settings?.default_persona as string | undefined) || scopedPersona(activeOrg, demo.defaultPersona);
+  const id = jar.get(PERSONA_COOKIE)?.value ?? defaultPersona;
   let viewer = await loadViewer(db, id, activeOrg);
-  if (!viewer || viewer.user.kind !== "human") viewer = await loadViewer(db, demo.defaultPersona, activeOrg);
+  if (!viewer || viewer.user.kind !== "human") viewer = await loadViewer(db, defaultPersona, activeOrg);
   if (!viewer) {
     const any = await db.one(`select id from app_user where org_id = $1 and kind = 'human' order by name limit 1`, [activeOrg]);
     viewer = any ? await loadViewer(db, any.id, activeOrg) : null;
   }
-  const orgRow = await db.one(`select settings from org where id = $1`, [activeOrg]);
   return {
     db,
     viewer: viewer!,

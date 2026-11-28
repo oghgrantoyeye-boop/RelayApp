@@ -125,7 +125,8 @@ export default async function WritePage({ searchParams }: { searchParams: Promis
   }
 
   const drafts = await myDrafts(db, viewer);
-  const exampleText = example ? demo.ui.writeExamples[viewer.team.id] ?? Object.values(demo.ui.writeExamples)[0] : "";
+  const { localId } = await import("@/lib/scoped");
+  const exampleText = example ? demo.ui.writeExamples[localId(demo.id, viewer.team.id)] ?? Object.values(demo.ui.writeExamples)[0] : "";
   return (
     <>
       <Topbar crumbs={[viewer.team.name, "Write update"]} />

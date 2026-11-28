@@ -58,9 +58,10 @@ reviews Claude's. The base branch is the default branch, `claude/dazzling-archim
 2. **Build it** on a branch named for the task, `<lane>/t-NN-short-name` (for example
    `cursor/t-40-slack-install`). Commit messages start with the task id: `T-40: Slack OAuth install`.
    Change `[~]` to `[x]` in the PR's last commit.
-3. **Before every push:** rebase on the default branch, then `npm run typecheck`, `npm test` and
-   `npm run build`. Push only when all three pass. Never force-push the default branch; a
-   `--force-with-lease` push to your own task branch after a rebase is fine.
+3. **Before every push:** bring in the default branch (`git merge origin/<default>` on a branch
+   that's already pushed, or a rebase before its first push), then `npm run typecheck`, `npm test`
+   and `npm run build`. Push only when all three pass. Never force-push, not even to your own task
+   branch.
 4. **Open the PR** with the title `T-NN: <task name>`. The body says what changed, how it was
    tested, and anything the reviewer should look at closely.
 5. **Review the other lane's PRs** before starting your next task. Check the diff against the
@@ -139,7 +140,7 @@ The model adapter supports Claude only. An OpenAI key would need a second provid
   adapter, selected by `RELAY_LLM_PROVIDER=openai` and `OPENAI_API_KEY`. Acceptance: with a key,
   answers come from Claude in the preview deploy; without one, the demo still works. Touches:
   `src/lib/ai/llm.ts`. S.
-- [ ] **T-04 Hosted database by default.** Mock: all. Document and check `DATABASE_URL` for the
+- [~] **T-04 Hosted database by default.** Mock: all. Document and check `DATABASE_URL` for the
   Vercel project; show a warning banner in the app when running on Vercel without it.
   Acceptance: data survives a redeploy on the preview. S.
 
@@ -176,15 +177,15 @@ The model adapter supports Claude only. An OpenAI key would need a second provid
 - [ ] **T-17 What Beacon can see.** Mock: M2, M6. Per team: sources with Live or Planned, last
   sync, and gaps. Adds `connector.mode`. Acceptance: matches M2's card; planned tools never show as
   Live. S.
-- [ ] **T-18 Sources carry provenance and freshness.** Mock: M3. `publishedSources` includes
+- [~] **T-18 Sources carry provenance and freshness.** (Claude) Mock: M3. `publishedSources` includes
   active entries and adds `provenance` and `lastSeen` to every source. Pending entries are never
   used for other teams. Acceptance: test that a pending claim can't appear in another team's
   answer. Depends: T-10. S.
-- [ ] **T-19 Claim-by-claim answers.** Mock: M3. New answer schema with claims, refs, `gaps` and
+- [~] **T-19 Claim-by-claim answers.** (Claude) Mock: M3. New answer schema with claims, refs, `gaps` and
   stale sources; offline writer produces the same shape; render each claim with its tag, date and
   source link, and a "What I couldn't find" box, on the team page and in the agent panel.
   Acceptance: matches M3's first answer. Depends: T-18. M.
-- [ ] **T-20 Clarifying questions.** Mock: M3. Answer output can ask one follow-up with
+- [~] **T-20 Clarifying questions.** (Claude) Mock: M3. Answer output can ask one follow-up with
   suggested replies; `question.outcome` gains `clarify`; the reply continues the question. The
   general Beacon agent asks which team when two match. Acceptance: the M3 exchange works end to
   end in the demo. Depends: T-19. M.
@@ -232,9 +233,9 @@ The model adapter supports Claude only. An OpenAI key would need a second provid
   lists leads newest first with Approve and Decline, and approving writes an audit event. Tests:
   an unapproved email gets no account through all three sign-in paths, an approved one does, an
   existing account still signs in, a non-admin gets a 404 on the admin page. Depends: T-31. S. (Cursor)
-- [~] **T-32 Sample workspaces side by side.** Mock: M1. Each demo pack seeds its own workspace;
+- [x] **T-32 Sample workspaces side by side.** Mock: M1. Each demo pack seeds its own workspace;
   Reset resets only that one; no more truncating every table. Depends: T-30. M. (Cursor)
-- [ ] **T-33 Create a workspace and invite people.** Mock: M1, M6. Create, invite by email, create
+- [~] **T-33 Create a workspace and invite people.** Mock: M1, M6. Create, invite by email, create
   teams and leads. Depends: T-31. M.
 - [ ] **T-35 AI spend cap per workspace.** Mock: M6. Record each model call's tokens in an `ai_usage` table with `org_id`, show this month's spend in workspace settings, and fall back to the offline writer with a clear note when a workspace's monthly cap (`org.settings.ai_monthly_usd`) is reached. Depends: T-30, T-03. S. (Claude)
 - [ ] **T-34 Workspace settings.** Mock: M6. Sources, Slack channels Beacon learns from (with

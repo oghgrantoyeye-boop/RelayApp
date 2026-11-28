@@ -8,15 +8,28 @@ import { now, setNow } from "@/lib/clock";
 import { loadPolicy, loadViewer, refContext, refSignal, type Viewer } from "@/lib/data";
 import { visibleLevel } from "@/lib/permissions";
 import { showContext } from "@/lib/render";
+import { scoped } from "@/lib/scoped";
+
+const ORG = "software";
+const sid = (id: string) => scoped(ORG, id);
 
 describe("team context visibility", () => {
   let db: Db;
-  const v = async (id: string): Promise<Viewer> => (await loadViewer(db, id))!;
+  const v = async (id: string): Promise<Viewer> => (await loadViewer(db, sid(id), ORG))!;
   const entry = async (id: string, f: { status?: string; shared?: string; markings?: string[] } = {}) => {
     await db.query(
       `insert into context_entry (id, unit_id, kind, title, body, provenance, source_refs, shared_level, marking_ids, status, first_seen_at, last_seen_at, updated_at)
-       values ($1, 'platform', 'knows', $2, 'Lena has run it for Payments.', 'learned', $3, $4, $5, $6, $7, $7, $7)`,
-      [id, `Entry ${id}`, JSON.stringify([{ kind: "answer", ref: "rq_1", label: "Lena's answer", at: "2026-11-26" }]), f.shared ?? "summary", f.markings ?? [], f.status ?? "active", now()],
+       values ($1, $8, 'knows', $2, 'Lena has run it for Payments.', 'learned', $3, $4, $5, $6, $7, $7, $7)`,
+      [
+        id,
+        `Entry ${id}`,
+        JSON.stringify([{ kind: "answer", ref: "rq_1", label: "Lena's answer", at: "2026-11-26" }]),
+        f.shared ?? "summary",
+        (f.markings ?? []).map(sid),
+        f.status ?? "active",
+        now(),
+        sid("platform"),
+      ],
     );
     return (await db.one(`select * from context_entry where id = $1`, [id]))!;
   };
@@ -29,7 +42,7 @@ describe("team context visibility", () => {
     setNow("2026-12-06T09:00:00Z");
     db = await openDb({});
     await migrate(db);
-    await seed(db, "software");
+    await seed(db, ORG);
   });
 
   it("fills org_id from the team", async () => {
@@ -71,8 +84,8 @@ describe("team context visibility", () => {
 
   it("raw signals never leave the team", async () => {
     await db.query(
-      `insert into context_signal (id, unit_id, source_kind, source_ref, claim, at) values ('cs_1', 'platform', 'agent_chat', 'msg_1', '{"kind":"knows","title":"x"}', $1)`,
-      [now()],
+      `insert into context_signal (id, unit_id, source_kind, source_ref, claim, at) values ('cs_1', $2, 'agent_chat', 'msg_1', '{"kind":"knows","title":"x"}', $1)`,
+      [now(), sid("platform")],
     );
     const row = (await db.one(`select * from context_signal where id = 'cs_1'`))!;
     expect(row.org_id).toBe((await v("aisha")).orgId);
