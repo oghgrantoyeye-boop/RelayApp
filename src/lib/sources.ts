@@ -55,7 +55,7 @@ export async function ingestCodingSession(db: Db, viewer: Viewer, payload: Parti
   const { items, by } = await draftFromSession(s);
   const body = [`Coding session in ${s.repo} (${s.branch})`, ...s.commits.map((c) => `- ${c}`)].join("\n");
   const id = await createDraft(db, viewer, "coding_agent", body, items, `${s.repo}#${s.branch}`);
-  await audit(db, { actorId: viewer.user.id, action: "source_coding_session", targetKind: "update", targetId: id, detail: { repo: s.repo, items: items.length, by } });
+  await audit(db, { orgId: viewer.orgId, actorId: viewer.user.id, action: "source_coding_session", targetKind: "update", targetId: id, detail: { repo: s.repo, items: items.length, by } });
   return { updateId: id, items: items.length };
 }
 
@@ -81,7 +81,7 @@ export async function ingestPullRequest(db: Db, event: Row): Promise<{ updateId:
   const body = scrub(String(pr.body ?? "")).split(/\n\s*\n/)[0] ?? "";
   const text = `Merged #${pr.number} in ${repo}: ${scrub(String(pr.title))}.${body ? ` ${shorten(body, 200)}` : ""}`;
   const id = await createDraft(db, viewer, "github", text, [{ kind: "progress", text }], `${repo}#${pr.number}`);
-  await audit(db, { actorId: viewer.user.id, action: "source_github_pr", targetKind: "update", targetId: id, detail: { repo, number: pr.number } });
+  await audit(db, { orgId: viewer.orgId, actorId: viewer.user.id, action: "source_github_pr", targetKind: "update", targetId: id, detail: { repo, number: pr.number } });
   return { updateId: id };
 }
 

@@ -35,7 +35,7 @@ export async function teamConnectors(db: Db, unitId: string): Promise<Row[]> {
 
 /** Recent synced items from a team's tools, at the viewer's level. Outsiders see only what an interface shares. */
 export async function recentSourceItems(db: Db, viewer: Viewer, unitId: string, limit = 12) {
-  const policy = await loadPolicy(db);
+  const policy = await loadPolicy(db, viewer.orgId);
   const docs = await db.query(
     `select d.*, c.kind as connector_kind, c.name as connector_name from source_doc d join connector c on c.id = d.connector_id where d.unit_id = $1 order by d.occurred_at desc`,
     [unitId],
@@ -58,7 +58,7 @@ export async function addConnector(db: Db, viewer: Viewer, unitId: string, kind:
   await db.query(`insert into connector (id, unit_id, kind, name, connected_by, last_sync_at, created_at) values ($1, $2, $3, $4, $5, $6, $6)`, [
     id, unitId, kind, name, viewer.user.id, now(),
   ]);
-  await audit(db, { actorId: viewer.user.id, action: "connect_tool", targetKind: "connector", targetId: id, detail: { kind } });
+  await audit(db, { orgId: viewer.orgId, actorId: viewer.user.id, action: "connect_tool", targetKind: "connector", targetId: id, detail: { kind } });
   return id;
 }
 
@@ -67,5 +67,5 @@ export async function syncConnector(db: Db, viewer: Viewer, connectorId: string)
   if (!c) throw new Error("Not found");
   assertWrite(viewer.reader, c.unit_id, "sync this team's tools");
   await db.query(`update connector set last_sync_at = $2 where id = $1`, [connectorId, now()]);
-  await audit(db, { actorId: viewer.user.id, action: "sync_tool", targetKind: "connector", targetId: connectorId });
+  await audit(db, { orgId: viewer.orgId, actorId: viewer.user.id, action: "sync_tool", targetKind: "connector", targetId: connectorId });
 }

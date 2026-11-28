@@ -17,9 +17,9 @@ export default async function TeamPage({ params, searchParams }: { params: Promi
   const { slug } = await params;
   const { msg, q, ask } = await searchParams;
   const { db, viewer, demo } = await currentViewer();
-  const team = await db.one(`select * from unit where slug = $1`, [slug]);
+  const team = await db.one(`select * from unit where slug = $1 and org_id = $2`, [slug, viewer.orgId]);
   if (!team) notFound();
-  const policy = await loadPolicy(db);
+  const policy = await loadPolicy(db, viewer.orgId);
   const isGroup = Object.keys(team.how_to_ask ?? {}).length === 0;
   const isMember = viewer.reader.unitIds.includes(team.id);
   const parent = team.parent_unit_id ? await db.one(`select * from unit where id = $1`, [team.parent_unit_id]) : null;

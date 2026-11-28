@@ -28,12 +28,16 @@ export interface Digest {
 }
 
 export async function buildDigest(db: Db, reader: Reader): Promise<Digest> {
-  const policy = await loadPolicy(db);
+  const user = await db.one(`select org_id from app_user where id = $1`, [reader.userId]);
+  if (!user) throw new Error("No person for digest");
+  const orgId = user.org_id as string;
+  const policy = await loadPolicy(db, orgId);
   const since = addDays(today(), -7);
-  const teams = await db.query(`select * from unit where how_to_ask <> '{}'::jsonb order by name`);
-  const items = await db.query(`select * from update_item where status = 'published' and published_at >= $1 order by published_at`, [since]);
+  const teams = await db.query(`select * from unit where org_id = $1 and how_to_ask <> '{}'::jsonb order by name`, [orgId]);
+  const items = await db.query(`select * from update_item where org_id = $1 and status = 'published' and published_at >= $2 order by published_at`, [orgId, since]);
   const requests = await db.query(
-    `select r.*, fu.name as from_name, tu.name as to_name from request r join unit fu on fu.id = r.from_unit_id join unit tu on tu.id = r.to_unit_id where r.status = 'open'`,
+    `select r.*, fu.name as from_name, tu.name as to_name from request r join unit fu on fu.id = r.from_unit_id join unit tu on tu.id = r.to_unit_id where r.org_id = $1 and r.status = 'open'`,
+    [orgId],
   );
   const paragraphs: DigestParagraph[] = [];
   let by = "Offline writer";
@@ -84,7 +88,7 @@ export async function sendLeadershipDigest(db: Db, viewer: Viewer) {
       ...d.slipped.map((c) => `• ${c.ownerUnit.name}: ${c.shown.title}, due ${fmt(c.due)}${c.shown.reason ? `. ${c.shown.reason}` : ""}`),
     ].join("\n");
     sent += await deliver(db, [m.id], { kind: "leadership_digest", subject: `Leadership digest, week of ${fmt(d.weekOf)}`, body, refs: [{ type: "digest", id: d.weekOf, href: "/digest" }] });
-    await audit(db, {
+    await audit(db, { orgId: viewer.orgId,
       actorId: viewer.user.id,
       action: "digest_send",
       targetKind: "digest",

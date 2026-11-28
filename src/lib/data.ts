@@ -2,7 +2,6 @@ import type { Db, Row } from "./db";
 import { now } from "./clock";
 import { isLevel, type ItemRef, type Policy, type Reader } from "./permissions";
 
-export const ORG_ID = "northwind";
 export const ITEM_KINDS = ["progress", "decision", "risk", "ask", "answer"] as const;
 export const ALL_KINDS = [...ITEM_KINDS, "commitment", "request"];
 
@@ -10,8 +9,9 @@ export function newId(prefix: string): string {
   return `${prefix}_${Math.random().toString(36).slice(2, 10)}${Date.now().toString(36).slice(-4)}`;
 }
 
-export async function loadPolicy(db: Db, orgId = ORG_ID): Promise<Policy> {
+export async function loadPolicy(db: Db, orgId: string): Promise<Policy> {
   const org = await db.one(`select settings from org where id = $1`, [orgId]);
+  if (!org) throw new Error(`No workspace ${orgId}`);
   const interfaces = await db.query(
     `select i.* from interface i join unit u on u.id = i.from_unit_id where u.org_id = $1`,
     [orgId],
@@ -37,6 +37,8 @@ export async function loadPolicy(db: Db, orgId = ORG_ID): Promise<Policy> {
 }
 
 export interface Viewer {
+  /** The workspace this person is acting in. Every query for them filters by it. */
+  orgId: string;
   user: Row;
   reader: Reader;
   units: Row[];
@@ -44,15 +46,19 @@ export interface Viewer {
   team: Row;
 }
 
-export async function loadViewer(db: Db, userId: string): Promise<Viewer | null> {
-  const user = await db.one(`select * from app_user where id = $1`, [userId]);
+export async function loadViewer(db: Db, userId: string, orgId?: string): Promise<Viewer | null> {
+  const user = orgId
+    ? await db.one(`select * from app_user where id = $1 and org_id = $2`, [userId, orgId])
+    : await db.one(`select * from app_user where id = $1`, [userId]);
   if (!user) return null;
   const units = await db.query(
-    `select u.*, m.role, m.id as member_id from member m join unit u on u.id = m.unit_id where m.user_id = $1 order by (u.parent_unit_id is null), u.name`,
-    [userId],
+    `select u.*, m.role, m.id as member_id from member m join unit u on u.id = m.unit_id
+     where m.user_id = $1 and m.org_id = $2 order by (u.parent_unit_id is null), u.name`,
+    [userId, user.org_id],
   );
   if (units.length === 0) return null;
   return {
+    orgId: user.org_id,
     user,
     units,
     team: units[0],
@@ -129,6 +135,7 @@ export const COMMITMENT_SELECT = `
   left join app_user oau on oau.id = om.user_id`;
 
 export interface AuditInput {
+  orgId: string;
   actorId: string | null;
   onBehalfOfId?: string | null;
   action: string;
@@ -137,16 +144,16 @@ export interface AuditInput {
   detail?: Record<string, unknown>;
 }
 
-export async function audit(db: Db, e: AuditInput, orgId = ORG_ID) {
+export async function audit(db: Db, e: AuditInput) {
   await db.query(
     `insert into audit_event (org_id, actor_id, on_behalf_of_id, action, target_kind, target_id, detail, at)
      values ($1, $2, $3, $4, $5, $6, $7, $8)`,
-    [orgId, e.actorId, e.onBehalfOfId ?? null, e.action, e.targetKind, e.targetId ?? null, JSON.stringify(e.detail ?? {}), now()],
+    [e.orgId, e.actorId, e.onBehalfOfId ?? null, e.action, e.targetKind, e.targetId ?? null, JSON.stringify(e.detail ?? {}), now()],
   );
 }
 
-export async function unitMap(db: Db): Promise<Map<string, Row>> {
-  const rows = await db.query(`select * from unit where org_id = $1`, [ORG_ID]);
+export async function unitMap(db: Db, orgId: string): Promise<Map<string, Row>> {
+  const rows = await db.query(`select * from unit where org_id = $1`, [orgId]);
   return new Map(rows.map((r) => [r.id, r]));
 }
 
@@ -156,4 +163,16 @@ export async function teamMembers(db: Db, unitIds: string[]): Promise<Row[]> {
     `select distinct a.* from member m join app_user a on a.id = m.user_id where m.unit_id = any($1) and a.kind = 'human'`,
     [unitIds],
   );
+}
+
+/** Units, people, updates, asks and audit events that belong to one workspace. */
+export async function workspaceSnapshot(db: Db, orgId: string) {
+  const [units, people, updates, questions, audits] = await Promise.all([
+    db.query(`select id, name from unit where org_id = $1 order by name`, [orgId]),
+    db.query(`select id, name from app_user where org_id = $1 and kind = 'human' order by name`, [orgId]),
+    db.query(`select id from update_item where org_id = $1`, [orgId]),
+    db.query(`select id, answer_text from question where org_id = $1`, [orgId]),
+    db.query(`select id, action, target_id from audit_event where org_id = $1`, [orgId]),
+  ]);
+  return { units, people, updates, questions, audits };
 }

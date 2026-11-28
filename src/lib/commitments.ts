@@ -76,8 +76,11 @@ function view(policy: Policy, reader: Reader, row: Row, rows: Map<string, Row>, 
 }
 
 export async function commitmentViews(db: Db, reader: Reader, filter: (r: Row) => boolean): Promise<CommitmentView[]> {
-  const policy = await loadPolicy(db);
-  const rows = await allCommitments(db);
+  const user = await db.one(`select org_id from app_user where id = $1`, [reader.userId]);
+  const orgId = (user?.org_id as string | undefined) ?? (await db.one(`select org_id from unit where id = $1`, [reader.unitIds[0]]))?.org_id;
+  if (!orgId) return [];
+  const policy = await loadPolicy(db, orgId);
+  const rows = (await allCommitments(db)).filter((r) => r.org_id === orgId);
   const states = computeStates(rows);
   const byId = new Map(rows.map((r) => [r.id, r]));
   return rows
@@ -117,10 +120,10 @@ async function affectedTeams(db: Db, id: string): Promise<{ unitId: string; via:
 
 /** Tell every affected person, each at their own level. */
 export async function notifyCommitmentChange(db: Db, commitmentId: string, headline: (shown: ShownCommitment, via: ShownCommitment | null) => { subject: string; body: string }) {
-  const policy = await loadPolicy(db);
   const rows = await allCommitments(db);
   const row = rows.find((r) => r.id === commitmentId);
   if (!row) return { teams: [] as string[], people: 0 };
+  const policy = await loadPolicy(db, row.org_id);
   const teams = await affectedTeams(db, commitmentId);
   let people = 0;
   const done = new Set<string>();
@@ -155,7 +158,7 @@ export async function confirmCommitment(db: Db, viewer: Viewer, id: string, edit
     const reason = `Moved from ${fmt(orig.due_date)} to ${fmt(due)} in ${row.owner_unit_name}'s update (${fmt(now())}).`;
     await db.query(`update commitment set due_date = $2, slip_reason = $3 where id = $1`, [orig.id, due, reason]);
     await db.query(`update commitment set status = 'rejected', due_date = $2 where id = $1`, [id, due]);
-    await audit(db, { actorId: viewer.user.id, action: "revise_commitment", targetKind: "commitment", targetId: orig.id, detail: { from: orig.due_date, to: due, draft: id } });
+    await audit(db, { orgId: viewer.orgId, actorId: viewer.user.id, action: "revise_commitment", targetKind: "commitment", targetId: orig.id, detail: { from: orig.due_date, to: due, draft: id } });
     return notifyCommitmentChange(db, orig.id, (shown, via) => ({
       subject: `${row.owner_unit_name} moved a commitment to ${fmt(due)}`,
       body: `${shown.title}: now due ${fmt(due)} (was ${fmt(orig.due_date)}).${via ? ` This affects "${via.title}".` : ""}`,
@@ -165,7 +168,7 @@ export async function confirmCommitment(db: Db, viewer: Viewer, id: string, edit
   await db.query(`update commitment set status = 'open', confirmed_at = $2, title = $3, due_date = $4, original_due_date = $4 where id = $1`, [
     id, now(), edits.title || row.title, due,
   ]);
-  await audit(db, { actorId: viewer.user.id, action: "confirm_commitment", targetKind: "commitment", targetId: id, detail: { due } });
+  await audit(db, { orgId: viewer.orgId, actorId: viewer.user.id, action: "confirm_commitment", targetKind: "commitment", targetId: id, detail: { due } });
   return notifyCommitmentChange(db, id, (shown) => ({
     subject: `${row.owner_unit_name} committed to ${fmt(due)}`,
     body: `${shown.title}, due ${fmt(due)}.`,
@@ -178,7 +181,7 @@ export async function rejectCommitment(db: Db, viewer: Viewer, id: string) {
   if (row.owner_user_id !== viewer.user.id && !viewer.units.some((u) => u.id === row.owner_unit_id && u.role === "lead"))
     throw new PermissionError("Only the commitment's owner can reject it.");
   await db.query(`update commitment set status = 'rejected' where id = $1`, [id]);
-  await audit(db, { actorId: viewer.user.id, action: "reject_commitment", targetKind: "commitment", targetId: id });
+  await audit(db, { orgId: viewer.orgId, actorId: viewer.user.id, action: "reject_commitment", targetKind: "commitment", targetId: id });
 }
 
 export async function markDone(db: Db, viewer: Viewer, id: string) {
@@ -186,6 +189,6 @@ export async function markDone(db: Db, viewer: Viewer, id: string) {
   if (!row) throw new Error("Commitment not found");
   if (!viewer.reader.unitIds.includes(row.owner_unit_id)) throw new PermissionError("Only the owning team can close its commitments.");
   await db.query(`update commitment set status = 'done', done_at = $2 where id = $1`, [id, now()]);
-  await audit(db, { actorId: viewer.user.id, action: "complete_commitment", targetKind: "commitment", targetId: id });
+  await audit(db, { orgId: viewer.orgId, actorId: viewer.user.id, action: "complete_commitment", targetKind: "commitment", targetId: id });
   await notifyCommitmentChange(db, id, (shown) => ({ subject: `${row.owner_unit_name} delivered a commitment`, body: `${shown.title} is done.` }));
 }

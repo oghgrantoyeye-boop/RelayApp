@@ -19,7 +19,7 @@ export interface MeetingSummary {
 }
 
 export async function listMeetings(db: Db, viewer: Viewer) {
-  const policy = await loadPolicy(db);
+  const policy = await loadPolicy(db, viewer.orgId);
   const rows = await db.query(
     `select m.*, u.name as unit_name, u.slug as unit_slug, u.color as unit_color, c.kind as source_kind
      from meeting m join unit u on u.id = m.unit_id left join connector c on c.id = m.connector_id order by m.starts_at desc`,
@@ -34,7 +34,7 @@ export async function getMeeting(db: Db, viewer: Viewer, id: string) {
     [id],
   );
   if (!m) return null;
-  const policy = await loadPolicy(db);
+  const policy = await loadPolicy(db, viewer.orgId);
   if (visibleLevel(policy, viewer.reader, refMeeting(m)).level !== "full") return null;
   const people = await db.query(
     `select a.id, a.name, a.title, (select u.name from member mm join unit u on u.id = mm.unit_id where mm.user_id = a.id and u.how_to_ask <> '{}'::jsonb limit 1) as team
@@ -91,7 +91,7 @@ export async function summarizeMeeting(db: Db, viewer: Viewer, id: string): Prom
       : { ...offlineSummary(meeting.transcript, attendees), by: "Offline writer" };
   await db.query(`update meeting set summary = $2, status = case when status = 'recorded' then 'summarized' else status end where id = $1`, [id, JSON.stringify(summary)]);
   const agent = await db.one(`select a.id from app_user a join member m on m.user_id = a.id where m.unit_id = $1 and a.kind = 'agent' and a.id = 'agent_' || $1`, [meeting.unit_id]);
-  await audit(db, { actorId: agent?.id ?? null, onBehalfOfId: viewer.user.id, action: "summarize_meeting", targetKind: "meeting", targetId: id, detail: { decisions: summary.decisions.length, actions: summary.action_items.length, by: summary.by } });
+  await audit(db, { orgId: viewer.orgId, actorId: agent?.id ?? null, onBehalfOfId: viewer.user.id, action: "summarize_meeting", targetKind: "meeting", targetId: id, detail: { decisions: summary.decisions.length, actions: summary.action_items.length, by: summary.by } });
   return summary;
 }
 
@@ -173,7 +173,7 @@ export async function routeMeeting(db: Db, viewer: Viewer, id: string): Promise<
     }
     await t.query(`update meeting set status = 'routed', update_id = $2 where id = $1`, [meeting.id, updateId]);
   });
-  await audit(db, { actorId: viewer.user.id, action: "route_meeting", targetKind: "meeting", targetId: id, detail: { update: updateId, actions: s.action_items.length } });
+  await audit(db, { orgId: viewer.orgId, actorId: viewer.user.id, action: "route_meeting", targetKind: "meeting", targetId: id, detail: { update: updateId, actions: s.action_items.length } });
   return updateId;
 }
 

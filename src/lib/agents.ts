@@ -4,7 +4,7 @@
 // person's approval for anything that leaves the team.
 import type { Db, Row } from "./db";
 import { now } from "./clock";
-import { audit, newId, ORG_ID, type Viewer } from "./data";
+import { audit, newId, type Viewer } from "./data";
 import { PermissionError } from "./permissions";
 import { workersEnabled, WORKERS_OFF_MESSAGE } from "./flags";
 
@@ -153,13 +153,13 @@ export async function createAgent(db: Db, viewer: Viewer, input: NewAgent): Prom
   const fullName = /agent$/i.test(name) ? name : `${name} agent`;
   const id = newId("ag");
   await db.query(`insert into app_user (id, org_id, kind, name, title, ask_cadence, monthly_budget_usd, spent_usd) values ($1, $2, 'agent', $3, $4, 'immediate', $5, 0)`, [
-    id, ORG_ID, fullName, purpose.slice(0, 120), budget,
+    id, viewer.orgId, fullName, purpose.slice(0, 120), budget,
   ]);
   await db.query(`insert into member (id, unit_id, user_id, role) values ($1, $2, $3, 'agent')`, [`m_${id}_${unit.id}`, unit.id, id]);
   await db.query(
     `insert into agent_profile (agent_id, unit_id, purpose, connector_ids, actions, approval, schedule, created_by, created_at) values ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
     [id, unit.id, purpose, connectorIds, actions, approval, schedule, viewer.user.id, now()],
   );
-  await audit(db, { actorId: viewer.user.id, action: "agent_create", targetKind: "agent", targetId: id, detail: { team: unit.id, actions, connectors: connectorIds.length, approval, budget } });
+  await audit(db, { orgId: viewer.orgId, actorId: viewer.user.id, action: "agent_create", targetKind: "agent", targetId: id, detail: { team: unit.id, actions, connectors: connectorIds.length, approval, budget } });
   return id;
 }

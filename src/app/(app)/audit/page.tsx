@@ -31,14 +31,14 @@ const LABEL: Record<string, string> = {
 
 export default async function AuditPage({ searchParams }: { searchParams: Promise<{ action?: string }> }) {
   const { action } = await searchParams;
-  const { db, demo } = await currentViewer();
+  const { db, demo, viewer } = await currentViewer();
   const rows = await db.query(
     `select e.*, a.name as actor_name, a.kind as actor_kind, b.name as behalf_name
      from audit_event e left join app_user a on a.id = e.actor_id left join app_user b on b.id = e.on_behalf_of_id
-     where ($1::text is null or e.action = $1) order by e.at desc, e.id desc limit 200`,
-    [action ?? null],
+     where e.org_id = $1 and ($2::text is null or e.action = $2) order by e.at desc, e.id desc limit 200`,
+    [viewer.orgId, action ?? null],
   );
-  const actions = await db.query(`select action, count(*)::int as n from audit_event group by action order by n desc`);
+  const actions = await db.query(`select action, count(*)::int as n from audit_event where org_id = $1 group by action order by n desc`, [viewer.orgId]);
   return (
     <>
       <Topbar crumbs={[demo.org.name, "Audit log"]} />

@@ -69,7 +69,7 @@ export async function startTask(db: Db, viewer: Viewer, unitId: string, input: {
     `insert into task_run (id, unit_id, agent_id, requested_by, kind, title, instructions, status, steps, created_at, updated_at) values ($1, $2, $3, $4, $5, $6, $7, 'queued', $8, $9, $9)`,
     [id, unitId, agent.id, viewer.user.id, input.kind, title, instructions || title, JSON.stringify([{ at: now().toISOString(), kind: "start", text: `Started for ${viewer.user.name}.` }]), now()],
   );
-  await audit(db, { actorId: viewer.user.id, action: "task_start", targetKind: "task", targetId: id, detail: { kind: input.kind, agent: agent.id } });
+  await audit(db, { orgId: viewer.orgId, actorId: viewer.user.id, action: "task_start", targetKind: "task", targetId: id, detail: { kind: input.kind, agent: agent.id } });
   return id;
 }
 
@@ -126,7 +126,7 @@ async function runDraftUpdate(db: Db, task: Row) {
     JSON.stringify(docs.slice(-8).map((d) => ({ title: `${CONNECTOR_LABEL[d.connector_kind] ?? d.connector_kind}: ${d.external_ref ? `${d.external_ref} ` : ""}${d.title}` }))),
     now(),
   ]);
-  await audit(db, { actorId: task.agent_id, onBehalfOfId: task.requested_by, action: "task_done", targetKind: "task", targetId: task.id, detail: { output: updateId } });
+  await audit(db, { orgId: task.org_id, actorId: task.agent_id, onBehalfOfId: task.requested_by, action: "task_done", targetKind: "task", targetId: task.id, detail: { output: updateId } });
 }
 
 /** A first-pass review of a document from the team's tools: names, claims and points to check. */
@@ -172,7 +172,7 @@ async function runReview(db: Db, task: Row) {
   await db.query(`update task_run set status = 'done', result_md = $2, sources = $3, updated_at = $4 where id = $1`, [
     task.id, md, JSON.stringify([{ title: `${CONNECTOR_LABEL[doc.connector_kind] ?? doc.connector_kind}: ${doc.title}` }]), now(),
   ]);
-  await audit(db, { actorId: task.agent_id, onBehalfOfId: task.requested_by, action: "task_done", targetKind: "task", targetId: task.id, detail: { reviewed: doc.id } });
+  await audit(db, { orgId: task.org_id, actorId: task.agent_id, onBehalfOfId: task.requested_by, action: "task_done", targetKind: "task", targetId: task.id, detail: { reviewed: doc.id } });
 }
 
 /**
@@ -208,7 +208,7 @@ async function runCode(db: Db, task: Row) {
     "An engineer on the team reviews and merges it. _Demo replay of a recorded session._",
   ].join("\n");
   await db.query(`update task_run set status = 'done', result_md = $2, sources = $3, updated_at = $4 where id = $1`, [task.id, md, JSON.stringify([{ title: `GitHub: ${session.repo}` }]), now()]);
-  await audit(db, { actorId: task.agent_id, onBehalfOfId: task.requested_by, action: "task_done", targetKind: "task", targetId: task.id, detail: { branch: session.branch, replay: true } });
+  await audit(db, { orgId: task.org_id, actorId: task.agent_id, onBehalfOfId: task.requested_by, action: "task_done", targetKind: "task", targetId: task.id, detail: { branch: session.branch, replay: true } });
 }
 
 async function runResearch(db: Db, task: Row) {
@@ -258,13 +258,13 @@ async function runResearch(db: Db, task: Row) {
   );
   await db.query(`update app_user set spent_usd = spent_usd + $2 where id = $1`, [task.agent_id, cost.toFixed(4)]);
   await addStep(db, task.id, { kind: "done", text: `Wrote a brief from ${result.searches} searches and ${result.sources.length} sources.` });
-  await audit(db, { actorId: task.agent_id, onBehalfOfId: task.requested_by, action: "task_done", targetKind: "task", targetId: task.id, detail: { searches: result.searches, cost_usd: Number(cost.toFixed(4)) } });
+  await audit(db, { orgId: task.org_id, actorId: task.agent_id, onBehalfOfId: task.requested_by, action: "task_done", targetKind: "task", targetId: task.id, detail: { searches: result.searches, cost_usd: Number(cost.toFixed(4)) } });
 }
 
 async function loadVisible(db: Db, viewer: Viewer, id: string) {
   const t = await db.one(`select * from task_run where id = $1`, [id]);
   if (!t) return null;
-  const policy = await loadPolicy(db);
+  const policy = await loadPolicy(db, viewer.orgId);
   return visibleLevel(policy, viewer.reader, refTask(t)).level === "full" ? t : null;
 }
 
@@ -285,7 +285,7 @@ export async function commentTask(db: Db, viewer: Viewer, id: string, text: stri
   if (!t) throw new PermissionError("Only the team can comment on its agent's work.");
   if (!text.trim()) throw new Error("Write a comment first.");
   await addStep(db, id, { kind: "comment", by: viewer.user.name, text: text.trim().slice(0, 1000) });
-  await audit(db, { actorId: viewer.user.id, action: "task_comment", targetKind: "task", targetId: id });
+  await audit(db, { orgId: viewer.orgId, actorId: viewer.user.id, action: "task_comment", targetKind: "task", targetId: id });
 }
 
 /** Redirect: add an instruction and run again with everything the team has said so far. */
@@ -296,7 +296,7 @@ export async function redirectTask(db: Db, viewer: Viewer, id: string, text: str
   if (t.taken_over_by) throw new Error("Someone took this over; start a new task instead.");
   await addStep(db, id, { kind: "redirect", by: viewer.user.name, text: text.trim().slice(0, 1000) });
   await db.query(`update task_run set status = 'queued', instructions = instructions || $2, updated_at = $3 where id = $1`, [id, `\n\nFollow-up from ${viewer.user.name}: ${text.trim()}`, now()]);
-  await audit(db, { actorId: viewer.user.id, action: "task_redirect", targetKind: "task", targetId: id });
+  await audit(db, { orgId: viewer.orgId, actorId: viewer.user.id, action: "task_redirect", targetKind: "task", targetId: id });
 }
 
 export async function takeOverTask(db: Db, viewer: Viewer, id: string) {
@@ -304,7 +304,7 @@ export async function takeOverTask(db: Db, viewer: Viewer, id: string) {
   if (!t) throw new PermissionError("Only the team can take over its agent's work.");
   await db.query(`update task_run set taken_over_by = $2, status = case when status in ('queued', 'running') then 'stopped' else status end, updated_at = $3 where id = $1`, [id, viewer.user.id, now()]);
   await addStep(db, id, { kind: "takeover", by: viewer.user.name, text: `${viewer.user.name} took this over. The agent stopped.` });
-  await audit(db, { actorId: viewer.user.id, action: "task_takeover", targetKind: "task", targetId: id });
+  await audit(db, { orgId: viewer.orgId, actorId: viewer.user.id, action: "task_takeover", targetKind: "task", targetId: id });
 }
 
 export function fmtCost(v: unknown) {

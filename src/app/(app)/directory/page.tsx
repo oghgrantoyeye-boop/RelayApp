@@ -23,9 +23,9 @@ function Tree({ nodes }: { nodes: (Row & { children: Row[] })[] }) {
 
 export default async function DirectoryPage({ searchParams }: { searchParams: Promise<{ q?: string }> }) {
   const { q = "" } = await searchParams;
-  const { db, demo } = await currentViewer();
-  const results = q ? await search(db, q) : null;
-  const chart = await orgChart(db);
+  const { db, demo, viewer } = await currentViewer();
+  const results = q ? await search(db, q, viewer.orgId) : null;
+  const chart = await orgChart(db, viewer.orgId);
   return (
     <>
       <Topbar crumbs={[demo.org.name, "Directory"]} />

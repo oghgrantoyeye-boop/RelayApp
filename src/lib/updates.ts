@@ -64,7 +64,7 @@ export async function analyzeUpdate(
       );
     }
   });
-  await audit(db, { actorId: viewer.user.id, action: "draft_update", targetKind: "update", targetId: updateId, detail: { items: split.items.length, commitments: split.commitments.length, by: split.by } });
+  await audit(db, { orgId: viewer.orgId, actorId: viewer.user.id, action: "draft_update", targetKind: "update", targetId: updateId, detail: { items: split.items.length, commitments: split.commitments.length, by: split.by } });
   return { updateId, by: split.by };
 }
 
@@ -115,7 +115,7 @@ export async function publishDraft(db: Db, viewer: Viewer, updateId: string, for
     );
   }
   await db.query(`update team_update set status = 'published', published_at = $2 where id = $1`, [updateId, at]);
-  await audit(db, { actorId: viewer.user.id, action: "publish_update", targetKind: "update", targetId: updateId, detail: { items: form.items.filter((i) => i.include).length } });
+  await audit(db, { orgId: viewer.orgId, actorId: viewer.user.id, action: "publish_update", targetKind: "update", targetId: updateId, detail: { items: form.items.filter((i) => i.include).length } });
 
   const notified = await notifyAffected(db, updateId);
   const commitmentResults: { id: string; teams: string[]; people: number }[] = [];
@@ -138,9 +138,10 @@ export async function publishDraft(db: Db, viewer: Viewer, updateId: string, for
  * Daily and weekly interfaces are covered by the feed and digests.
  */
 export async function notifyAffected(db: Db, updateId: string): Promise<{ unitId: string; people: number }[]> {
-  const policy = await loadPolicy(db);
-  const items = await db.query(`select i.*, u.name as unit_name from update_item i join unit u on u.id = i.unit_id where i.update_id = $1 and i.status = 'published'`, [updateId]);
+  const items = await db.query(`select i.*, u.name as unit_name, u.org_id from update_item i join unit u on u.id = i.unit_id where i.update_id = $1 and i.status = 'published'`, [updateId]);
   if (items.length === 0) return [];
+  const orgId = items[0].org_id as string;
+  const policy = await loadPolicy(db, orgId);
   const from = items[0].unit_id;
   const ifaces = await db.query(`select * from interface where from_unit_id = $1 and cadence = 'immediate'`, [from]);
   const out: { unitId: string; people: number }[] = [];
@@ -160,7 +161,7 @@ export async function notifyAffected(db: Db, updateId: string): Promise<{ unitId
       refs: [{ type: "update", id: updateId, href: "/feed" }],
     });
     out.push({ unitId: iface.to_unit_id, people: n });
-    await audit(db, { actorId: null, action: "share", targetKind: "update", targetId: updateId, detail: { to_unit: iface.to_unit_id, items: lines.length, level: iface.level } });
+    await audit(db, { orgId, actorId: null, action: "share", targetKind: "update", targetId: updateId, detail: { to_unit: iface.to_unit_id, items: lines.length, level: iface.level } });
   }
   return out;
 }

@@ -5,7 +5,7 @@
 // the person approves first.
 import type { Db, Row } from "./db";
 import { fmt, now } from "./clock";
-import { audit, newId, ORG_ID, type Viewer } from "./data";
+import { audit, newId, type Viewer } from "./data";
 import { askTeam, getQuestion } from "./agent";
 import { search } from "./directory";
 import { getFeed } from "./feed";
@@ -64,7 +64,7 @@ async function save(db: Db, viewer: Viewer, m: Omit<ChatMsg, "id" | "at">) {
   const id = newId("ch");
   await db.query(
     `insert into chat_message (id, org_id, user_id, role, target, agent_label, text, refs, actions, created_at) values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
-    [id, ORG_ID, viewer.user.id, m.role, m.target, m.agentLabel, m.text, JSON.stringify(m.refs), JSON.stringify(m.actions), new Date(now().getTime() + (m.role === "agent" ? 1 : 0))],
+    [id, viewer.orgId, viewer.user.id, m.role, m.target, m.agentLabel, m.text, JSON.stringify(m.refs), JSON.stringify(m.actions), new Date(now().getTime() + (m.role === "agent" ? 1 : 0))],
   );
   return id;
 }
@@ -121,7 +121,7 @@ async function replyTo(db: Db, viewer: Viewer, agent: AgentRow | null, text: str
 
   const who = text.match(WHO);
   if (who) {
-    const r = await search(db, who[2]);
+    const r = await search(db, who[2], viewer.orgId);
     const t = r.teams.find((x) => Object.keys(x.team.how_to_ask ?? {}).length > 0);
     if (!t) return { text: `I couldn't find a team that owns "${who[2]}". Try the directory.`, refs: [{ label: "Directory", href: `/directory?q=${encodeURIComponent(who[2])}` }], actions: [] };
     return { text: `${t.team.name}. ${t.why}. You can ask its agent here, or @mention it.`, refs: [{ label: t.team.name, href: `/teams/${t.team.slug}` }], actions: [] };
@@ -177,7 +177,7 @@ async function replyTo(db: Db, viewer: Viewer, agent: AgentRow | null, text: str
   let unitId = agent?.team.id;
   let via = "";
   if (!unitId) {
-    const r = await search(db, text);
+    const r = await search(db, text, viewer.orgId);
     const t = r.teams.find((x) => Object.keys(x.team.how_to_ask ?? {}).length > 0);
     if (!t) {
       return {
@@ -256,6 +256,6 @@ export async function decideAction(db: Db, viewer: Viewer, messageId: string, ac
     a.status = "approved";
   }
   await db.query(`update chat_message set actions = $2 where id = $1`, [messageId, JSON.stringify(actions)]);
-  await audit(db, { actorId: viewer.user.id, action: approve ? "agent_action_approved" : "agent_action_dismissed", targetKind: "chat", targetId: messageId, detail: { kind: a.kind } });
+  await audit(db, { orgId: viewer.orgId, actorId: viewer.user.id, action: approve ? "agent_action_approved" : "agent_action_dismissed", targetKind: "chat", targetId: messageId, detail: { kind: a.kind } });
   return out;
 }

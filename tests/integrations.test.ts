@@ -30,7 +30,8 @@ beforeEach(async () => {
 
 async function sourceLevel(userId: string, title: string) {
   const row = (await db.one(`select * from source_doc where title = $1`, [title]))!;
-  const level = visibleLevel(await loadPolicy(db), (await v(userId)).reader, refSource(row)).level;
+  const viewer = await v(userId);
+  const level = visibleLevel(await loadPolicy(db, viewer.orgId), viewer.reader, refSource(row)).level;
   return { level, shown: showSource(row, level) };
 }
 

@@ -30,8 +30,8 @@ beforeEach(async () => {
 });
 
 async function levelOf(userId: string, table: "update_item" | "request", id: string) {
-  const policy = await loadPolicy(db);
   const viewer = await v(userId);
+  const policy = await loadPolicy(db, viewer.orgId);
   const row = (await db.one(`select * from ${table} where id = $1`, [id]))!;
   const ref = table === "update_item" ? refUpdateItem(row) : refRequest(row);
   return { level: visibleLevel(policy, viewer.reader, ref).level, row };
@@ -129,7 +129,7 @@ describe("team agents and requests", () => {
     const ev = (await db.one(`select * from audit_event where action = 'agent_read' order by id desc limit 1`))!;
     expect(ev.actor_id).toBe("agent_payments");
     expect(ev.on_behalf_of_id).toBe("jordan");
-    const policy = await loadPolicy(db);
+    const policy = await loadPolicy(db, jordan.orgId);
     for (const [ref, level] of Object.entries(ev.detail.levels as Record<string, string>)) {
       if (!ref.startsWith("update_item:")) continue;
       const row = (await db.one(`select * from update_item where id = $1`, [ref.split(":")[1]]))!;
@@ -262,8 +262,9 @@ describe("draft sources", () => {
     const items = await db.query(`select * from update_item where update_id = $1`, [updateId]);
     expect(items.every((i) => i.status === "draft")).toBe(true);
     expect(JSON.stringify(items)).not.toContain("sk_live");
-    const policy = await loadPolicy(db);
-    const teammate: Reader = (await v("diego")).reader;
+    const diego = await v("diego");
+    const policy = await loadPolicy(db, diego.orgId);
+    const teammate: Reader = diego.reader;
     expect(visibleLevel(policy, teammate, refUpdateItem(items[0])).level).toBe("none");
     expect(scrub("token=abc123 and ghp_123456789012345")).not.toMatch(/abc123|ghp_1234/);
   });

@@ -3,7 +3,7 @@
 import type { Db } from "./db";
 import { addDays } from "./clock";
 import { levelTexts } from "./ai/offline";
-import { ALL_KINDS, ORG_ID } from "./data";
+import { ALL_KINDS } from "./data";
 import { seedIntegrations } from "./seed-integrations";
 import { getDemo, type DemoPack } from "./demos";
 
@@ -22,10 +22,11 @@ export async function seed(db: Db, demoId?: string) {
 async function seedPack(t: Db, pack: DemoPack) {
   const q = (sql: string, params: unknown[]) => t.query(sql, params);
   const { teams: TEAMS, people: PEOPLE } = pack;
+  const orgId = pack.id;
   const teamName = (id: string) => TEAMS.find((x) => x.id === id)!.name;
 
   await q(`insert into org (id, name, settings) values ($1, $2, $3)`, [
-    ORG_ID,
+    orgId,
     pack.org.name,
     JSON.stringify({ default_level: "headline", headcount: pack.org.headcount, demo: pack.id, default_persona: pack.defaultPersona }),
   ]);
@@ -33,7 +34,7 @@ async function seedPack(t: Db, pack: DemoPack) {
   for (const team of TEAMS) {
     await q(
       `insert into unit (id, org_id, slug, name, parent_unit_id, description, color, how_to_ask) values ($1, $2, $3, $4, $5, $6, $7, $8)`,
-      [team.id, ORG_ID, team.id, team.name, team.parent, team.description, team.color,
+      [team.id, orgId, team.id, team.name, team.parent, team.description, team.color,
         JSON.stringify(team.group ? {} : { turnaround: team.turnaround ?? "2 business days" })],
     );
   }
@@ -42,7 +43,7 @@ async function seedPack(t: Db, pack: DemoPack) {
   for (const [id, name, title, team, role] of PEOPLE) {
     await q(
       `insert into app_user (id, org_id, kind, name, title, email, github_login, api_token) values ($1, $2, 'human', $3, $4, $5, $6, $7)`,
-      [id, ORG_ID, name, title, `${id}@${pack.org.domain}.example`, name.toLowerCase().replace(/[^a-z]+/g, "-"), `rly_demo_${id}`],
+      [id, orgId, name, title, `${id}@${pack.org.domain}.example`, name.toLowerCase().replace(/[^a-z]+/g, "-"), `rly_demo_${id}`],
     );
     await q(`insert into member (id, unit_id, user_id, role) values ($1, $2, $3, $4)`, [memberId(id, team), team, id, role]);
   }
@@ -55,7 +56,7 @@ async function seedPack(t: Db, pack: DemoPack) {
   for (const team of TEAMS.filter((x) => !x.group)) {
     const id = `agent_${team.id}`;
     await q(`insert into app_user (id, org_id, kind, name, title, ask_cadence) values ($1, $2, 'agent', $3, $4, 'immediate')`, [
-      id, ORG_ID, `${team.name} agent`, "Answers from what the team has published, and routes the rest",
+      id, orgId, `${team.name} agent`, "Answers from what the team has published, and routes the rest",
     ]);
     await q(`insert into member (id, unit_id, user_id, role) values ($1, $2, $3, 'agent')`, [memberId(id, team.id), team.id, id]);
   }
@@ -68,7 +69,7 @@ async function seedPack(t: Db, pack: DemoPack) {
 
   for (const m of pack.markings) {
     await q(`insert into marking (id, org_id, label, allowed_unit_ids, others_level) values ($1, $2, $3, $4, $5)`, [
-      m.id, ORG_ID, m.label, m.allowed, m.othersLevel,
+      m.id, orgId, m.label, m.allowed, m.othersLevel,
     ]);
   }
 
@@ -118,7 +119,7 @@ async function seedPack(t: Db, pack: DemoPack) {
       }
       await q(
         `insert into audit_event (org_id, actor_id, action, target_kind, target_id, detail, at) values ($1, $2, 'publish_update', 'update', $3, $4, $5)`,
-        [ORG_ID, author, updateId, JSON.stringify({ items: all.length }), publishedAt],
+        [orgId, author, updateId, JSON.stringify({ items: all.length }), publishedAt],
       );
     }
   }
@@ -127,7 +128,7 @@ async function seedPack(t: Db, pack: DemoPack) {
     await q(
       `insert into request (id, org_id, from_unit_id, to_unit_id, requester_id, title, details, needed_by, status, ownership_item_id, assignee_member_id, cluster_key, via, created_at, headline_text)
        values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)`,
-      [id, ORG_ID, from, to, requester, title, details, needed, status, own, memberId(assignee, to), cluster, via, at(created, 15),
+      [id, orgId, from, to, requester, title, details, needed, status, own, memberId(assignee, to), cluster, via, at(created, 15),
         `Request from ${teamName(from)} to ${teamName(to)}`],
     );
   }
@@ -136,7 +137,7 @@ async function seedPack(t: Db, pack: DemoPack) {
     await q(
       `insert into request (id, org_id, from_unit_id, to_unit_id, requester_id, title, details, summary_title, summary_details, headline_text, needed_by, status, ownership_item_id, assignee_member_id, marking_id, cluster_key, via, created_at)
        values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, 'open', $12, $13, $14, $15, 'form', $16)`,
-      [r.id, ORG_ID, r.from, r.to, r.requester, r.title, r.details, r.summaryTitle, r.summaryDetails, r.headline, r.neededBy, r.ownership,
+      [r.id, orgId, r.from, r.to, r.requester, r.title, r.details, r.summaryTitle, r.summaryDetails, r.headline, r.neededBy, r.ownership,
         memberId(r.assignee, r.to), r.marking, r.cluster, r.created],
     );
   }
@@ -153,11 +154,11 @@ async function seedPack(t: Db, pack: DemoPack) {
   for (const [id, asker, unit, text, outcome, answer, refs, req, date] of pack.questions) {
     await q(
       `insert into question (id, org_id, asker_id, unit_id, text, outcome, answer_text, source_refs, request_id, created_at) values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
-      [id, ORG_ID, asker, unit, text, outcome, answer, JSON.stringify(refs), req, at(date, 14)],
+      [id, orgId, asker, unit, text, outcome, answer, JSON.stringify(refs), req, at(date, 14)],
     );
     await q(
       `insert into audit_event (org_id, actor_id, on_behalf_of_id, action, target_kind, target_id, detail, at) values ($1, $2, $3, $4, 'question', $5, $6, $7)`,
-      [ORG_ID, `agent_${unit}`, asker, outcome === "answered" ? "agent_answer" : "agent_route", id, JSON.stringify({ question: text }), at(date, 14)],
+      [orgId, `agent_${unit}`, asker, outcome === "answered" ? "agent_answer" : "agent_route", id, JSON.stringify({ question: text }), at(date, 14)],
     );
   }
 }

@@ -25,7 +25,9 @@ interface Source extends Doc {
 
 /** Everything the team has published that this asker may see, rendered at their level. */
 async function publishedSources(db: Db, unitId: string, reader: Parameters<typeof visibleLevel>[1]): Promise<Source[]> {
-  const policy = await loadPolicy(db);
+  const unit = await db.one(`select org_id from unit where id = $1`, [unitId]);
+  if (!unit) return [];
+  const policy = await loadPolicy(db, unit.org_id);
   const out: Source[] = [];
   const items = await db.query(
     `select * from update_item where unit_id = $1 and status = 'published' and published_at >= $2 order by published_at desc`,
@@ -109,7 +111,7 @@ export async function askTeam(db: Db, viewer: Viewer, unitId: string, text: stri
   if (!unit) throw new Error("Team not found");
   const { agent, reader } = await agentReader(db, unitId, viewer.reader);
   const sources = await publishedSources(db, unitId, reader);
-  await audit(db, {
+  await audit(db, { orgId: viewer.orgId,
     actorId: agent.id,
     onBehalfOfId: viewer.user.id,
     action: "agent_read",
@@ -127,7 +129,7 @@ export async function askTeam(db: Db, viewer: Viewer, unitId: string, text: stri
       `insert into question (id, org_id, asker_id, unit_id, text, outcome, answer_text, source_refs, marking_ids, created_at) values ($1, $2, $3, $4, $5, 'answered', $6, $7, $8, $9)`,
       [qid, unit.org_id, viewer.user.id, unitId, question, result.answer, JSON.stringify(used.map((u) => u.ref)), markings, now()],
     );
-    await audit(db, { actorId: agent.id, onBehalfOfId: viewer.user.id, action: "agent_answer", targetKind: "question", targetId: qid, detail: { sources: used.map((u) => u.ref), markings, by: result.by } });
+    await audit(db, { orgId: viewer.orgId, actorId: agent.id, onBehalfOfId: viewer.user.id, action: "agent_answer", targetKind: "question", targetId: qid, detail: { sources: used.map((u) => u.ref), markings, by: result.by } });
     return { questionId: qid };
   }
 
@@ -162,7 +164,7 @@ export async function askTeam(db: Db, viewer: Viewer, unitId: string, text: stri
     `insert into question (id, org_id, asker_id, unit_id, text, outcome, answer_text, source_refs, marking_ids, request_id, created_at) values ($1, $2, $3, $4, $5, 'routed', $6, $7, $8, $9, $10)`,
     [qid, unit.org_id, viewer.user.id, unitId, question, answer, JSON.stringify(partial ? [partial.ref] : []), markings, reqId, now()],
   );
-  await audit(db, {
+  await audit(db, { orgId: viewer.orgId,
     actorId: agent.id,
     onBehalfOfId: viewer.user.id,
     action: "agent_route",
@@ -177,7 +179,7 @@ export async function getQuestion(db: Db, viewer: Viewer, id: string) {
   const q = await db.one(`select q.*, u.name as unit_name from question q join unit u on u.id = q.unit_id where q.id = $1`, [id]);
   if (!q) return null;
   // An answer is a derived output: only its asker sees it, and only if its markings still allow them.
-  const policy = await loadPolicy(db);
+  const policy = await loadPolicy(db, viewer.orgId);
   if (q.asker_id !== viewer.user.id || !canSeeDerived(policy, viewer.reader, q.marking_ids)) return null;
   const refs: string[] = q.source_refs ?? [];
   const sources = (await publishedSourcesFor(db, q.unit_id, viewer)).filter((s) => refs.includes(s.ref));
@@ -214,7 +216,7 @@ export interface AskCluster {
 
 /** A person's asks: open requests assigned to them, duplicates merged, urgent first. */
 export async function getAsks(db: Db, viewer: Viewer): Promise<{ clusters: AskCluster[]; nextBatch: Date; pending: number }> {
-  const policy = await loadPolicy(db);
+  const policy = await loadPolicy(db, viewer.orgId);
   const rows = await db.query(
     `select r.*, a.name as requester_name, fu.name as from_name, tu.name as to_name, o.title as ownership_title, mk.label as marking_label
      from request r
@@ -257,7 +259,7 @@ export async function getAsks(db: Db, viewer: Viewer): Promise<{ clusters: AskCl
     });
   }
   clusters.sort((a, b) => Number(b.urgent) - Number(a.urgent) || b.askers.length - a.askers.length || +a.firstAsked - +b.firstAsked);
-  await audit(db, { actorId: viewer.user.id, action: "read_asks", targetKind: "asks", targetId: viewer.user.id, detail: { clusters: clusters.length, requests: rows.length } });
+  await audit(db, { orgId: viewer.orgId, actorId: viewer.user.id, action: "read_asks", targetKind: "asks", targetId: viewer.user.id, detail: { clusters: clusters.length, requests: rows.length } });
   return { clusters, nextBatch: nextBatchAt(viewer.user.ask_cadence), pending: rows.filter((r) => !r.delivered_at).length };
 }
 
@@ -296,7 +298,7 @@ export async function answerCluster(
     body: `You asked: ${reqs[0].title}\n\n${answer}`,
     refs: [{ type: "request", id: reqs[0].id, href: "/inbox" }],
   });
-  await audit(db, { actorId: viewer.user.id, action: "answer_request", targetKind: "request", targetId: reqs[0].id, detail: { cluster: key, recipients: askers.length } });
+  await audit(db, { orgId: viewer.orgId, actorId: viewer.user.id, action: "answer_request", targetKind: "request", targetId: reqs[0].id, detail: { cluster: key, recipients: askers.length } });
 
   let publishedId: string | null = null;
   if (input.publish) {
@@ -310,7 +312,7 @@ export async function answerCluster(
       [publishedId, unitId, viewer.user.id, text, summary, headline, [...new Set(reqs.map((r) => r.from_unit_id))], marking,
         input.publishLevel && input.publishLevel !== "full" ? input.publishLevel : null, reqs[0].id, now()],
     );
-    await audit(db, { actorId: viewer.user.id, action: "publish_answer", targetKind: "update_item", targetId: publishedId, detail: { cap: input.publishLevel ?? null } });
+    await audit(db, { orgId: viewer.orgId, actorId: viewer.user.id, action: "publish_answer", targetKind: "update_item", targetId: publishedId, detail: { cap: input.publishLevel ?? null } });
   }
 
   let commitmentId: string | null = null;
@@ -322,7 +324,7 @@ export async function answerCluster(
        values ($1, $2, $3, $4, 'request', $5, $6, $7, $7, 'open', $8, $9, $8)`,
       [commitmentId, unitId, member, reqs[0].from_unit_id, reqs[0].id, reqs[0].title.replace(/\?$/, ""), input.commitDue, now(), reqs[0].marking_id],
     );
-    await audit(db, { actorId: viewer.user.id, action: "accept_request", targetKind: "commitment", targetId: commitmentId, detail: { due: input.commitDue } });
+    await audit(db, { orgId: viewer.orgId, actorId: viewer.user.id, action: "accept_request", targetKind: "commitment", targetId: commitmentId, detail: { due: input.commitDue } });
     await notifyCommitmentChange(db, commitmentId, (shown) => ({ subject: `${reqs[0].to_name} committed to ${fmt(input.commitDue!)}`, body: `${shown.title}, due ${fmt(input.commitDue!)}.` }));
   }
   return { recipients: askers.length, publishedId, commitmentId };
@@ -336,7 +338,7 @@ export async function declineCluster(db: Db, viewer: Viewer, key: string, reason
     subject: `${reqs[0].to_name} declined your request`,
     body: `${reqs[0].title}\n\n${reason || "No reason given."}`,
   });
-  await audit(db, { actorId: viewer.user.id, action: "decline_request", targetKind: "request", targetId: reqs[0].id, detail: { cluster: key } });
+  await audit(db, { orgId: viewer.orgId, actorId: viewer.user.id, action: "decline_request", targetKind: "request", targetId: reqs[0].id, detail: { cluster: key } });
 }
 
 /** Send this person their batch now: one message listing what people want from them. */
@@ -356,7 +358,7 @@ export async function sendBatch(db: Db, viewer: Viewer) {
   });
   for (const c of pending) for (const r of c.requests) await db.query(`update request set delivered_at = $2 where id = $1`, [r.id, now()]);
   await db.query(`update app_user set last_batch_at = $2 where id = $1`, [viewer.user.id, now()]);
-  await audit(db, { actorId: null, action: "send_batch", targetKind: "user", targetId: viewer.user.id, detail: { clusters: pending.length } });
+  await audit(db, { orgId: viewer.orgId, actorId: null, action: "send_batch", targetKind: "user", targetId: viewer.user.id, detail: { clusters: pending.length } });
   return { sent: pending.length };
 }
 
@@ -378,6 +380,6 @@ export async function submitRequest(db: Db, viewer: Viewer, unitId: string, inpu
   );
   if (immediate)
     await deliver(db, [member.user_id], { kind: "ask_now", subject: `${input.blocking ? "Blocking ask" : "Ask needed soon"} from ${viewer.user.name}`, body: input.title, refs: [{ type: "request", id, href: "/asks" }] });
-  await audit(db, { actorId: viewer.user.id, action: "create_request", targetKind: "request", targetId: id, detail: { to: member.user_id, delivery: immediate ? "immediate" : "batch" } });
+  await audit(db, { orgId: viewer.orgId, actorId: viewer.user.id, action: "create_request", targetKind: "request", targetId: id, detail: { to: member.user_id, delivery: immediate ? "immediate" : "batch" } });
   return { id, assignee: member.name, ownership: ownership?.title ?? null, immediate, nextBatch };
 }

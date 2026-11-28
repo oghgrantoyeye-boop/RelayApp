@@ -122,7 +122,7 @@ export async function toggleFollow(form: FormData) {
         [`if_${unitId}_${mine}`, unitId, mine, ALL_KINDS.filter((k) => k !== "request")],
       );
     }
-    await audit(db, { actorId: viewer.user.id, action: existing ? "unfollow" : "follow", targetKind: "unit", targetId: unitId, detail: { follower: mine } });
+    await audit(db, { orgId: viewer.orgId, actorId: viewer.user.id, action: existing ? "unfollow" : "follow", targetKind: "unit", targetId: unitId, detail: { follower: mine } });
     return withMsg(`/teams/${slug}`, existing ? `${viewer.team.name} no longer follows this team.` : `${viewer.team.name} now follows this team and sees its updates at Summary.`);
   });
 }

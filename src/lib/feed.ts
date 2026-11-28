@@ -27,7 +27,7 @@ export interface Feed {
 
 /** My feed: update items from teams you follow, at your level, grouped as the brief describes. */
 export async function getFeed(db: Db, viewer: Viewer, days = 21): Promise<Feed> {
-  const policy = await loadPolicy(db);
+  const policy = await loadPolicy(db, viewer.orgId);
   const myUnits = viewer.reader.unitIds;
   const following = await db.query(
     `select distinct u.* from follow f join unit u on u.id = f.unit_id where f.follower_unit_id = any($1) and not (u.id = any($1)) order by u.name`,
@@ -73,7 +73,7 @@ export async function getFeed(db: Db, viewer: Viewer, days = 21): Promise<Feed> 
     alerts,
     following,
   };
-  await audit(db, {
+  await audit(db, { orgId: viewer.orgId,
     actorId: viewer.user.id,
     action: "read_feed",
     targetKind: "feed",

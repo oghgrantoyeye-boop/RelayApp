@@ -19,11 +19,12 @@ const POS: Record<string, [number, number]> = {
 export default async function MapPage() {
   if (!workersEnabled()) notFound();
   const { db, viewer, demo } = await currentViewer();
-  const policy = await loadPolicy(db);
+  const policy = await loadPolicy(db, viewer.orgId);
   const teams = await db.query(
     `select u.*, (select a.name from member m join app_user a on a.id = m.user_id where m.unit_id = u.id and m.role = 'lead' limit 1) as lead,
             (select count(*)::int from member m join app_user a on a.id = m.user_id where m.unit_id = u.id and a.kind = 'human') as people
-     from unit u where u.how_to_ask <> '{}'::jsonb order by u.name`,
+     from unit u where u.org_id = $1 and u.how_to_ask <> '{}'::jsonb order by u.name`,
+    [viewer.orgId],
   );
   const nodes: MapNode[] = teams
     .filter((t) => POS[t.id])

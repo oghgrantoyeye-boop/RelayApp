@@ -352,4 +352,109 @@ create table agent_profile (
 );
 `,
   },
+  {
+    id: "006_T-30_org_id",
+    sql: `
+-- Workspace id on every row. Backfill from the owning unit (or recipient), then keep it filled
+-- on insert so existing writers that omit org_id still work until they pass it explicitly.
+
+alter table member add column org_id text references org(id);
+alter table ownership_item add column org_id text references org(id);
+alter table team_update add column org_id text references org(id);
+alter table update_item add column org_id text references org(id);
+alter table interface add column org_id text references org(id);
+alter table follow add column org_id text references org(id);
+alter table commitment add column org_id text references org(id);
+alter table connector add column org_id text references org(id);
+alter table source_doc add column org_id text references org(id);
+alter table meeting add column org_id text references org(id);
+alter table task_run add column org_id text references org(id);
+alter table delivery add column org_id text references org(id);
+alter table agent_profile add column org_id text references org(id);
+
+update member m set org_id = u.org_id from unit u where u.id = m.unit_id;
+update ownership_item o set org_id = u.org_id from unit u where u.id = o.unit_id;
+update team_update t set org_id = u.org_id from unit u where u.id = t.unit_id;
+update update_item i set org_id = u.org_id from unit u where u.id = i.unit_id;
+update interface i set org_id = u.org_id from unit u where u.id = i.from_unit_id;
+update follow f set org_id = u.org_id from unit u where u.id = f.unit_id;
+update commitment c set org_id = u.org_id from unit u where u.id = c.owner_unit_id;
+update connector c set org_id = u.org_id from unit u where u.id = c.unit_id;
+update source_doc d set org_id = u.org_id from unit u where u.id = d.unit_id;
+update meeting m set org_id = u.org_id from unit u where u.id = m.unit_id;
+update task_run t set org_id = u.org_id from unit u where u.id = t.unit_id;
+update delivery d set org_id = a.org_id from app_user a where a.id = d.recipient_id;
+update agent_profile p set org_id = u.org_id from unit u where u.id = p.unit_id;
+
+alter table member alter column org_id set not null;
+alter table ownership_item alter column org_id set not null;
+alter table team_update alter column org_id set not null;
+alter table update_item alter column org_id set not null;
+alter table interface alter column org_id set not null;
+alter table follow alter column org_id set not null;
+alter table commitment alter column org_id set not null;
+alter table connector alter column org_id set not null;
+alter table source_doc alter column org_id set not null;
+alter table meeting alter column org_id set not null;
+alter table task_run alter column org_id set not null;
+alter table delivery alter column org_id set not null;
+alter table agent_profile alter column org_id set not null;
+
+create or replace function relay_fill_org_from_unit() returns trigger as $$
+begin
+  if new.org_id is null then
+    select org_id into new.org_id from unit where id = new.unit_id;
+  end if;
+  return new;
+end;
+$$ language plpgsql;
+
+create or replace function relay_fill_org_from_owner_unit() returns trigger as $$
+begin
+  if new.org_id is null then
+    select org_id into new.org_id from unit where id = new.owner_unit_id;
+  end if;
+  return new;
+end;
+$$ language plpgsql;
+
+create or replace function relay_fill_org_from_from_unit() returns trigger as $$
+begin
+  if new.org_id is null then
+    select org_id into new.org_id from unit where id = new.from_unit_id;
+  end if;
+  return new;
+end;
+$$ language plpgsql;
+
+create or replace function relay_fill_org_from_recipient() returns trigger as $$
+begin
+  if new.org_id is null then
+    select org_id into new.org_id from app_user where id = new.recipient_id;
+  end if;
+  return new;
+end;
+$$ language plpgsql;
+
+create trigger member_org before insert on member for each row execute procedure relay_fill_org_from_unit();
+create trigger ownership_org before insert on ownership_item for each row execute procedure relay_fill_org_from_unit();
+create trigger team_update_org before insert on team_update for each row execute procedure relay_fill_org_from_unit();
+create trigger update_item_org before insert on update_item for each row execute procedure relay_fill_org_from_unit();
+create trigger follow_org before insert on follow for each row execute procedure relay_fill_org_from_unit();
+create trigger connector_org before insert on connector for each row execute procedure relay_fill_org_from_unit();
+create trigger source_doc_org before insert on source_doc for each row execute procedure relay_fill_org_from_unit();
+create trigger meeting_org before insert on meeting for each row execute procedure relay_fill_org_from_unit();
+create trigger task_run_org before insert on task_run for each row execute procedure relay_fill_org_from_unit();
+create trigger agent_profile_org before insert on agent_profile for each row execute procedure relay_fill_org_from_unit();
+create trigger commitment_org before insert on commitment for each row execute procedure relay_fill_org_from_owner_unit();
+create trigger interface_org before insert on interface for each row execute procedure relay_fill_org_from_from_unit();
+create trigger delivery_org before insert on delivery for each row execute procedure relay_fill_org_from_recipient();
+
+create index member_org_idx on member (org_id);
+create index update_item_org_idx on update_item (org_id, status, created_at desc);
+create index commitment_org_idx on commitment (org_id, status);
+create index audit_org_idx on audit_event (org_id, at desc);
+create index delivery_org_idx on delivery (org_id, created_at desc);
+`,
+  },
 ];

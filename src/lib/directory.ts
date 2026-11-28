@@ -7,14 +7,24 @@ export interface SearchResult {
 }
 
 /** Directory search across teams, what they own, and people. "rate limits" lands on Platform. */
-export async function search(db: Db, q: string): Promise<SearchResult> {
+export async function search(db: Db, q: string, orgId?: string): Promise<SearchResult> {
   const words = tokens(q);
-  const teams = await db.query(`select * from unit order by name`);
-  const owns = await db.query(`select * from ownership_item`);
-  const people = await db.query(
-    `select a.*, u.name as unit_name, u.slug as unit_slug, m.role from app_user a join member m on m.user_id = a.id join unit u on u.id = m.unit_id
-     where a.kind = 'human' order by a.name`,
-  );
+  const teams = orgId
+    ? await db.query(`select * from unit where org_id = $1 order by name`, [orgId])
+    : await db.query(`select * from unit order by name`);
+  const owns = orgId
+    ? await db.query(`select * from ownership_item where org_id = $1`, [orgId])
+    : await db.query(`select * from ownership_item`);
+  const people = orgId
+    ? await db.query(
+        `select a.*, u.name as unit_name, u.slug as unit_slug, m.role from app_user a join member m on m.user_id = a.id join unit u on u.id = m.unit_id
+         where a.kind = 'human' and a.org_id = $1 order by a.name`,
+        [orgId],
+      )
+    : await db.query(
+        `select a.*, u.name as unit_name, u.slug as unit_slug, m.role from app_user a join member m on m.user_id = a.id join unit u on u.id = m.unit_id
+         where a.kind = 'human' order by a.name`,
+      );
   const scored = teams
     .map((t) => {
       let score = 2 * overlap(words, tokens(t.name)) + overlap(words, tokens(t.description));
@@ -36,12 +46,19 @@ export async function search(db: Db, q: string): Promise<SearchResult> {
   return { teams: scored, people: matchedPeople.slice(0, 20) };
 }
 
-export async function orgChart(db: Db) {
-  const units = await db.query(
-    `select u.*, (select a.name from member m join app_user a on a.id = m.user_id where m.unit_id = u.id and m.role = 'lead' limit 1) as lead_name,
-            (select count(*)::int from member m join app_user a on a.id = m.user_id where m.unit_id = u.id and a.kind = 'human') as people
-     from unit u order by u.name`,
-  );
+export async function orgChart(db: Db, orgId?: string) {
+  const units = orgId
+    ? await db.query(
+        `select u.*, (select a.name from member m join app_user a on a.id = m.user_id where m.unit_id = u.id and m.role = 'lead' limit 1) as lead_name,
+                (select count(*)::int from member m join app_user a on a.id = m.user_id where m.unit_id = u.id and a.kind = 'human') as people
+         from unit u where u.org_id = $1 order by u.name`,
+        [orgId],
+      )
+    : await db.query(
+        `select u.*, (select a.name from member m join app_user a on a.id = m.user_id where m.unit_id = u.id and m.role = 'lead' limit 1) as lead_name,
+                (select count(*)::int from member m join app_user a on a.id = m.user_id where m.unit_id = u.id and a.kind = 'human') as people
+         from unit u order by u.name`,
+      );
   const children = (id: string | null): (Row & { children: Row[] })[] =>
     units.filter((u) => u.parent_unit_id === id).map((u) => ({ ...u, children: children(u.id) }));
   return children(null);
