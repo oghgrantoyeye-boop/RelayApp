@@ -28,10 +28,12 @@ export function BuiltByBand() {
   return (
     <section className="builtby" id="built-by" aria-label="Who builds Beacon">
       <p className="builtby-label">Built by people previously at</p>
-      <div className="marquee">
-        <div className="marquee-group">{logos(false)}</div>
-        <div className="marquee-group" aria-hidden="true">
-          {logos(true)}
+      <div className="builtby-track">
+        <div className="marquee">
+          <div className="marquee-group">{logos(false)}</div>
+          <div className="marquee-group" aria-hidden="true">
+            {logos(true)}
+          </div>
         </div>
       </div>
     </section>
