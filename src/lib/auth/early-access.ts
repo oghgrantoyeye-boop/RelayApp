@@ -26,18 +26,11 @@ export async function canCreateAccount(db: Db, email: string): Promise<boolean> 
   if (isAdminEmail(normalized)) return true;
   const approved = await db.one(`select id from lead where lower(email) = $1 and status = 'approved' limit 1`, [normalized]);
   if (approved) return true;
-  // T-33 will also allow emails with a pending workspace invite.
-  const invite = await db.one(
-    `select 1 from information_schema.tables where table_schema = 'public' and table_name = 'workspace_invite'`,
+  const pendingInvite = await db.one(
+    `select id from workspace_invite where lower(email) = $1 and status = 'pending' limit 1`,
+    [normalized],
   );
-  if (invite) {
-    const pending = await db.one(
-      `select id from workspace_invite where lower(email) = $1 and status = 'pending' limit 1`,
-      [normalized],
-    );
-    if (pending) return true;
-  }
-  return false;
+  return Boolean(pendingInvite);
 }
 
 /** Remember an unapproved sign-in attempt as a lead (source signin). */
