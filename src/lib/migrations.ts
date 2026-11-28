@@ -577,7 +577,7 @@ alter table chat_message add column answer jsonb;
 `,
   },
   {
-    id: "010_T-20_clarify",
+    id: "011_T-20_clarify",
     sql: `
 -- Clarifying questions (T-20). An agent can ask one follow-up instead of, or alongside, an answer.
 -- The asker's reply continues the question as a new question whose parent is this one.
