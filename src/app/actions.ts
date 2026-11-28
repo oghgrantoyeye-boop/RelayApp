@@ -464,3 +464,19 @@ export async function myQuestionAction(form: FormData) {
     throw new Error("Unknown action.");
   });
 }
+
+/** Integrations: an owner or admin sets the workspace's monthly AI budget (T-35). Empty clears it. */
+export async function setAiBudget(form: FormData) {
+  return run("/connect", async () => {
+    const { db, orgId, account, isSample, viewer } = await currentViewer();
+    const { canSetBudget, setMonthlyCap } = await import("@/lib/ai/spend");
+    if (!(await canSetBudget(db, account?.id, orgId, isSample))) throw new Error("Only a workspace owner or admin can set the AI budget.");
+    const raw = str(form, "usd");
+    const usd = raw ? Number(raw) : null;
+    if (usd !== null && (!Number.isFinite(usd) || usd < 0)) throw new Error("Enter a dollar amount, or leave it empty for no budget.");
+    const set = await setMonthlyCap(db, orgId, usd);
+    const { audit } = await import("@/lib/data");
+    await audit(db, { orgId, actorId: viewer.user.id, action: "ai_budget_set", targetKind: "org", targetId: orgId, detail: { usd: set } });
+    return withMsg("/connect", set ? `Monthly AI budget set to $${set}.` : "Removed the monthly AI budget.");
+  });
+}

@@ -6,6 +6,7 @@ import { now } from "./clock";
 import { audit, newId } from "./data";
 import { extractContext } from "./ai/tasks";
 import { applySignal } from "./context-policy";
+import { getAiScope, setAiScope } from "./ai/scope";
 
 export type LearnKind = "answer" | "agent_chat" | "update" | "pr" | "coding_session" | "meeting" | "source_doc" | "slack";
 
@@ -45,6 +46,8 @@ export async function learnFrom(db: Db, src: LearnSource): Promise<LearnResult> 
   if (!text) return result;
   const unit = await db.one(`select id, name, org_id from unit where id = $1`, [src.unitId]);
   if (!unit) return result;
+  // Webhooks and hooks learn outside a signed-in request: count their model calls against the team's workspace.
+  if (!getAiScope()?.orgId) setAiScope(db, unit.org_id);
   const known = (await db.query(`select title from context_entry where unit_id = $1 and status <> 'retired' order by last_seen_at desc limit 40`, [src.unitId])).map((r) => r.title as string);
   const { claims, by } = await extractContext({ teamName: unit.name, kind: src.kind, text, question: src.question, repo: src.repo, known, offline: src.offline });
   result.by = by;

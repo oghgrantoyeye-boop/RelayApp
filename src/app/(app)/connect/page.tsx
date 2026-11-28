@@ -1,14 +1,16 @@
 import { headers } from "next/headers";
 import { currentViewer } from "@/lib/session";
 import { Flash, LevelTag, Pill, Topbar } from "@/components/ui";
-import { connectTool, simulate, syncTool } from "@/app/actions";
+import { connectTool, setAiBudget, simulate, syncTool } from "@/app/actions";
 import { CATALOG, CONNECTOR_LABEL, recentSourceItems, teamConnectors } from "@/lib/integrations";
 import { fmt, fmtDateTime } from "@/lib/clock";
 import { aiStatus, usage } from "@/lib/ai/llm";
+import { canSetBudget, capResetsAt, monthSpend } from "@/lib/ai/spend";
 
 export default async function ConnectPage({ searchParams }: { searchParams: Promise<{ msg?: string }> }) {
   const { msg } = await searchParams;
-  const { db, viewer, demo } = await currentViewer();
+  const { db, viewer, demo, account, isSample, orgId } = await currentViewer();
+  const canEditBudget = await canSetBudget(db, account?.id, orgId, isSample);
   const tools = await teamConnectors(db, viewer.team.id);
   const items = await recentSourceItems(db, viewer, viewer.team.id, 10);
   const available = CATALOG.filter((k) => !tools.some((t) => t.kind === k));
@@ -39,7 +41,7 @@ export default async function ConnectPage({ searchParams }: { searchParams: Prom
             </p>
           </div>
         </div>
-        <AiCard />
+        <AiCard orgId={orgId} canEdit={canEditBudget} />
         <div className="notice warn" style={{ marginBottom: 16 }}>Demo: these connections hold {demo.org.name}&apos;s fictional data. Claude Code and GitHub below are real integrations.</div>
         <div className="two" style={{ marginBottom: 28 }}>
           <section className="primary">
@@ -142,8 +144,10 @@ export default async function ConnectPage({ searchParams }: { searchParams: Prom
 }
 
 /** Which model answers on this server, and whether its calls are working. */
-function AiCard() {
+async function AiCard({ orgId, canEdit }: { orgId: string; canEdit: boolean }) {
   const ai = aiStatus();
+  const { db } = await currentViewer();
+  const spend = await monthSpend(db, orgId);
   return (
     <section className="card" aria-label="AI model" style={{ marginBottom: 16 }}>
       <div className="row" style={{ justifyContent: "space-between" }}>
@@ -166,6 +170,25 @@ function AiCard() {
           Since this server started: {usage.calls} {usage.calls === 1 ? "call" : "calls"}, {usage.inputTokens.toLocaleString("en-US")} input and{" "}
           {usage.outputTokens.toLocaleString("en-US")} output tokens
           {usage.failures > 0 && `, ${usage.failures} fell back to the offline writer (last: ${usage.lastError})`}.
+        </div>
+      )}
+      <div className="row" style={{ marginTop: 10, gap: 10, flexWrap: "wrap", alignItems: "center" }}>
+        <span>
+          <strong>This month: ${spend.usd.toFixed(2)}</strong>
+          {spend.cap !== null ? ` of a $${spend.cap} budget` : " (no budget set)"} · {spend.calls} {spend.calls === 1 ? "call" : "calls"}
+        </span>
+        {spend.capped && <Pill tone="amber">Budget reached</Pill>}
+        {canEdit && (
+          <form action={setAiBudget} className="row" style={{ gap: 6 }}>
+            <label className="small muted" htmlFor="ai-budget">Monthly budget, $</label>
+            <input id="ai-budget" type="number" name="usd" min={0} step={1} defaultValue={spend.cap ?? ""} placeholder="No limit" style={{ width: 100 }} />
+            <button className="b sm" type="submit">Save</button>
+          </form>
+        )}
+      </div>
+      {spend.capped && (
+        <div className="small muted" style={{ marginTop: 6 }}>
+          This workspace reached its budget, so answers, splits and summaries use the offline writer until {fmt(capResetsAt())}.{canEdit ? " Raise the budget to switch back now." : " A workspace admin can raise it."}
         </div>
       )}
     </section>

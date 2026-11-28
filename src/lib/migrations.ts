@@ -643,4 +643,21 @@ alter table request add column escalated_at timestamptz;
 alter table request add column resolved_at timestamptz;
 `,
   },
+  {
+    id: "015_T-35_ai_usage",
+    sql: `
+-- AI spend per workspace (T-35): one row per model call, with its tokens and list-price cost.
+-- org_id is null for calls outside any workspace (a background job before sign-in, say).
+create table ai_usage (
+  id bigserial primary key,
+  org_id text references org(id) on delete cascade,
+  task text not null,
+  input_tokens int not null,
+  output_tokens int not null,
+  cost_usd numeric(12, 6) not null,
+  at timestamptz not null
+);
+create index ai_usage_org_at_idx on ai_usage (org_id, at);
+`,
+  },
 ];
