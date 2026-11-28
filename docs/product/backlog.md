@@ -301,6 +301,12 @@ other questions. Then GitHub, then the planned tools.
   through Claude Code reporting to Beacon. Needs: a provider layer with adapters, a "Your models"
   settings page, shared context from what Beacon has learned, and the same picker for per-agent
   model choice. Plan and open decisions: "Beacon: audit and integrations plan" doc. L.
+- [ ] **T-62 Continuous agent threads and long-term memory.** Requirement from Ovo (Nov 28), not
+  approved to build beyond recent turns. Layers: recent turns verbatim (done with the chat rebuild),
+  a rolling summary of older history, personal memory (private, viewable and deletable), shared
+  workspace memory (the existing learned team context, read at the viewer's level), and retrieval
+  from workspace sources with citations. Memory lives in Beacon so it carries across models
+  (T-61). Plan and open decisions: "Beacon: audit and integrations plan" doc. L.
 
 ## Suggested order
 
