@@ -135,7 +135,7 @@ The model adapter supports Claude only. An OpenAI key would need a second provid
   and `context_signal` as in the roadmap's Phase 1, each with `org_id`. `refContext` in
   `src/lib/data.ts` so `visibleLevel` covers them. Acceptance: permission tests show members see
   full, others see the shared level, a marked signal never surfaces above its source's level. M.
-- [ ] **T-11 Learning engine.** Mock: M2. `src/lib/context-learn.ts` with `learnFrom(source)`,
+- [~] **T-11 Learning engine.** (Claude) Mock: M2. `src/lib/context-learn.ts` with `learnFrom(source)`,
   an `extractContext` AI task with offline and fake versions, and `applySignal()` with the trust
   rules (low-risk kinds apply as "learned"; ownership, capabilities and marked sources wait for
   confirmation). Runs with `after()`. Acceptance: unit tests feed sample answers and PRs and get
