@@ -151,6 +151,8 @@ export interface ContextClaim {
 }
 
 const tidy = (s: string, max = 80) => capitalize(shorten(s.replace(/[.!?]+$/, "").trim(), max));
+/** A title is the phrase before any colon or semicolon: "load-testing new endpoints: book a slot" is about load-testing. */
+const head = (s: string) => s.split(/\s*[:;]\s+/)[0];
 
 /**
  * Lasting facts about a team in a piece of its own text: what it owns, runs, can help with, knows,
@@ -163,9 +165,9 @@ export function extractContext(input: { kind: string; text: string; question?: s
   };
   for (const s of sentences(input.text)) {
     let m: RegExpMatchArray | null;
-    if ((m = s.match(/\bwe (?:own|are responsible for|look after|are the owners? of)\s+(.+)$/i))) add({ kind: "responsibility", title: tidy(m[1]), body: s });
-    else if ((m = s.match(/\bwe (?:run|operate|host|maintain)\s+(.+)$/i))) add({ kind: "system", title: tidy(m[1]), body: s });
-    else if ((m = s.match(/\b(?:we can help (?:you )?with|happy to help with|we can help by)\s+(.+)$/i))) add({ kind: "capability", title: tidy(m[1]), body: s });
+    if ((m = s.match(/\bwe (?:own|are responsible for|look after|are the owners? of)\s+(.+)$/i))) add({ kind: "responsibility", title: tidy(head(m[1])), body: s });
+    else if ((m = s.match(/\bwe (?:run|operate|host|maintain)\s+(.+)$/i))) add({ kind: "system", title: tidy(head(m[1])), body: s });
+    else if ((m = s.match(/\b(?:we can help (?:you )?with|happy to help with|we can help by)\s+(.+)$/i))) add({ kind: "capability", title: tidy(head(m[1])), body: s });
     else if (/\b(ask (?:us )?in #[\w-]+|post in #[\w-]+|file a ticket|page (?:the )?on-call|book (?:a|an) .+ in #[\w-]+|best way to (?:reach|ask) us)\b/i.test(s))
       add({ kind: "how_to_work", title: tidy(s, 90), body: s });
   }

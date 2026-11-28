@@ -8,7 +8,7 @@ import { setNow } from "@/lib/clock";
 import { FakeLLM, setLLM } from "@/lib/ai/llm";
 import { learnFrom } from "@/lib/context-learn";
 import { extractContext } from "@/lib/ai/offline";
-import { sid } from "./helpers";
+import { clearLearned, sid } from "./helpers";
 
 describe("learning team context", () => {
   let db: Db;
@@ -21,6 +21,7 @@ describe("learning team context", () => {
     db = await openDb({});
     await migrate(db);
     await seed(db, "software");
+    await clearLearned(db);
   });
 
   it("the offline extractor finds ownership, systems, capabilities, how to ask and what an answer shows the team knows", () => {

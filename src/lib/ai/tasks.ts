@@ -463,6 +463,8 @@ export interface ExtractInput {
   repo?: string;
   /** Titles Beacon already knows for this team, so the model reuses them instead of rephrasing. */
   known: string[];
+  /** Use the offline extractor only: seeding a sample workspace never spends model calls. */
+  offline?: boolean;
 }
 
 /**
@@ -470,6 +472,7 @@ export interface ExtractInput {
  * ask it. Never time-bound status, never anything about people's performance, at most five.
  */
 export async function extractContext(input: ExtractInput): Promise<{ claims: off.ContextClaim[]; by: string }> {
+  if (input.offline) return { claims: off.extractContext(input), by: "Offline writer" };
   const llm = getLLM();
   const out = await llm.json<{ claims: off.ContextClaim[] }>("extract_context", {
     system:
