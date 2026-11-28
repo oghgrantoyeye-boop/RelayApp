@@ -208,3 +208,69 @@ export async function learnedFromAnswer(db: Db, viewer: Viewer, requestId: strin
   });
   return { team: req.name, slug: req.slug, entries };
 }
+
+// ---- Pending questions (T-16) ----
+
+/** At most this many pending claims are asked at the top of the team page. */
+export const PENDING_SHOWN = 3;
+
+export interface PendingQuestion {
+  id: string;
+  kind: string;
+  title: string;
+  body: string;
+  /** "Beacon thinks Platform owns webhook delivery. Right?" */
+  question: string;
+  /** Where it was learned and why it waits for a teammate. */
+  why: string;
+}
+
+const SOURCE_WORD: Record<string, [string, string]> = {
+  answer: ["answer", "answers"], agent_chat: ["conversation", "conversations"], update: ["update", "updates"], slack: ["Slack message", "Slack messages"],
+  meeting: ["meeting", "meetings"], source_doc: ["document", "documents"], pr: ["pull request", "pull requests"], coding_session: ["coding session", "coding sessions"],
+};
+
+function pendingQuestion(row: Row, team: string): PendingQuestion {
+  const title = row.title as string;
+  const lower = title.charAt(0).toLowerCase() + title.slice(1);
+  const question =
+    row.kind === "responsibility" ? `Beacon thinks ${team} owns ${lower}. Right?`
+      : row.kind === "capability" ? `Beacon thinks ${team} can help with ${lower}. Right?`
+        : row.kind === "system" ? `Beacon thinks ${team} runs ${lower}. Right?`
+          : `Beacon learned: ${title}. Keep it?`;
+  const refs: { kind: string; label: string }[] = row.source_refs ?? [];
+  const counts = new Map<string, number>();
+  for (const r of refs) counts.set(r.kind, (counts.get(r.kind) ?? 0) + 1);
+  const from = [...counts].map(([k, n]) => { const [one, many] = SOURCE_WORD[k] ?? ["source", "sources"]; return `${n} ${n === 1 ? one : many}`; }).join(" and ");
+  const latest = refs.at(-1)?.label;
+  const reason =
+    row.kind === "responsibility" ? "it changes who owns what"
+      : row.kind === "capability" ? `it says what ${team} can take on`
+        : (row.marking_ids ?? []).length > 0 ? "it came from something marked"
+          : "it came from something fewer people can see";
+  return {
+    id: row.id, kind: row.kind, title, body: row.body ?? "", question,
+    why: `Learned from ${from || "the team's activity"}${latest ? `, most recently ${latest}` : ""}. Waiting for one teammate to confirm because ${reason}.`,
+  };
+}
+
+/**
+ * The pending claims a member is asked about: newest evidence first, skipping ones they said they
+ * weren't sure about. Only the team's own members are asked; nobody else sees pending claims.
+ */
+export async function pendingQuestions(db: Db, viewer: Viewer, unitId: string, limit = PENDING_SHOWN): Promise<PendingQuestion[]> {
+  if (!viewer.reader.unitIds.includes(unitId)) return [];
+  const unit = await db.one(`select name from unit where id = $1`, [unitId]);
+  const rows = await db.query(
+    `select * from context_entry where unit_id = $1 and status = 'pending' and not ($2 = any(unsure_by)) order by last_seen_at desc limit $3`,
+    [unitId, viewer.user.id, limit],
+  );
+  return rows.map((r) => pendingQuestion(r, unit?.name ?? "the team"));
+}
+
+/** "Not sure": this member isn't asked again; the claim stays pending for someone else. */
+export async function unsureEntry(db: Db, viewer: Viewer, id: string) {
+  const row = await entryFor(db, viewer, id, "answer Beacon's questions about them");
+  await db.query(`update context_entry set unsure_by = array_append(unsure_by, $2) where id = $1 and not ($2 = any(unsure_by))`, [id, viewer.user.id]);
+  await audit(db, { orgId: viewer.orgId, actorId: viewer.user.id, action: "context_unsure", targetKind: "context_entry", targetId: id, detail: { unit: row.unit_id } });
+}

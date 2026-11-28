@@ -171,7 +171,7 @@ The model adapter supports Claude only. An OpenAI key would need a second provid
   team members; others see it read-only at the shared level. Every action writes an audit event
   and feeds back into learning. Acceptance: matches M2; removing an entry stops it being
   re-learned from the same sources. Depends: T-10. M.
-- [ ] **T-16 Pending questions.** Mock: M2. Show at most three pending claims as yes, no or not
+- [x] **T-16 Pending questions.** (Claude) Mock: M2. Show at most three pending claims as yes, no or not
   sure questions at the top of the team page, and add them to each member's batch of asks.
   Acceptance: one confirmation makes the claim active. Depends: T-11, T-15. S.
 - [ ] **T-17 What Beacon can see.** Mock: M2, M6. Per team: sources with Live or Planned, last
