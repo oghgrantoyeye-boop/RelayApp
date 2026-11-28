@@ -98,7 +98,7 @@ reviews Claude's. The base branch is the default branch, `claude/dazzling-archim
 | `SLACK_WEBHOOK_URL` | One incoming webhook for notifications. Replaced by the Slack app in T-40. | Read today |
 | `GITHUB_WEBHOOK_SECRET` | Verifies GitHub webhook signatures. | Read today |
 | `SLACK_CLIENT_ID`, `SLACK_CLIENT_SECRET`, `SLACK_SIGNING_SECRET` | The Slack app (T-40 to T-43). | New |
-| `GITHUB_APP_ID`, `GITHUB_APP_PRIVATE_KEY`, `GITHUB_APP_WEBHOOK_SECRET` | The GitHub App (T-44). | New |
+| `GITHUB_APP_ID`, `GITHUB_APP_PRIVATE_KEY`, `GITHUB_APP_WEBHOOK_SECRET`, `GITHUB_APP_CLIENT_ID`, `GITHUB_APP_CLIENT_SECRET` | The GitHub App (T-44). Enable user OAuth during installation. | New |
 | `AUTH_SECRET`, `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `MICROSOFT_CLIENT_ID`, `MICROSOFT_CLIENT_SECRET`, `EMAIL_SERVER` | Sign-in (T-31). For Microsoft, also add optional ID-token claims `email` and `xms_edov` on the Entra app (Token configuration) so verified emails work after T-36. | New |
 | `BEACON_ADMIN_EMAILS` | Comma-separated emails that can sign in without approval and approve early-access leads (T-36). | New |
 | `ENCRYPTION_KEY` | Encrypts stored Slack and GitHub tokens (T-40, T-44). | New |
@@ -171,7 +171,7 @@ The model adapter supports Claude only. An OpenAI key would need a second provid
   team members; others see it read-only at the shared level. Every action writes an audit event
   and feeds back into learning. Acceptance: matches M2; removing an entry stops it being
   re-learned from the same sources. Depends: T-10. M.
-- [ ] **T-16 Pending questions.** Mock: M2. Show at most three pending claims as yes, no or not
+- [~] **T-16 Pending questions.** (Claude) Mock: M2. Show at most three pending claims as yes, no or not
   sure questions at the top of the team page, and add them to each member's batch of asks.
   Acceptance: one confirmation makes the claim active. Depends: T-11, T-15. S.
 - [ ] **T-17 What Beacon can see.** Mock: M2, M6. Per team: sources with Live or Planned, last
@@ -189,7 +189,7 @@ The model adapter supports Claude only. An OpenAI key would need a second provid
   suggested replies; `question.outcome` gains `clarify`; the reply continues the question. The
   general Beacon agent asks which team when two match. Acceptance: the M3 exchange works end to
   end in the demo. Depends: T-19. M.
-- [ ] **T-21 Answer feedback.** Mock: M3. Thumbs up or down with an optional note; a thumbs down
+- [~] **T-21 Answer feedback.** (Claude) Mock: M3. Thumbs up or down with an optional note; a thumbs down
   lowers confidence in the entries used. S.
 
 ## M4 and M5: routing, the team queue and request status
@@ -208,7 +208,7 @@ The model adapter supports Claude only. An OpenAI key would need a second provid
   again; every change audited. Acceptance: status tests for each transition. Depends: T-22. M.
 - [~] **T-26 My questions page.** (Claude) Mock: M5. The progress steps, the reply, That answers it and
   Ask a follow-up, and the table of past questions with where they went. Depends: T-25. M.
-- [ ] **T-27 Multi-team questions.** Mock: M3. When several teams match, list them and let the
+- [~] **T-27 Multi-team questions.** (Claude) Mock: M3. When several teams match, list them and let the
   person send to one or more, linked by one question. Depends: T-22. M.
 
 ## M1 and M6: workspaces and sign-in
@@ -263,12 +263,12 @@ other questions. Then GitHub, then the planned tools.
 - [ ] **T-43 Slack: ask from Slack.** Mock: M3. A `/beacon` slash command and an @Beacon mention
   that ask a team's agent and reply in thread with the same claim-by-claim answer and routing.
   Depends: T-19, T-40. M.
-- [~] **T-44 GitHub App.** Mock: M2, M6. Replace the per-repository webhook with a GitHub App
+- [x] **T-44 GitHub App.** Mock: M2, M6. Replace the per-repository webhook with a GitHub App
   install (`GITHUB_APP_ID`, `GITHUB_APP_PRIVATE_KEY`, `GITHUB_APP_WEBHOOK_SECRET`); map
   repositories to teams; feed merged PRs and reviews to `learnFrom`; respect repository access when
   showing sources. Acceptance: installing on the northwind org and merging a PR updates the owning
   team's page. Depends: T-11. L. (Cursor)
-- [~] **T-45 Claude Code tokens per person.** Mock: M6. Real per-person tokens issued from
+- [x] **T-45 Claude Code tokens per person.** Mock: M6. Real per-person tokens issued from
   settings (replacing `rly_demo_*`), revocable, with the hook install command shown. Depends:
   T-31. S. (Cursor)
 - [ ] **T-46 Jira or Linear (pick one).** Mock: M2. Read issues for the teams that own projects,
