@@ -8,21 +8,35 @@ import { CONNECTOR_LABEL } from "./integrations";
 import { deliver } from "./deliver";
 import { COMMITMENT_SELECT } from "./data";
 import { canSeeDerived, deriveMarkings, PermissionError, visibleLevel, type Level } from "./permissions";
-import { showCommitment, showRequest, showSource, showUpdateItem, KIND_LABEL } from "./render";
+import { showCommitment, showContext, showRequest, showSource, showUpdateItem, KIND_LABEL } from "./render";
 import { answerFromPublished, routeQuestion, writeLevels } from "./ai/tasks";
 import { jaccard, overlap, tokens, type Doc } from "./ai/offline";
 import { notifyCommitmentChange } from "./commitments";
 import { learnQuietly } from "./context-learn";
+import { CONTEXT_KIND_LABEL, contextTag } from "./context";
+import { refContext } from "./data";
 
 export interface AskResult {
   questionId: string;
 }
 
-interface Source extends Doc {
+/**
+ * Where a source's claim comes from, so an answer can say how sure it is:
+ * the team said it (confirmed), Beacon learned it from the team's activity (learned),
+ * or a tool recorded it (seen).
+ */
+export type SourceProvenance = "confirmed" | "learned" | "seen";
+
+export interface Source extends Doc {
   markingIds: string[];
   level: Level;
   label: string;
+  provenance: SourceProvenance;
+  /** When the source was last true, as an ISO date: published, confirmed or last seen. */
+  lastSeen: string;
 }
+
+const iso = (d: unknown): string => (d ? new Date(d as string).toISOString() : now().toISOString());
 
 /** Everything the team has published that this asker may see, rendered at their level. */
 async function publishedSources(db: Db, unitId: string, reader: Parameters<typeof visibleLevel>[1]): Promise<Source[]> {
@@ -38,7 +52,7 @@ async function publishedSources(db: Db, unitId: string, reader: Parameters<typeo
     const { level } = visibleLevel(policy, reader, refUpdateItem(r));
     const shown = showUpdateItem(r, level);
     if (!shown) continue;
-    out.push({ ref: `update_item:${r.id}`, text: shown.text, markingIds: markingIdsOf(r), level, label: `${KIND_LABEL[r.kind]}, ${fmt(r.published_at)}` });
+    out.push({ ref: `update_item:${r.id}`, text: shown.text, markingIds: markingIdsOf(r), level, label: `${KIND_LABEL[r.kind]}, ${fmt(r.published_at)}`, provenance: "confirmed", lastSeen: iso(r.published_at) });
   }
   const commitments = await db.query(`${COMMITMENT_SELECT} where c.owner_unit_id = $1 and c.status in ('open', 'done')`, [unitId]);
   for (const c of commitments) {
@@ -46,11 +60,29 @@ async function publishedSources(db: Db, unitId: string, reader: Parameters<typeo
     const shown = showCommitment(c, level, c.owner_unit_name);
     if (!shown) continue;
     const status = c.status === "done" ? "delivered" : c.due_date < today() ? `due ${fmt(c.due_date)}, not delivered yet` : `due ${fmt(c.due_date)}`;
-    out.push({ ref: `commitment:${c.id}`, text: `Commitment: ${shown.title} (${status}).${shown.reason ? ` ${shown.reason}` : ""}`, markingIds: markingIdsOf(c), level, label: "Commitment" });
+    out.push({ ref: `commitment:${c.id}`, text: `Commitment: ${shown.title} (${status}).${shown.reason ? ` ${shown.reason}` : ""}`, markingIds: markingIdsOf(c), level, label: "Commitment", provenance: "confirmed", lastSeen: iso(c.done_at ?? c.confirmed_at ?? c.created_at) });
   }
   const owns = await db.query(`select o.*, a.name as owner_name from ownership_item o left join member m on m.id = o.owner_member_id left join app_user a on a.id = m.user_id where o.unit_id = $1`, [unitId]);
   for (const o of owns) {
-    out.push({ ref: `ownership:${o.id}`, text: `${o.title}: ${o.description}. Owner: ${o.owner_name}.`, markingIds: [], level: "headline", label: "Owns" });
+    out.push({ ref: `ownership:${o.id}`, text: `${o.title}: ${o.description}. Owner: ${o.owner_name}.`, markingIds: [], level: "headline", label: "Owns", provenance: "confirmed", lastSeen: iso(o.created_at) });
+  }
+  // Learned team context. Only active entries: a pending claim waits for a teammate and is never
+  // used to answer anyone, and a removed one is gone. The level comes from the same permission check.
+  const context = await db.query(`select * from context_entry where unit_id = $1 and status = 'active' order by last_seen_at desc limit 60`, [unitId]);
+  for (const e of context) {
+    const { level } = visibleLevel(policy, reader, refContext(e));
+    const shown = showContext(e, level);
+    if (!shown) continue;
+    const tag = contextTag(e);
+    out.push({
+      ref: `context:${e.id}`,
+      text: `${CONTEXT_KIND_LABEL[e.kind] ?? e.kind}: ${shown.title}${shown.body ? `. ${shown.body}` : ""}`,
+      markingIds: e.marking_ids ?? [],
+      level,
+      label: tag === "confirmed" ? "Confirmed by the team" : tag === "seen" ? "Seen in tools" : "Learned",
+      provenance: tag,
+      lastSeen: iso(tag === "confirmed" ? e.confirmed_at ?? e.last_seen_at : e.last_seen_at),
+    });
   }
   // Connected tools: raw chat stays inside the team; tickets and docs reach others only if an interface shares them.
   const docs = await db.query(
@@ -67,6 +99,8 @@ async function publishedSources(db: Db, unitId: string, reader: Parameters<typeo
       markingIds: markingIdsOf(d),
       level,
       label: `${CONNECTOR_LABEL[d.connector_kind] ?? d.connector_kind}, ${fmt(d.occurred_at)}`,
+      provenance: "seen",
+      lastSeen: iso(d.occurred_at),
     });
   }
   // Meeting summaries: only for the host team and the people who attended.
@@ -75,7 +109,7 @@ async function publishedSources(db: Db, unitId: string, reader: Parameters<typeo
     const { level } = visibleLevel(policy, reader, refMeeting(m));
     if (level !== "full") continue;
     const s = m.summary as { summary: string; decisions: string[] };
-    out.push({ ref: `meeting:${m.id}`, text: `${m.title}: ${s.summary} ${(s.decisions ?? []).join(" ")}`, markingIds: markingIdsOf(m), level, label: `Meeting, ${fmt(m.starts_at)}` });
+    out.push({ ref: `meeting:${m.id}`, text: `${m.title}: ${s.summary} ${(s.decisions ?? []).join(" ")}`, markingIds: markingIdsOf(m), level, label: `Meeting, ${fmt(m.starts_at)}`, provenance: "learned", lastSeen: iso(m.starts_at) });
   }
   return out;
 }
@@ -187,7 +221,8 @@ export async function getQuestion(db: Db, viewer: Viewer, id: string) {
   return { question: q, sources };
 }
 
-async function publishedSourcesFor(db: Db, unitId: string, viewer: Viewer) {
+/** What a team's agent may draw on when this viewer asks it something. */
+export async function publishedSourcesFor(db: Db, unitId: string, viewer: Viewer) {
   const { reader } = await agentReader(db, unitId, viewer.reader);
   return publishedSources(db, unitId, reader);
 }
