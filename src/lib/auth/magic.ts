@@ -38,6 +38,8 @@ export async function consumeMagicLink(db: Db, token: string): Promise<{ session
   if (!row) throw new Error("That sign-in link is invalid or has expired");
   await db.query(`delete from magic_link where id = $1`, [row.id]);
   const account = await upsertAccount(db, { email: row.email });
+  const { acceptPendingInvites } = await import("./workspace-setup");
+  await acceptPendingInvites(db, account);
   const session = await createSession(db, account.id);
   return { sessionToken: session.token, expiresAt: session.expiresAt };
 }
