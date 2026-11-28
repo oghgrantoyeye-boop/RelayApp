@@ -220,7 +220,7 @@ The model adapter supports Claude only. An OpenAI key would need a second provid
 - [x] **T-31 Sign-in.** Mock: M1. Google, Microsoft and email magic links (env vars above), a
   `session` table, membership in several workspaces, and the workspace chooser. The persona
   switcher stays only inside sample workspaces. Depends: T-30. M. (Cursor)
-- [~] **T-36 Gate account creation behind early access.** Do this next, before T-32 continues. (Cursor)
+- [x] **T-36 Gate account creation behind early access.** Do this next, before T-32 continues. (Cursor)
   Today `upsertAccount` (`src/lib/auth/accounts.ts`) creates an account for any email that signs in
   with Google, Microsoft or a magic link. Change it so a new account is created only when the email
   is approved: a `lead` row with `status = 'approved'` (add `status` pending/approved/declined,
