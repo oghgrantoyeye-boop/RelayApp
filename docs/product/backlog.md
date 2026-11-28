@@ -163,7 +163,7 @@ The model adapter supports Claude only. An OpenAI key would need a second provid
   `learnFrom` from `publishDraft`, `summarizeMeeting`, `ingestPullRequest` and
   `ingestCodingSession`. Acceptance: a merged PR touching a new repository adds a "Runs" entry
   tagged Seen in GitHub. Depends: T-11. M.
-- [ ] **T-14 Seed by learning.** Mock: M2. The sample workspaces build their team context by
+- [~] **T-14 Seed by learning.** (Claude) Mock: M2. The sample workspaces build their team context by
   running `learnFrom` over their seeded updates, answers, meetings and documents. Acceptance:
   Platform's page in Northwind looks like M2 without hand-written context. Depends: T-12, T-13. S.
 - [~] **T-15 "What Beacon knows about us" section.** (Claude) Mock: M2. Entries grouped by kind with
@@ -280,7 +280,7 @@ other questions. Then GitHub, then the planned tools.
 
 - [x] **T-50 Remove slip and at-risk framing.** (Claude) No slipped or at-risk styling in the feed, team
   page and inbox; "Open commitments" becomes "Active work" (as in M2). S.
-- [ ] **T-51 Rewrite the Northwind story.** The spec's narrative, as in M3 to M5: Ava asks
+- [~] **T-51 Rewrite the Northwind story.** (Claude) The spec's narrative, as in M3 to M5: Ava asks
   whether Platform can support merchant sign-on; clarify; team queue; Ken answers; Beacon learns.
   Update `types.ts`, `tests/demos.test.ts`, `/guide`. Hide the other demos until rewritten. L.
 - [ ] **T-52 Marketing follow-ups.** Anything T-00 leaves, plus `marketing/launch-campaign.md`. S.
