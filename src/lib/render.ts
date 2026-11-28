@@ -109,3 +109,23 @@ export function showSource(row: Row, level: Level): ShownSource | null {
       return null;
   }
 }
+
+export interface ShownContext {
+  level: Level;
+  kind: string;
+  title: string;
+  body?: string;
+  provenance: string;
+  /** Where it came from. Only the team sees these: a source can be a private conversation. */
+  sources?: { kind: string; ref: string; label: string; at: string }[];
+  lastSeen: Date;
+}
+
+/** A context entry at the reader's level. Others never see its sources, only the claim. */
+export function showContext(row: Row, level: Level): ShownContext | null {
+  if (level === "none") return null;
+  const base = { level, kind: row.kind as string, provenance: row.provenance as string, lastSeen: row.last_seen_at as Date };
+  if (level === "full") return { ...base, title: row.title, body: row.body || undefined, sources: row.source_refs ?? [] };
+  if (level === "summary") return { ...base, title: row.title, body: row.body || undefined };
+  return { ...base, title: row.title };
+}

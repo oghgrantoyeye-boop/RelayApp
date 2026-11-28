@@ -457,4 +457,58 @@ create index audit_org_idx on audit_event (org_id, at desc);
 create index delivery_org_idx on delivery (org_id, created_at desc);
 `,
   },
+  {
+    id: "007_T-10_team_context",
+    sql: `
+-- What Beacon knows about each team, learned from its conversations and activity (spec:
+-- docs/product/team-context-answers-routing.md; roadmap Phase 1). Teams correct it; they don't write it.
+create table context_entry (
+  id text primary key,
+  org_id text not null references org(id),
+  unit_id text not null references unit(id),
+  kind text not null check (kind in ('about', 'responsibility', 'capability', 'how_to_work', 'knows', 'system')),
+  title text not null,
+  body text not null default '',
+  owner_member_id text references member(id),
+  -- learned: from signals only; team_confirmed: a member said it's right; team_edited: a member wrote or fixed it.
+  provenance text not null check (provenance in ('learned', 'team_confirmed', 'team_edited')),
+  confidence numeric not null default 0.5,
+  -- The signals it came from, as [{ kind, ref, label, at }].
+  source_refs jsonb not null default '[]',
+  -- What other teams see. Members of the team always see it in full; markings cap it further.
+  shared_level text not null default 'summary' check (shared_level in ('full', 'summary', 'status', 'headline', 'none')),
+  -- Every marking of every signal it came from.
+  marking_ids text[] not null default '{}',
+  -- pending: waits for one member to confirm (ownership, capabilities, marked sources). retired: removed.
+  status text not null default 'active' check (status in ('active', 'pending', 'retired')),
+  confirmed_by text references app_user(id),
+  confirmed_at timestamptz,
+  first_seen_at timestamptz not null,
+  last_seen_at timestamptz not null,
+  updated_at timestamptz not null
+);
+-- One observation from one source, before (or after) it is merged into an entry.
+create table context_signal (
+  id text primary key,
+  org_id text not null references org(id),
+  unit_id text not null references unit(id),
+  -- agent_chat, answer, update, pr, coding_session, slack, meeting, source_doc
+  source_kind text not null,
+  source_ref text not null,
+  source_label text not null default '',
+  -- { kind, title, body, owner_hint }
+  claim jsonb not null,
+  marking_ids text[] not null default '{}',
+  entry_id text references context_entry(id),
+  at timestamptz not null
+);
+alter table ownership_item add column provenance text not null default 'team_edited';
+alter table ownership_item add column last_seen_at timestamptz;
+create trigger context_entry_org before insert on context_entry for each row execute procedure relay_fill_org_from_unit();
+create trigger context_signal_org before insert on context_signal for each row execute procedure relay_fill_org_from_unit();
+create index context_entry_unit_idx on context_entry (org_id, unit_id, status);
+create index context_signal_unit_idx on context_signal (org_id, unit_id, at desc);
+create index context_signal_entry_idx on context_signal (entry_id);
+`,
+  },
 ];

@@ -49,7 +49,7 @@ export interface Reader {
 }
 
 export interface ItemRef {
-  type: "update_item" | "request" | "commitment" | "ownership" | "page" | "question" | "source" | "meeting" | "task";
+  type: "update_item" | "request" | "commitment" | "ownership" | "page" | "question" | "source" | "meeting" | "task" | "context" | "signal";
   /** The interface kind the item travels under. */
   kind: string;
   /** Teams that read the item in full: its author team; both sides of a request; owner and waiting team of a commitment. */

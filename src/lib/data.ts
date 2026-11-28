@@ -1,6 +1,6 @@
 import type { Db, Row } from "./db";
 import { now } from "./clock";
-import { isLevel, type ItemRef, type Policy, type Reader } from "./permissions";
+import { isLevel, type ItemRef, type Level, type Policy, type Reader } from "./permissions";
 
 export const ITEM_KINDS = ["progress", "decision", "risk", "ask", "answer"] as const;
 export const ALL_KINDS = [...ITEM_KINDS, "commitment", "request"];
@@ -123,6 +123,21 @@ export function refMeeting(row: Row): ItemRef {
 /** An agent's task run: shared with the agent's whole team, and with whoever asked for it. */
 export function refTask(row: Row): ItemRef {
   return { type: "task", kind: "task", ownerUnitIds: [row.unit_id], participantIds: [row.requested_by], markingIds: [] };
+}
+
+/**
+ * A context entry: what Beacon knows about a team. The team reads it in full; other teams see it at
+ * the entry's shared level, capped by every marking it inherited. Pending and retired entries stay
+ * inside the team.
+ */
+export function refContext(row: Row): ItemRef {
+  const shared: Level = row.status === "active" && isLevel(row.shared_level) ? row.shared_level : "none";
+  return { type: "context", kind: "context", ownerUnitIds: [row.unit_id], markingIds: row.marking_ids ?? [], defaultLevel: shared, capLevel: shared };
+}
+
+/** A raw signal (a sentence from a conversation, a PR): never shown outside its team. */
+export function refSignal(row: Row): ItemRef {
+  return { type: "signal", kind: "signal", ownerUnitIds: [row.unit_id], markingIds: row.marking_ids ?? [], defaultLevel: "none", capLevel: "none" };
 }
 
 export const COMMITMENT_SELECT = `
