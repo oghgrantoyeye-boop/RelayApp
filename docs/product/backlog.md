@@ -181,7 +181,7 @@ The model adapter supports Claude only. An OpenAI key would need a second provid
   active entries and adds `provenance` and `lastSeen` to every source. Pending entries are never
   used for other teams. Acceptance: test that a pending claim can't appear in another team's
   answer. Depends: T-10. S.
-- [ ] **T-19 Claim-by-claim answers.** Mock: M3. New answer schema with claims, refs, `gaps` and
+- [~] **T-19 Claim-by-claim answers.** (Claude) Mock: M3. New answer schema with claims, refs, `gaps` and
   stale sources; offline writer produces the same shape; render each claim with its tag, date and
   source link, and a "What I couldn't find" box, on the team page and in the agent panel.
   Acceptance: matches M3's first answer. Depends: T-18. M.
