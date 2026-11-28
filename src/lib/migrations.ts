@@ -606,4 +606,21 @@ alter table request add column detail_question text;
 alter table request add column detail_asked_at timestamptz;
 `,
   },
+  {
+    id: "014_T-25_request_lifecycle",
+    sql: `
+-- The request lifecycle (T-25). Stored statuses stay open, answered, accepted and declined, plus
+-- resolved; what the asker sees (awaiting the team, needs your input, unresolved) is derived from
+-- these timestamps in requestState(), so open requests stay in every team-queue query unchanged.
+alter table request drop constraint if exists request_status_check;
+alter table request add constraint request_status_check check (status in ('open', 'answered', 'accepted', 'declined', 'resolved'));
+alter table request add column detail_asked_by text references app_user(id);
+alter table request add column detail_reply text;
+alter table request add column detail_replied_at timestamptz;
+alter table request add column unresolved_at timestamptz;
+alter table request add column asked_again_at timestamptz;
+alter table request add column escalated_at timestamptz;
+alter table request add column resolved_at timestamptz;
+`,
+  },
 ];

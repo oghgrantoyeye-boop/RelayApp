@@ -14,6 +14,7 @@ import { jaccard, overlap, tokens, type Doc } from "./ai/offline";
 import { notifyCommitmentChange } from "./commitments";
 import { learnQuietly } from "./context-learn";
 import { CONTEXT_KIND_LABEL, contextTag } from "./context";
+import { auditStatus } from "./requests";
 import { refContext } from "./data";
 
 export interface AskResult {
@@ -485,7 +486,10 @@ export async function askForDetail(db: Db, viewer: Viewer, key: string, question
   const text = question.trim().slice(0, 600);
   if (!text) throw new Error("Write what you need to know.");
   const reqs = await clusterRequests(db, viewer, key);
-  for (const r of reqs) await db.query(`update request set detail_question = $2, detail_asked_at = $3 where id = $1`, [r.id, text, now()]);
+  for (const r of reqs) {
+    await db.query(`update request set detail_question = $2, detail_asked_at = $3, detail_asked_by = $4 where id = $1`, [r.id, text, now(), viewer.user.id]);
+    await auditStatus(db, viewer, r, "needs_info", { question: text });
+  }
   const askers = [...new Set(reqs.map((r) => r.requester_id))];
   await deliver(db, askers, {
     kind: "answer",
@@ -525,6 +529,7 @@ export async function answerCluster(
   const reqs = await clusterRequests(db, viewer, key);
   const unitId = reqs[0].to_unit_id;
   for (const r of reqs) {
+    await auditStatus(db, viewer, r, "answered", { commitment: !!input.commitDue });
     await db.query(`update request set status = $2, answer_text = $3, answered_by = $4, answered_at = $5 where id = $1`, [
       r.id, input.commitDue ? "accepted" : "answered", answer, viewer.user.id, now(),
     ]);
@@ -566,6 +571,7 @@ export async function answerCluster(
 
 export async function declineCluster(db: Db, viewer: Viewer, key: string, reason: string) {
   const reqs = await clusterRequests(db, viewer, key);
+  for (const r of reqs) await auditStatus(db, viewer, r, "declined");
   for (const r of reqs) await db.query(`update request set status = 'declined', answer_text = $2, answered_by = $3, answered_at = $4 where id = $1`, [r.id, reason || "Declined", viewer.user.id, now()]);
   await deliver(db, [...new Set(reqs.map((r) => r.requester_id))], {
     kind: "answer",
