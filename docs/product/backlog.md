@@ -197,10 +197,10 @@ The model adapter supports Claude only. An OpenAI key would need a second provid
 
 ## M1 and M6: workspaces and sign-in
 
-- [ ] **T-30 `org_id` everywhere.** Mock: M1. Add and backfill `org_id` on every table that
+- [~] **T-30 `org_id` everywhere.** Mock: M1. Add and backfill `org_id` on every table that
   lacks it; the viewer carries `orgId`; every query filters by it; remove the `ORG_ID` constant.
   Acceptance: a test seeds two workspaces with the same team names and finds no page, answer,
-  entry or audit read that crosses. L.
+  entry or audit read that crosses. L. (Cursor)
 - [ ] **T-31 Sign-in.** Mock: M1. Google, Microsoft and email magic links (env vars above), a
   `session` table, membership in several workspaces, and the workspace chooser. The persona
   switcher stays only inside sample workspaces. Depends: T-30. M.
