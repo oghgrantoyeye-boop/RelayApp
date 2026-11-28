@@ -263,11 +263,11 @@ other questions. Then GitHub, then the planned tools.
 - [ ] **T-43 Slack: ask from Slack.** Mock: M3. A `/beacon` slash command and an @Beacon mention
   that ask a team's agent and reply in thread with the same claim-by-claim answer and routing.
   Depends: T-19, T-40. M.
-- [ ] **T-44 GitHub App.** Mock: M2, M6. Replace the per-repository webhook with a GitHub App
+- [~] **T-44 GitHub App.** Mock: M2, M6. Replace the per-repository webhook with a GitHub App
   install (`GITHUB_APP_ID`, `GITHUB_APP_PRIVATE_KEY`, `GITHUB_APP_WEBHOOK_SECRET`); map
   repositories to teams; feed merged PRs and reviews to `learnFrom`; respect repository access when
   showing sources. Acceptance: installing on the northwind org and merging a PR updates the owning
-  team's page. Depends: T-11. L.
+  team's page. Depends: T-11. L. (Cursor)
 - [~] **T-45 Claude Code tokens per person.** Mock: M6. Real per-person tokens issued from
   settings (replacing `rly_demo_*`), revocable, with the hook install command shown. Depends:
   T-31. S. (Cursor)
