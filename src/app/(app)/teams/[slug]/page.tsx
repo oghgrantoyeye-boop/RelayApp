@@ -12,6 +12,8 @@ import { Avatar, Flash, Icon, KindPill, LevelTag, Pill, StatePill, TeamChip, Top
 import { CommitmentLine } from "@/components/Commitment";
 import { askAgent, sendRequest, toggleFollow } from "@/app/actions";
 import { teamConnectors, CONNECTOR_LABEL } from "@/lib/integrations";
+import { teamContext } from "@/lib/context";
+import { TeamContext } from "@/components/TeamContext";
 
 export default async function TeamPage({ params, searchParams }: { params: Promise<{ slug: string }>; searchParams: Promise<{ msg?: string; q?: string; ask?: string }> }) {
   const { slug } = await params;
@@ -42,6 +44,7 @@ export default async function TeamPage({ params, searchParams }: { params: Promi
   const asked = q ? await getQuestion(db, viewer, q) : null;
   const lead = members.find((m) => m.role === "lead");
   const tools = isGroup ? [] : await teamConnectors(db, team.id);
+  const context = isGroup ? null : await teamContext(db, viewer, team.id);
 
   return (
     <>
@@ -113,6 +116,8 @@ export default async function TeamPage({ params, searchParams }: { params: Promi
                 </form>
               </section>
             )}
+
+            {context && <TeamContext team={team as { name: string; slug: string }} {...context} />}
 
             <section>
               <h2>Latest update{latest && <span className="small muted" style={{ fontWeight: 400 }}> · {fmt(latest.update.published_at)}</span>}</h2>
