@@ -113,6 +113,7 @@ export default async function TeamPage({ params, searchParams }: { params: Promi
                     ) : (
                       <>
                         <div className="ai-body" style={{ marginTop: 8 }}>{asked.question.answer_text}</div>
+                        {asked.question.request_id && <div className="small" style={{ marginTop: 6 }}><Link href={`/questions?open=${asked.question.request_id}`}>Track it in My questions</Link></div>}
                         {asked.gaps.length > 0 && <AnswerClaims claims={[]} gaps={asked.gaps} />}
                       </>
                     )}

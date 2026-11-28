@@ -34,20 +34,6 @@ describe("routing to the owner or the team queue", () => {
     expect(confidentOwnership("Auth or rate?", owns)).toBeNull(); // two areas match equally
   });
 
-  it("a team with no lead still gets the ask in its queue; only the lead alert is skipped", async () => {
-    await db.query(`update member set role = 'member' where unit_id = $1 and role = 'lead'`, [PLATFORM]);
-    const route = await chooseRoute(db, PLATFORM, "Can Platform support single sign-on for the merchant admin console?");
-    expect(route).toMatchObject({ destination: "team_queue", lead: null });
-
-    const ava = await v("priya");
-    const { questionId } = await askTeam(db, ava, PLATFORM, "Can Platform support single sign-on for the merchant admin console?", { blocking: true });
-    const q = (await getQuestion(db, ava, questionId))!;
-    expect(q.question.outcome).toBe("routed");
-    expect(q.question.answer_text).not.toMatch(/team lead/);
-    const req = (await db.one(`select * from request where id = $1`, [q.question.request_id]))!;
-    expect(req).toMatchObject({ destination: "team_queue", assignee_member_id: null });
-  });
-
   it("merchant sign-on goes to Platform's queue with the reason, and anyone on Platform sees it", async () => {
     const ava = await v("priya");
     const route = await chooseRoute(db, PLATFORM, "Can Platform support single sign-on for the merchant admin console?");
@@ -87,5 +73,17 @@ describe("routing to the owner or the team queue", () => {
     const d = await db.query(`select * from delivery where recipient_id = $1 and kind = 'ask_now'`, [sid("marcus")]);
     expect(d).toHaveLength(1);
     expect(d[0].subject).toMatch(/in the Platform queue/);
+  });
+
+  it("a team without a lead still gets questions in its queue, and an urgent one reaches everyone on it", async () => {
+    await db.query(`update member set role = 'member' where unit_id = $1 and role = 'lead'`, [PLATFORM]);
+    const route = await chooseRoute(db, PLATFORM, "Can Platform support single sign-on for the merchant admin console?");
+    expect(route.destination).toBe("team_queue");
+    expect(route.lead).toBeNull();
+    const { questionId } = await askTeam(db, await v("priya"), PLATFORM, "Can Platform support single sign-on for the merchant admin console?", { blocking: true });
+    const q = (await getQuestion(db, await v("priya"), questionId))!;
+    expect(q.question.answer_text).toMatch(/Everyone on Platform has been notified now/);
+    const told = await db.query(`select distinct recipient_id from delivery where kind = 'ask_now' and body like '%merchant admin console%'`);
+    expect(told.length).toBeGreaterThan(1);
   });
 });
