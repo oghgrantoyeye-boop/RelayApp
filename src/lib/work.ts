@@ -184,7 +184,9 @@ async function runCode(db: Db, task: Row) {
   const repo = await db.one(`select name from connector where unit_id = $1 and kind = 'github' order by name limit 1`, [task.unit_id]);
   if (!repo) throw new Error("This team hasn't connected a GitHub repository.");
   await addStep(db, task.id, { kind: "note", text: `Plan: check out ${repo.name} in a fresh sandbox (network limited to GitHub and the package registry), work on a new branch, run the tests and open a pull request. It can't merge.` });
-  const session = (await activeDemo(db)).ui.sampleSessions[task.unit_id];
+  const demo = await activeDemo(db, task.org_id);
+  const { localId } = await import("./scoped");
+  const session = demo.ui.sampleSessions[localId(demo.id, task.unit_id)];
   if (!session) {
     await db.query(`update task_run set status = 'needs_sandbox', updated_at = $2 where id = $1`, [task.id, now()]);
     await addStep(db, task.id, { kind: "note", text: "This demo has no code sandbox connected, so nothing was checked out or changed." });

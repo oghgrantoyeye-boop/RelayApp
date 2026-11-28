@@ -233,7 +233,7 @@ The model adapter supports Claude only. An OpenAI key would need a second provid
   lists leads newest first with Approve and Decline, and approving writes an audit event. Tests:
   an unapproved email gets no account through all three sign-in paths, an approved one does, an
   existing account still signs in, a non-admin gets a 404 on the admin page. Depends: T-31. S. (Cursor)
-- [~] **T-32 Sample workspaces side by side.** Mock: M1. Each demo pack seeds its own workspace;
+- [x] **T-32 Sample workspaces side by side.** Mock: M1. Each demo pack seeds its own workspace;
   Reset resets only that one; no more truncating every table. Depends: T-30. M. (Cursor)
 - [ ] **T-33 Create a workspace and invite people.** Mock: M1, M6. Create, invite by email, create
   teams and leads. Depends: T-31. M.
