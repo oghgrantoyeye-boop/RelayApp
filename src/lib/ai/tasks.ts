@@ -248,7 +248,7 @@ function offlineAnswer(input: AnswerInput, ranked: { doc: off.Doc; score: number
   const threshold = Math.min(2, Math.max(1, qn - 1));
   const relevant = ranked.filter((r) => r.score >= threshold);
   const top = relevant[0];
-  if (!top) return none([`Nothing ${input.teamName} has shared answers this.`], ranked[0]?.doc);
+  if (!top) return none([`${input.teamName} hasn't shared anything that answers this.`], ranked[0]?.doc);
   if (off.asksForDate(input.question)) {
     // A "when" question needs a source that gives an upcoming date.
     const dated = relevant.find((r) => {
