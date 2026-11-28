@@ -58,9 +58,10 @@ reviews Claude's. The base branch is the default branch, `claude/dazzling-archim
 2. **Build it** on a branch named for the task, `<lane>/t-NN-short-name` (for example
    `cursor/t-40-slack-install`). Commit messages start with the task id: `T-40: Slack OAuth install`.
    Change `[~]` to `[x]` in the PR's last commit.
-3. **Before every push:** rebase on the default branch, then `npm run typecheck`, `npm test` and
-   `npm run build`. Push only when all three pass. Never force-push the default branch; a
-   `--force-with-lease` push to your own task branch after a rebase is fine.
+3. **Before every push:** bring in the default branch (`git merge origin/<default>` on a branch
+   that's already pushed, or a rebase before its first push), then `npm run typecheck`, `npm test`
+   and `npm run build`. Push only when all three pass. Never force-push, not even to your own task
+   branch.
 4. **Open the PR** with the title `T-NN: <task name>`. The body says what changed, how it was
    tested, and anything the reviewer should look at closely.
 5. **Review the other lane's PRs** before starting your next task. Check the diff against the
@@ -176,7 +177,7 @@ The model adapter supports Claude only. An OpenAI key would need a second provid
 - [ ] **T-17 What Beacon can see.** Mock: M2, M6. Per team: sources with Live or Planned, last
   sync, and gaps. Adds `connector.mode`. Acceptance: matches M2's card; planned tools never show as
   Live. S.
-- [ ] **T-18 Sources carry provenance and freshness.** Mock: M3. `publishedSources` includes
+- [~] **T-18 Sources carry provenance and freshness.** (Claude) Mock: M3. `publishedSources` includes
   active entries and adds `provenance` and `lastSeen` to every source. Pending entries are never
   used for other teams. Acceptance: test that a pending claim can't appear in another team's
   answer. Depends: T-10. S.
