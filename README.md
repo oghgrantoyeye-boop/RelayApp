@@ -103,9 +103,9 @@ Research uses Claude with web search, so it needs `ANTHROPIC_API_KEY`; without o
 
 ## Hosting
 
-**Vercel, demo mode (no setup):** import the repo in Vercel and deploy. No database or environment variables are needed. On Vercel, Beacon keeps the Northwind demo data in memory, so each new server starts from the Dec 6 story. Changes you make during a demo (publishing, answering asks) last as long as that server stays warm, usually the length of a demo. Add `ANTHROPIC_API_KEY` in the project's environment variables to use Claude.
+**Vercel with a hosted database (default for anything real):** in the Vercel project, set `DATABASE_URL` to a Postgres URL (Neon marketplace integration sets this, or use `POSTGRES_URL`). The first request migrates and seeds it; a database lock makes sure only one server does that. Data then survives redeploys. Check the Vercel project env for `DATABASE_URL` before sharing a preview.
 
-**Keeping data:** set `DATABASE_URL` to any Postgres (Neon, Supabase, RDS). The first request migrates and seeds it, and a database lock makes sure only one server does that.
+**Vercel without `DATABASE_URL`:** the app still boots for demos, but data lives in memory and resets when a server restarts. The in-app banner warns when this is the case. Add `ANTHROPIC_API_KEY` to use Claude.
 
 There's no login by design: Beacon is demoed inside the fictional Northwind Labs, and the persona switcher and demo tokens (`rly_demo_*`) are part of that.
 

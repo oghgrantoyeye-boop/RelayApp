@@ -140,9 +140,9 @@ The model adapter supports Claude only. An OpenAI key would need a second provid
   adapter, selected by `RELAY_LLM_PROVIDER=openai` and `OPENAI_API_KEY`. Acceptance: with a key,
   answers come from Claude in the preview deploy; without one, the demo still works. Touches:
   `src/lib/ai/llm.ts`. S.
-- [~] **T-04 Hosted database by default.** Mock: all. Document and check `DATABASE_URL` for the
+- [x] **T-04 Hosted database by default.** Mock: all. Document and check `DATABASE_URL` for the
   Vercel project; show a warning banner in the app when running on Vercel without it.
-  Acceptance: data survives a redeploy on the preview. S.
+  Acceptance: data survives a redeploy on the preview. S. (Cursor)
 
 ## M2 and M3: learned team context and grounded answers
 
