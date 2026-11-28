@@ -23,10 +23,8 @@ export default async function SignInPage({
   const providers = authProviders();
 
   return (
-    <html lang="en">
-      <body style={{ margin: 0, fontFamily: "var(--font-geist-sans), system-ui, sans-serif", background: "#fafafa", color: "#18181b" }}>
-        <main style={{ minHeight: "100vh", display: "grid", placeItems: "center", padding: "48px 16px" }}>
-          <div style={{ width: "min(440px, 100%)", border: "1px solid #e6e6ea", borderRadius: 10, padding: "26px", background: "#fff" }}>
+    <main style={{ minHeight: "100vh", display: "grid", placeItems: "center", padding: "48px 16px", background: "#fafafa", color: "#18181b" }}>
+      <div style={{ width: "min(440px, 100%)", border: "1px solid #e6e6ea", borderRadius: 10, padding: "26px", background: "#fff" }}>
             <div style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 14 }}>
               <BeaconMark size={22} />
               <strong style={{ fontSize: 15 }}>Beacon</strong>
@@ -140,10 +138,8 @@ export default async function SignInPage({
                 <Link href="/demos">All demos</Link>
               )}
             </div>
-          </div>
-        </main>
-      </body>
-    </html>
+      </div>
+    </main>
   );
 }
 
