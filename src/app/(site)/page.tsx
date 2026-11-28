@@ -1,8 +1,7 @@
 import Link from "next/link";
 import { Topography } from "@/components/site/Brand";
 import { Reveal, StepBeam } from "@/components/site/Interactive";
-import { GapVisual, HeroProduct, PillarGlyph, SignalField, TeamPicture } from "@/components/site/Mockups";
-import { AskBeacon } from "@/components/site/AskBeacon";
+import { GapVisual, HeroProduct, PillarGlyph, SignalField } from "@/components/site/Mockups";
 import { Integrations } from "@/components/site/Integrations";
 import { BuiltByBand } from "@/components/site/BuiltByBand";
 import { SideBySide } from "@/components/site/SideBySide";
@@ -118,7 +117,6 @@ export default function Home() {
               <Link className="btn btn-primary" href="/early-access">Request early access <Arrow /></Link>
               <a className="btn btn-ghost" href="#how-it-works">See how it works</a>
             </div>
-            <p className="hero-note">Answers with sources. Questions that reach someone who can answer.</p>
           </div>
           <div className="hero-product">
             <HeroProduct />
@@ -176,36 +174,6 @@ export default function Home() {
 
       <Integrations />
 
-      {/* Product showcase */}
-      <section className="section showcase" id="showcase" aria-labelledby="show-title">
-        <div className="wrap">
-          <Reveal className="section-head">
-            <span className="eyebrow">Product</span>
-            <h2 id="show-title" className="h2">See what a team knows, then ask it.</h2>
-            <p className="lede">
-              A team&apos;s picture, learned from its own conversations and tools, and answers drawn only from what each person is allowed to see.
-            </p>
-          </Reveal>
-          <div className="window" style={{ marginBottom: 18 }}>
-            <div className="window-bar">
-              <div className="window-dots" aria-hidden="true"><i /><i /><i /></div>
-              <span className="window-title">Platform · Northwind Labs</span>
-              <span className="demo-label">Illustrative demo data</span>
-            </div>
-            <div style={{ padding: 16 }}>
-              <div className="show-grid">
-                <TeamPicture />
-                <AskBeacon />
-              </div>
-            </div>
-          </div>
-          <p className="show-note">
-            <span>Everything above uses illustrative data about a fictional company.</span>
-            <Link href="/feed">Explore the working prototype →</Link>
-          </p>
-        </div>
-      </section>
-
       {/* How it works */}
       <section className="section" id="how-it-works" aria-labelledby="flow-title">
         <div className="wrap flow">
@@ -213,8 +181,7 @@ export default function Home() {
             <span className="eyebrow">How it works</span>
             <h2 id="flow-title" className="h2" style={{ marginTop: 16 }}>From a question to an answer you can trust.</h2>
             <p className="lede" style={{ marginTop: 18 }}>
-              Beacon answers what it can from what the team has said and done, says what it doesn&apos;t know, and gets the rest to a person
-              who does.
+              Follow one question from Product to the Platform team and back, and see what Beacon keeps from the answer.
             </p>
             <p className="muted" style={{ fontSize: 13.5, marginTop: 14 }}>Illustrative scenario.</p>
           </div>
@@ -275,15 +242,9 @@ export default function Home() {
               their conversations, tickets and code, but it doesn&apos;t reach the people who need it.
             </p>
             <p>
-              Beacon builds a picture of each team from that activity, lets every team&apos;s agent answer from it with sources, and routes
-              what it can&apos;t answer to the people who can. Teams don&apos;t fill in profiles; they correct what Beacon gets wrong.
+              Beacon answers and routes. It doesn&apos;t take on work or make promises for a team, and teams don&apos;t fill in profiles:
+              they correct what Beacon gets wrong.
             </p>
-            <div className="not-list">
-              <div><b>Learned, not maintained.</b><span>Context comes from the team&apos;s own conversations and work. Teams confirm, fix or remove it in one click.</span></div>
-              <div><b>Answers come with sources.</b><span>Each point says where it came from and how fresh it is, and missing information is said out loud.</span></div>
-              <div><b>Your access, never more.</b><span>An agent answering you reads only what you&apos;re allowed to see, and every read is logged.</span></div>
-              <div><b>Answers, not actions.</b><span>Beacon answers and routes. It doesn&apos;t take on work or make promises for a team.</span></div>
-            </div>
           </Reveal>
         </div>
       </section>

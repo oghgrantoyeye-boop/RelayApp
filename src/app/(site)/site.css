@@ -365,6 +365,7 @@ h1, h2, h3 { margin: 0; font-weight: 600; letter-spacing: -0.03em; color: var(--
 .builtby-label { margin: 0 0 16px; text-align: center; font-size: 15px; color: var(--slate); }
 .builtby-track { overflow: hidden;
   -webkit-mask-image: linear-gradient(90deg, transparent, #000 12%, #000 88%, transparent); mask-image: linear-gradient(90deg, transparent, #000 12%, #000 88%, transparent); }
+.builtby-static { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; }
 .marquee { display: flex; width: max-content; animation: marquee 48s linear infinite; }
 .builtby:hover .marquee { animation-play-state: paused; }
 .marquee-group { display: flex; flex: none; align-items: center; }
