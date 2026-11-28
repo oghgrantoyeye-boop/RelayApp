@@ -203,7 +203,7 @@ The model adapter supports Claude only. An OpenAI key would need a second provid
   detail. Acceptance: matches M4; any Platform member can answer. Depends: T-22. M.
 - [~] **T-24 Answers feed learning.** (Claude) Mock: M4. Remove the Publish checkbox; after an answer,
   show what Beacon learned and whether it needs confirming, as in M4. Depends: T-12, T-23. S.
-- [ ] **T-25 Request lifecycle.** Mock: M5. Statuses awaiting team, needs your input, answered,
+- [~] **T-25 Request lifecycle.** (Claude) Mock: M5. Statuses awaiting team, needs your input, answered,
   resolved, declined, unresolved; unresolved after 3 business days with Send to the lead or Ask
   again; every change audited. Acceptance: status tests for each transition. Depends: T-22. M.
 - [ ] **T-26 My questions page.** Mock: M5. The progress steps, the reply, That answers it and
