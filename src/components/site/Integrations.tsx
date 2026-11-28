@@ -119,8 +119,7 @@ export function Integrations() {
           <span className="eyebrow">Integrations</span>
           <h2 id="int-title" className="h2">Works with the tools your teams already use.</h2>
           <p className="lede" style={{ marginTop: 18 }}>
-            Beacon learns from the work where it already happens: code, tickets, docs, meetings and conversations. That&apos;s how it knows
-            what each team owns and knows without anyone filling in a profile, and it answers at the level each person is allowed to see.
+            Beacon learns from the work where it already happens: code, tickets, docs, meetings and conversations.
           </p>
         </div>
         <Hub />

@@ -47,8 +47,7 @@ export function SideBySide() {
           <span className="eyebrow">People and agents</span>
           <h2 id="agents-title" className="h2">The team&apos;s agent answers. The team&apos;s people decide.</h2>
           <p className="lede">
-            Every team has an agent as its first point of contact. It answers from what the team has said and done, and hands everything
-            else to a person on the team. People stay in charge of what gets said on the team&apos;s behalf.
+            Every team has an agent as its first point of contact. People on the team stay in charge of what gets said on its behalf.
           </p>
         </Reveal>
         <div className="sbs">
