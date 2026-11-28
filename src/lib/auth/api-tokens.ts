@@ -80,18 +80,7 @@ export async function findUserIdByApiToken(db: Db, token: string): Promise<strin
   return legacy ? (legacy.id as string) : null;
 }
 
-export function hookInstallCommand(origin: string, token: string): string {
-  return `RELAY_URL=${origin} RELAY_TOKEN=${token} node ~/.claude/hooks/relay-hook.mjs`;
-}
-
-export function hookSettingsJson(origin: string, token: string): string {
-  return JSON.stringify(
-    {
-      hooks: {
-        SessionEnd: [{ hooks: [{ type: "command", command: hookInstallCommand(origin, token) }] }],
-      },
-    },
-    null,
-    2,
-  );
+/** The one command that connects Claude Code, Codex and Cursor on someone's computer (T-63). */
+export function connectCommand(origin: string, token: string): string {
+  return `curl -fsSL ${origin}/beacon.mjs | node --input-type=module - connect --url ${origin} --token ${token}`;
 }

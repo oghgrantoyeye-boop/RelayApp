@@ -737,4 +737,30 @@ alter table question add column group_id text;
 create index question_group_idx on question (group_id) where group_id is not null;
 `,
   },
+  {
+    id: "019_T-63_coding_session",
+    sql: `
+-- Local coding agents (T-63): each Claude Code, Codex or Cursor session that reports in. Sessions
+-- feed one rolling draft per person per day (update_id); a session that reports again after that
+-- draft was published starts over in the next one.
+create table coding_session (
+  id text primary key,
+  org_id text not null references org(id) on delete cascade,
+  user_id text not null references app_user(id),
+  tool text not null check (tool in ('claude_code', 'codex', 'cursor')),
+  session_key text not null,
+  update_id text references team_update(id) on delete set null,
+  repo text not null,
+  branch text not null,
+  prompts jsonb not null default '[]',
+  notes jsonb not null default '[]',
+  commits jsonb not null default '[]',
+  diffstat text not null default '',
+  created_at timestamptz not null,
+  updated_at timestamptz not null,
+  unique (user_id, tool, session_key)
+);
+create index coding_session_update_idx on coding_session (update_id, repo);
+`,
+  },
 ];

@@ -98,7 +98,7 @@ Research uses Claude with web search, so it needs `ANTHROPIC_API_KEY`; without o
 
 ## Coding agents and GitHub
 
-- **Claude Code:** [`integrations/claude-code/relay-hook.mjs`](integrations/claude-code/relay-hook.mjs) runs as a `SessionEnd` hook. It sends your prompts, the agent's closing notes and recent commits to `POST /api/sources/coding-session` with your Relay token. Relay drafts "what I worked on", strips anything that looks like a secret, and shows it only to you until you publish. The Connect tools page has the exact `settings.json` snippet.
+- **Coding agents (Claude Code, Codex, Cursor):** [`public/beacon.mjs`](public/beacon.mjs), served at `/beacon.mjs`. The Integrations page shows one command (`curl -fsSL <beacon>/beacon.mjs | node --input-type=module - connect --url <beacon> --token <token>`) that saves the token in `~/.beacon/config.json` and adds Beacon to Claude Code (`SessionEnd` hook), Codex (`notify`) and Cursor (hooks), keeping any hooks already there. Each session or turn sends your prompts, the agent's closing notes and recent commits to `POST /api/sources/coding-session`. Beacon keeps one rolling draft per person per day, with items per repo, strips anything that looks like a secret, and shows it only to you until you publish. `beacon status` and `beacon disconnect` check and undo it.
 - **GitHub:** point a repository webhook (Pull requests, JSON) at `/api/sources/github`. Set `GITHUB_WEBHOOK_SECRET` to verify signatures. People are matched by GitHub login.
 
 ## Hosting
