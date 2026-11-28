@@ -19,7 +19,6 @@ describe("GitHub App (T-44)", () => {
 
   beforeEach(async () => {
     setNow("2026-12-06T09:00:00Z");
-    process.env.NODE_ENV = "test";
     process.env.AUTH_SECRET = "test-secret";
     process.env.ENCRYPTION_KEY = "test-encryption-key";
     process.env.GITHUB_APP_WEBHOOK_SECRET = "whsec";
@@ -193,14 +192,15 @@ describe("GitHub App (T-44)", () => {
   });
 
   it("fails closed on webhook signatures in production without a secret", async () => {
-    const prev = process.env.NODE_ENV;
     const secret = process.env.GITHUB_APP_WEBHOOK_SECRET;
     delete process.env.GITHUB_APP_WEBHOOK_SECRET;
     delete process.env.GITHUB_WEBHOOK_SECRET;
-    process.env.NODE_ENV = "production";
+    const env = process.env as { NODE_ENV?: string };
+    const prev = env.NODE_ENV;
+    env.NODE_ENV = "production";
     expect(verifyGithubAppSignature("{}", null)).toBe(false);
     expect(verifyGithubSignature("{}", null)).toBe(false);
-    process.env.NODE_ENV = prev;
+    env.NODE_ENV = prev;
     process.env.GITHUB_APP_WEBHOOK_SECRET = secret;
   });
 });
