@@ -6,6 +6,7 @@ import { confirmCommitment, rejectCommitment } from "./commitments";
 import { assertWrite, PermissionError, visibleLevel, type Reader } from "./permissions";
 import { showUpdateItem } from "./render";
 import { splitUpdate, type TeamInfo } from "./ai/tasks";
+import { learnQuietly } from "./context-learn";
 
 export async function teamInfos(db: Db): Promise<TeamInfo[]> {
   const units = await db.query(`select id, name from unit where how_to_ask <> '{}'::jsonb order by name`);
@@ -116,6 +117,23 @@ export async function publishDraft(db: Db, viewer: Viewer, updateId: string, for
   }
   await db.query(`update team_update set status = 'published', published_at = $2 where id = $1`, [updateId, at]);
   await audit(db, { orgId: viewer.orgId, actorId: viewer.user.id, action: "publish_update", targetKind: "update", targetId: updateId, detail: { items: form.items.filter((i) => i.include).length } });
+
+  // What a team publishes about its own work is evidence of what it owns, runs and knows. Items capped
+  // below summary are left out, because team context is shared at summary.
+  const learnable = await db.query(
+    `select text, marking_id from update_item where update_id = $1 and status = 'published' and (max_level is null or max_level in ('summary', 'full'))`,
+    [updateId],
+  );
+  if (learnable.length)
+    await learnQuietly(db, {
+      unitId: draft.update.unit_id,
+      kind: "update",
+      ref: updateId,
+      label: `${viewer.user.name}'s update`,
+      text: learnable.map((i) => i.text).join("\n"),
+      markingIds: [...new Set(learnable.map((i) => i.marking_id).filter(Boolean))] as string[],
+      actorId: viewer.user.id,
+    });
 
   const notified = await notifyAffected(db, updateId);
   const commitmentResults: { id: string; teams: string[]; people: number }[] = [];

@@ -34,7 +34,9 @@ export type ApplyOutcome = "created" | "merged" | "ignored";
  * one. A signal for something the team removed is kept on record but never brings it back.
  */
 export async function applySignal(db: Db, signal: Row): Promise<{ entryId: string; outcome: ApplyOutcome; status: string }> {
-  const claim = signal.claim as { kind: string; title: string; body?: string };
+  // needs_teammate: the source is visible to fewer people than team context is (a meeting, say),
+  // so anything new from it waits for a teammate even if its kind wouldn't.
+  const claim = signal.claim as { kind: string; title: string; body?: string; needs_teammate?: boolean };
   const source: SourceRef = { kind: signal.source_kind, ref: signal.source_ref, label: signal.source_label, at: new Date(signal.at).toISOString() };
   const markings: string[] = signal.marking_ids ?? [];
   const candidates = await db.query(`select * from context_entry where unit_id = $1 and kind = $2 order by last_seen_at desc`, [signal.unit_id, claim.kind]);
@@ -51,15 +53,15 @@ export async function applySignal(db: Db, signal: Row): Promise<{ entryId: strin
     await db.query(
       `update context_entry set source_refs = $2, confidence = least(0.95, confidence + 0.15), marking_ids = $3, status = $4,
          last_seen_at = greatest(last_seen_at, $5), updated_at = $6,
-         body = case when provenance = 'learned' and body = '' then $7 else body end
+         body = case when provenance = 'learned' and body = '' and not $8 then $7 else body end
        where id = $1`,
-      [match.id, JSON.stringify([...refs, source].slice(-20)), mergedMarkings, status, signal.at, now(), claim.body ?? ""],
+      [match.id, JSON.stringify([...refs, source].slice(-20)), mergedMarkings, status, signal.at, now(), claim.body ?? "", !!claim.needs_teammate],
     );
     return { entryId: match.id, outcome: "merged", status };
   }
 
   const id = newId("ce");
-  const status = needsConfirmation(claim.kind, markings) ? "pending" : "active";
+  const status = claim.needs_teammate || needsConfirmation(claim.kind, markings) ? "pending" : "active";
   await db.query(
     `insert into context_entry (id, unit_id, kind, title, body, provenance, confidence, source_refs, marking_ids, status, first_seen_at, last_seen_at, updated_at)
      values ($1, $2, $3, $4, $5, 'learned', 0.5, $6, $7, $8, $9, $9, $10)`,

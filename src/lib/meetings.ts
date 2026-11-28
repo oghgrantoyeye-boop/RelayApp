@@ -9,6 +9,7 @@ import { getLLM } from "./ai/llm";
 import { classify, findDate, levelTexts, overlap, tokens } from "./ai/offline";
 import { suggestAffected } from "./ai/tasks";
 import { teamInfos } from "./updates";
+import { learnQuietly } from "./context-learn";
 
 export interface MeetingSummary {
   summary: string;
@@ -91,6 +92,19 @@ export async function summarizeMeeting(db: Db, viewer: Viewer, id: string): Prom
       : { ...offlineSummary(meeting.transcript, attendees), by: "Offline writer" };
   await db.query(`update meeting set summary = $2, status = case when status = 'recorded' then 'summarized' else status end where id = $1`, [id, JSON.stringify(summary)]);
   const agent = await db.one(`select a.id from app_user a join member m on m.user_id = a.id where m.unit_id = $1 and a.kind = 'agent' and a.id = 'agent_' || $1`, [meeting.unit_id]);
+  // Only attendees and the host team see a meeting, so what Beacon learns from it waits for a teammate.
+  const learnText = [...summary.decisions, ...summary.risks].join("\n");
+  if (learnText)
+    await learnQuietly(db, {
+      unitId: meeting.unit_id,
+      kind: "meeting",
+      ref: id,
+      label: `Meeting: ${meeting.title}`,
+      text: learnText,
+      markingIds: meeting.marking_id ? [meeting.marking_id] : [],
+      needsTeammate: true,
+      actorId: viewer.user.id,
+    });
   await audit(db, { orgId: viewer.orgId, actorId: agent?.id ?? null, onBehalfOfId: viewer.user.id, action: "summarize_meeting", targetKind: "meeting", targetId: id, detail: { decisions: summary.decisions.length, actions: summary.action_items.length, by: summary.by } });
   return summary;
 }
