@@ -118,7 +118,7 @@ The model adapter supports Claude only. An OpenAI key would need a second provid
 - [x] **T-02 New navigation.** (Claude) Mock: M2 to M6 sidebar. Ask Beacon, Teams, Team queue, My
   questions, What's changing, Inbox, Audit log, Workspace settings. Acceptance: matches the mock's
   sidebar; Commitments, Meetings, Map and Digest are gone from the nav. Depends: T-01. S.
-- [~] **T-03 Real model calls on Vercel.** (Claude) Mock: M3. Confirm every AI task runs with
+- [x] **T-03 Real model calls on Vercel.** (Claude) Done: Integrations shows which model answers, calls, tokens and the last failure; failures are logged. The per-workspace spend cap moved to T-35. Mock: M3. Confirm every AI task runs with
   `ANTHROPIC_API_KEY` set in Vercel: log which provider answered (`by`) in the audit event, show a
   small "Offline writer" note in the UI when no key is set, and add a per-workspace monthly spend
   cap with a clear message when it's reached. Optional: an `openai` provider behind the same
@@ -209,6 +209,7 @@ The model adapter supports Claude only. An OpenAI key would need a second provid
   Reset resets only that one; no more truncating every table. Depends: T-30. M.
 - [ ] **T-33 Create a workspace and invite people.** Mock: M1, M6. Create, invite by email, create
   teams and leads. Depends: T-31. M.
+- [ ] **T-35 AI spend cap per workspace.** Mock: M6. Record each model call's tokens in an `ai_usage` table with `org_id`, show this month's spend in workspace settings, and fall back to the offline writer with a clear note when a workspace's monthly cap (`org.settings.ai_monthly_usd`) is reached. Depends: T-30, T-03. S. (Claude)
 - [ ] **T-34 Workspace settings.** Mock: M6. Sources, Slack channels Beacon learns from (with
   exclusion), what needs a teammate's OK (the trust rules, stored in `org.settings`), people.
   Depends: T-33, T-40. M.
@@ -265,8 +266,9 @@ other questions. Then GitHub, then the planned tools.
 
 ## Suggested order
 
-- **Claude:** T-00 (website), then T-01, T-02, T-50, T-51 (cleanup and the new demo story), then
-  T-03, T-10, T-11, T-12, T-15, T-18, T-19, T-20 (M2 and M3), then T-22 to T-26 (M4 and M5).
+- **Claude:** T-00 (website), T-01, T-02, T-50, T-03, then T-10, T-11, T-12, T-13, T-15, T-18, T-19,
+  T-20 (M2 and M3), then T-22 to T-26 (M4 and M5), then T-51 (the new demo story, once the features
+  it walks through exist) and T-35.
 - **Cursor, starting now in parallel:** T-30, T-31, T-32, T-33 (real sign-in and workspaces, with
   the demos as sample workspaces), then T-04, T-40, T-44, T-45 (real Slack, GitHub and Claude Code
   connections), then T-34, T-41, T-42, T-43 once the Claude lane's T-11, T-19 and T-23 are in.

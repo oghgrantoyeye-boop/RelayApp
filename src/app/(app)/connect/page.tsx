@@ -4,6 +4,7 @@ import { Flash, LevelTag, Pill, Topbar } from "@/components/ui";
 import { connectTool, simulate, syncTool } from "@/app/actions";
 import { CATALOG, CONNECTOR_LABEL, recentSourceItems, teamConnectors } from "@/lib/integrations";
 import { fmt, fmtDateTime } from "@/lib/clock";
+import { aiStatus, usage } from "@/lib/ai/llm";
 
 export default async function ConnectPage({ searchParams }: { searchParams: Promise<{ msg?: string }> }) {
   const { msg } = await searchParams;
@@ -38,6 +39,7 @@ export default async function ConnectPage({ searchParams }: { searchParams: Prom
             </p>
           </div>
         </div>
+        <AiCard />
         <div className="notice warn" style={{ marginBottom: 16 }}>Demo: these connections hold {demo.org.name}&apos;s fictional data. Claude Code and GitHub below are real integrations.</div>
         <div className="two" style={{ marginBottom: 28 }}>
           <section className="primary">
@@ -136,5 +138,36 @@ export default async function ConnectPage({ searchParams }: { searchParams: Prom
         </div>
       </div>
     </>
+  );
+}
+
+/** Which model answers on this server, and whether its calls are working. */
+function AiCard() {
+  const ai = aiStatus();
+  return (
+    <section className="card" aria-label="AI model" style={{ marginBottom: 16 }}>
+      <div className="row" style={{ justifyContent: "space-between" }}>
+        <div>
+          <div style={{ fontWeight: 600 }}>AI model</div>
+          <div className="small muted">
+            {ai.provider === "claude"
+              ? `Claude (${ai.model}) answers questions, splits updates and summarizes meetings.`
+              : ai.provider === "offline"
+                ? `Offline writer: answers are built from matching text, without a model. ${ai.reason} Add ANTHROPIC_API_KEY to the server's environment to use Claude.`
+                : `${ai.model} (tests).`}
+          </div>
+        </div>
+        <Pill tone={ai.provider === "claude" ? (usage.lastError && usage.failures > usage.calls ? "amber" : "green") : "gray"}>
+          {ai.provider === "claude" ? "Connected" : "Offline"}
+        </Pill>
+      </div>
+      {ai.provider === "claude" && (
+        <div className="small muted" style={{ marginTop: 8 }}>
+          Since this server started: {usage.calls} {usage.calls === 1 ? "call" : "calls"}, {usage.inputTokens.toLocaleString("en-US")} input and{" "}
+          {usage.outputTokens.toLocaleString("en-US")} output tokens
+          {usage.failures > 0 && `, ${usage.failures} fell back to the offline writer (last: ${usage.lastError})`}.
+        </div>
+      )}
+    </section>
   );
 }

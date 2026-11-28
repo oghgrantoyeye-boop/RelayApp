@@ -35,7 +35,17 @@ export interface LLM {
 // Claude Opus 5.5 list prices per million tokens (input, output). Web search is billed separately.
 export const PRICE_PER_MTOK = { input: 4, output: 20 };
 
-const MODEL = "claude-opus-5-5";
+export const MODEL = "claude-opus-5-5";
+
+/** What the running server has done with the model since it started. Shown on the Integrations page. */
+export const usage = { calls: 0, failures: 0, inputTokens: 0, outputTokens: 0, lastError: null as string | null, lastErrorAt: null as Date | null };
+
+function fail(message: string) {
+  usage.failures++;
+  usage.lastError = message;
+  usage.lastErrorAt = new Date();
+  console.warn(`[beacon] ${message}; using offline writer`);
+}
 
 class ClaudeLLM implements LLM {
   name = "Claude";
@@ -109,7 +119,13 @@ class ClaudeLLM implements LLM {
         system: req.system,
         messages: [{ role: "user", content: req.prompt }],
       });
-      if (res.stop_reason === "refusal" || res.stop_reason === "max_tokens") return null;
+      usage.calls++;
+      usage.inputTokens += res.usage.input_tokens + (res.usage.cache_read_input_tokens ?? 0) + (res.usage.cache_creation_input_tokens ?? 0);
+      usage.outputTokens += res.usage.output_tokens;
+      if (res.stop_reason === "refusal" || res.stop_reason === "max_tokens") {
+        fail(`Claude stopped (${res.stop_reason}) on ${task}`);
+        return null;
+      }
       const text = res.content.find((b) => b.type === "text");
       if (!text || text.type !== "text") return null;
       const parsed = JSON.parse(text.text) as T;
@@ -117,10 +133,10 @@ class ClaudeLLM implements LLM {
       this.cache.set(key, parsed);
       return parsed;
     } catch (err) {
-      if (err instanceof Anthropic.AuthenticationError) console.warn("[relay] Claude key rejected; using offline writer");
-      else if (err instanceof Anthropic.RateLimitError) console.warn("[relay] Claude rate limited; using offline writer");
-      else if (err instanceof Anthropic.APIError) console.warn(`[relay] Claude error ${err.status}; using offline writer`);
-      else console.warn("[relay] Claude call failed; using offline writer", (err as Error).message);
+      if (err instanceof Anthropic.AuthenticationError) fail("Claude rejected the API key");
+      else if (err instanceof Anthropic.RateLimitError) fail("Claude rate limited the app");
+      else if (err instanceof Anthropic.APIError) fail(`Claude error ${err.status} on ${task}`);
+      else fail(`Claude call failed on ${task}: ${(err as Error).message}`);
       return null;
     }
   }
@@ -167,6 +183,26 @@ export function getLLM(): LLM {
     current = pref === "offline" || (!hasKey && pref !== "claude") ? new OfflineLLM() : new ClaudeLLM();
   }
   return current;
+}
+
+export interface AiStatus {
+  provider: "claude" | "offline" | "test";
+  model: string | null;
+  /** Why the offline writer is in use, when it is. */
+  reason?: string;
+}
+
+/** Which model answers on this server, for the UI. Reads the same settings as getLLM(). */
+export function aiStatus(): AiStatus {
+  const llm = getLLM();
+  if (llm instanceof ClaudeLLM) return { provider: "claude", model: MODEL };
+  if (llm instanceof OfflineLLM)
+    return {
+      provider: "offline",
+      model: null,
+      reason: process.env.RELAY_LLM_PROVIDER === "offline" ? "RELAY_LLM_PROVIDER is set to offline." : "No ANTHROPIC_API_KEY is set.",
+    };
+  return { provider: "test", model: llm.name };
 }
 
 export function setLLM(llm: LLM | null) {
