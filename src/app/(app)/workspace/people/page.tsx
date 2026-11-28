@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { currentViewer } from "@/lib/session";
 import { listInvites } from "@/lib/auth/workspace-setup";
 import { invitePersonAction, createTeamAction, setLeadAction } from "@/app/actions/workspace";
@@ -5,6 +6,7 @@ import { accountFromSession, SESSION_COOKIE } from "@/lib/auth/accounts";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { isSampleOrg } from "@/lib/auth/workspaces";
+import { Avatar, Flash, Topbar } from "@/components/ui";
 
 export const dynamic = "force-dynamic";
 
@@ -14,7 +16,7 @@ export default async function WorkspacePeoplePage({
   searchParams: Promise<{ error?: string; msg?: string }>;
 }) {
   const { error, msg } = await searchParams;
-  const { db, viewer, orgId } = await currentViewer();
+  const { db, viewer, orgId, demo } = await currentViewer();
   const account = await accountFromSession(db, (await cookies()).get(SESSION_COOKIE)?.value);
   if (!account) redirect("/signin");
   const org = await db.one(`select * from org where id = $1`, [orgId]);
@@ -30,148 +32,205 @@ export default async function WorkspacePeoplePage({
 
   const [people, teams, invites] = await Promise.all([
     db.query(
-      `select a.id, a.name, a.email, a.title from app_user a where a.org_id = $1 and a.kind = 'human' order by a.name`,
+      `select a.id, a.name, a.email, a.title, om.role as org_role
+       from app_user a
+       join org_membership om on om.user_id = a.id and om.org_id = a.org_id
+       where a.org_id = $1 and a.kind = 'human'
+       order by a.name`,
       [orgId],
     ),
     db.query(`select id, name, slug from unit where org_id = $1 order by name`, [orgId]),
     listInvites(db, orgId),
   ]);
   const leads = await db.query(
-    `select m.unit_id, a.name from member m join app_user a on a.id = m.user_id where m.org_id = $1 and m.role = 'lead'`,
+    `select m.unit_id, a.id as user_id, a.name
+     from member m
+     join app_user a on a.id = m.user_id
+     where m.org_id = $1 and m.role = 'lead'`,
     [orgId],
   );
-  const leadName = Object.fromEntries(leads.map((l) => [l.unit_id, l.name]));
+  const leadByUnit = Object.fromEntries(leads.map((l) => [l.unit_id, { id: l.user_id as string, name: l.name as string }]));
+  const teamName = Object.fromEntries(teams.map((t) => [t.id, t.name]));
+  const pending = invites.filter((i) => i.status === "pending");
+  const flash = error ? `Error: ${error}` : msg;
 
   return (
-    <main className="page">
-      <div className="crumbs">{viewer.user.name} / Workspace</div>
-      <h1>People and teams</h1>
-      <p className="muted" style={{ fontSize: 14 }}>
-        Invite people by email, create teams and pick leads. Sources come next.
-      </p>
-      {error && (
-        <p className="notice err" role="alert">
-          {error}
-        </p>
-      )}
-      {msg && <p className="notice">{msg}</p>}
+    <>
+      <Topbar crumbs={[demo.org.name, "People"]} />
+      <div className="content">
+        <Flash msg={flash} />
+        <div className="page-head">
+          <div>
+            <h1>People and teams</h1>
+            <p>Invite people by email, create teams, and pick who leads each one.</p>
+          </div>
+        </div>
 
-      <div className="grid two" style={{ marginTop: 18, gap: 18 }}>
-        <section className="card">
-          <h2>Invite people</h2>
-          <form action={invitePersonAction} className="stack" style={{ gap: 10, marginTop: 10 }}>
-            <input type="hidden" name="orgId" value={orgId} />
-            <label>
-              Email
-              <input type="email" name="email" required placeholder="teammate@company.com" />
-            </label>
-            <label>
-              Team
-              <select name="unitId" defaultValue="">
-                <option value="">Any / first team</option>
-                {teams.map((t) => (
-                  <option key={t.id} value={t.id}>
-                    {t.name}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <button type="submit" className="b">
-              Invite
-            </button>
-          </form>
-          {invites.length > 0 && (
-            <ul className="list" style={{ marginTop: 14 }}>
-              {invites.map((i) => (
-                <li key={i.id}>
-                  <strong>{i.email}</strong> · {i.status}
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
+            gap: 16,
+            marginBottom: 20,
+          }}
+        >
+          <section className="card">
+            <h2>Invite people</h2>
+            <p className="small muted" style={{ marginTop: 4 }}>
+              They get an email invite and join after signing in.
+            </p>
+            <form action={invitePersonAction} className="stack" style={{ gap: 10, marginTop: 12 }}>
+              <input type="hidden" name="orgId" value={orgId} />
+              <label className="field">
+                <span>Email</span>
+                <input type="email" name="email" required placeholder="teammate@company.com" autoComplete="email" />
+              </label>
+              <label className="field">
+                <span>Team</span>
+                <select name="unitId" defaultValue="">
+                  <option value="">First available team</option>
+                  {teams.map((t) => (
+                    <option key={t.id} value={t.id}>
+                      {t.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <button type="submit" className="b bp">
+                Invite
+              </button>
+            </form>
+            {pending.length > 0 && (
+              <div style={{ marginTop: 16 }}>
+                <h3 className="small muted" style={{ marginBottom: 6 }}>
+                  Pending invites
+                </h3>
+                <ul className="list">
+                  {pending.map((i) => (
+                    <li key={i.id}>
+                      <strong>{i.email}</strong>
+                      <span className="small muted">
+                        {" "}
+                        · {i.unit_id ? teamName[i.unit_id] ?? "team" : "first available team"}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </section>
+
+          <section className="card">
+            <h2>Create a team</h2>
+            <p className="small muted" style={{ marginTop: 4 }}>
+              Each team gets an agent that answers from what the team knows.
+            </p>
+            <form action={createTeamAction} className="stack" style={{ gap: 10, marginTop: 12 }}>
+              <input type="hidden" name="orgId" value={orgId} />
+              <label className="field">
+                <span>Name</span>
+                <input type="text" name="name" required placeholder="e.g. Waste Management" autoComplete="off" />
+              </label>
+              <label className="field">
+                <span>Lead</span>
+                <select name="leadUserId" defaultValue="">
+                  <option value="">Pick later</option>
+                  {people.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <button type="submit" className="b bp">
+                Create team
+              </button>
+            </form>
+          </section>
+        </div>
+
+        <section style={{ marginBottom: 20 }}>
+          <h2 style={{ marginBottom: 8 }}>Teams</h2>
+          {teams.length === 0 ? (
+            <div className="card empty">No teams yet. Create one above.</div>
+          ) : (
+            <div className="tablewrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Team</th>
+                    <th>Lead</th>
+                    <th>Change lead</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {teams.map((t) => {
+                    const lead = leadByUnit[t.id];
+                    return (
+                      <tr key={t.id}>
+                        <td>
+                          <Link href={`/teams/${t.slug}`} style={{ fontWeight: 500 }}>
+                            {t.name}
+                          </Link>
+                        </td>
+                        <td>{lead?.name ?? <span className="muted">No lead</span>}</td>
+                        <td>
+                          <form action={setLeadAction} className="row" style={{ gap: 8, flexWrap: "wrap" }}>
+                            <input type="hidden" name="orgId" value={orgId} />
+                            <input type="hidden" name="unitId" value={t.id} />
+                            <select name="leadUserId" defaultValue={lead?.id ?? ""} required style={{ minWidth: 160 }}>
+                              {!lead && (
+                                <option value="" disabled>
+                                  Choose someone
+                                </option>
+                              )}
+                              {people.map((p) => (
+                                <option key={p.id} value={p.id}>
+                                  {p.name}
+                                </option>
+                              ))}
+                            </select>
+                            <button type="submit" className="b sm">
+                              Save
+                            </button>
+                          </form>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </section>
+
+        <section>
+          <h2 style={{ marginBottom: 8 }}>People</h2>
+          <p className="small muted" style={{ marginBottom: 8 }}>
+            {people.length} {people.length === 1 ? "member" : "members"} · {teams.length}{" "}
+            {teams.length === 1 ? "team" : "teams"}
+          </p>
+          {people.length === 0 ? (
+            <div className="card empty">No people in this workspace yet.</div>
+          ) : (
+            <ul className="list card tight">
+              {people.map((p) => (
+                <li key={p.id}>
+                  <Avatar name={p.name} />
+                  <div className="grow">
+                    <div style={{ fontWeight: 500 }}>{p.name}</div>
+                    <div className="small muted">
+                      {[p.email, p.title || (p.org_role === "owner" ? "Owner" : p.org_role === "admin" ? "Admin" : null)]
+                        .filter(Boolean)
+                        .join(" · ")}
+                    </div>
+                  </div>
                 </li>
               ))}
             </ul>
           )}
         </section>
-
-        <section className="card">
-          <h2>Create a team</h2>
-          <form action={createTeamAction} className="stack" style={{ gap: 10, marginTop: 10 }}>
-            <input type="hidden" name="orgId" value={orgId} />
-            <label>
-              Name
-              <input name="name" required placeholder="Payments API" />
-            </label>
-            <label>
-              Lead
-              <select name="leadUserId" defaultValue="">
-                <option value="">Pick later</option>
-                {people.map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.name}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <button type="submit" className="b">
-              Create team
-            </button>
-          </form>
-        </section>
       </div>
-
-      <section className="card" style={{ marginTop: 18 }}>
-        <h2>Teams</h2>
-        <table className="table">
-          <thead>
-            <tr>
-              <th>Team</th>
-              <th>Lead</th>
-              <th>Set lead</th>
-            </tr>
-          </thead>
-          <tbody>
-            {teams.map((t) => (
-              <tr key={t.id}>
-                <td>{t.name}</td>
-                <td>{leadName[t.id] ?? "—"}</td>
-                <td>
-                  <form action={setLeadAction} style={{ display: "flex", gap: 8 }}>
-                    <input type="hidden" name="orgId" value={orgId} />
-                    <input type="hidden" name="unitId" value={t.id} />
-                    <select name="leadUserId" defaultValue="" required>
-                      <option value="" disabled>
-                        Choose
-                      </option>
-                      {people.map((p) => (
-                        <option key={p.id} value={p.id}>
-                          {p.name}
-                        </option>
-                      ))}
-                    </select>
-                    <button type="submit" className="b sm">
-                      Save
-                    </button>
-                  </form>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </section>
-
-      <section className="card" style={{ marginTop: 18 }}>
-        <h2>People</h2>
-        <p className="muted">
-          {people.length} members · {teams.length} teams
-        </p>
-        <ul className="list">
-          {people.map((p) => (
-            <li key={p.id}>
-              <strong>{p.name}</strong>
-              {p.email ? ` · ${p.email}` : ""}
-              {p.title ? ` · ${p.title}` : ""}
-            </li>
-          ))}
-        </ul>
-      </section>
-    </main>
+    </>
   );
 }
