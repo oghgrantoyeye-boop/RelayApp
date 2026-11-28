@@ -124,3 +124,5 @@ There's no login by design: Beacon is demoed inside the fictional Northwind Labs
 - Editing interfaces in the UI (following a team creates one at Summary).
 - Real meeting recordings from Zoom, Meet or Teams. Meetings and tool content are fictional Northwind data.
 - Jira and Linear status for commitments.
+
+<!-- Harmless status-update test; no functional change. -->
