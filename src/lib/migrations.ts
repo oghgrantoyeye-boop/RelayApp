@@ -554,7 +554,19 @@ create table magic_link (
 `,
   },
   {
-    id: "009_T-33_workspace_setup",
+    id: "009_T-36_early_access_gate",
+    sql: `
+-- Gate new accounts behind an approved lead (or BEACON_ADMIN_EMAILS). Platform-level audits
+-- (approving / declining leads) may have no workspace, so org_id may be null.
+alter table lead add column status text not null default 'pending';
+alter table lead add constraint lead_status_check check (status in ('pending', 'approved', 'declined'));
+alter table lead add column approved_at timestamptz;
+alter table lead add column approved_by text references account(id);
+alter table audit_event alter column org_id drop not null;
+`,
+  },
+  {
+    id: "010_T-33_workspace_setup",
     sql: `
 -- Create a workspace, invite people by email, create teams and pick leads (T-33).
 -- Pending invites also let someone create an account (T-36 early-access gate).

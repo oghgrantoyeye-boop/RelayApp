@@ -2,21 +2,44 @@ import type { Db, Row } from "../db";
 import { newId } from "../data";
 import { hashToken, randomToken } from "./crypto";
 import { now } from "../clock";
+import { canCreateAccount, EarlyAccessError, recordSignInLead } from "./early-access";
 
 export const SESSION_COOKIE = "beacon_session";
 const SESSION_DAYS = 30;
 
+export class UnverifiedEmailError extends Error {
+  constructor() {
+    super("unverified_email");
+    this.name = "UnverifiedEmailError";
+  }
+}
+
 export async function upsertAccount(
   db: Db,
-  input: { email: string; name?: string; googleSub?: string; microsoftSub?: string },
+  input: {
+    email: string;
+    name?: string;
+    googleSub?: string;
+    microsoftSub?: string;
+    /** False when the IdP did not verify the address. Defaults to true for magic-link / trusted callers. */
+    emailVerified?: boolean;
+  },
 ): Promise<Row> {
   const email = input.email.trim().toLowerCase();
   if (!email.includes("@")) throw new Error("A valid email is required");
+  const emailVerified = input.emailVerified !== false;
   let account: Row | null = null;
   if (input.googleSub) account = await db.one(`select * from account where google_sub = $1`, [input.googleSub]);
   if (!account && input.microsoftSub) account = await db.one(`select * from account where microsoft_sub = $1`, [input.microsoftSub]);
-  if (!account) account = await db.one(`select * from account where email = $1`, [email]);
+  // Never link (or grant admin) by an address the provider has not verified.
+  if (!account && emailVerified) account = await db.one(`select * from account where email = $1`, [email]);
   if (!account) {
+    if (!emailVerified) throw new UnverifiedEmailError();
+    // New accounts need early access: an approved lead, a pending invite (T-33), or an admin email.
+    if (!(await canCreateAccount(db, email))) {
+      await recordSignInLead(db, email, input.name);
+      throw new EarlyAccessError();
+    }
     const id = newId("acct");
     await db.query(
       `insert into account (id, email, name, google_sub, microsoft_sub) values ($1, $2, $3, $4, $5)`,
@@ -28,9 +51,9 @@ export async function upsertAccount(
       `update account set name = coalesce(nullif($2, ''), name),
         google_sub = coalesce($3, google_sub),
         microsoft_sub = coalesce($4, microsoft_sub),
-        email = $5
+        email = case when $6 then $5 else email end
        where id = $1`,
-      [account.id, input.name?.trim() ?? "", input.googleSub ?? null, input.microsoftSub ?? null, email],
+      [account.id, input.name?.trim() ?? "", input.googleSub ?? null, input.microsoftSub ?? null, email, emailVerified],
     );
     account = (await db.one(`select * from account where id = $1`, [account.id]))!;
   }
@@ -81,7 +104,7 @@ export async function ensureMembership(
   db: Db,
   accountId: string,
   orgId: string,
-  opts: { name: string; email: string; role?: string } = { name: "", email: "" },
+  opts: { name: string; email: string; role?: string; unitId?: string | null } = { name: "", email: "" },
 ): Promise<Row> {
   const existing = await db.one(`select * from org_membership where account_id = $1 and org_id = $2`, [accountId, orgId]);
   if (existing) return existing;
@@ -96,16 +119,24 @@ export async function ensureMembership(
     userId,
     opts.role === "owner" || opts.role === "admin" ? opts.role : "member",
   ]);
-  // Put them on a team so loadViewer works; T-33 will let owners pick teams on invite.
-  const unit = await db.one(
-    `select id from unit where org_id = $1 order by (how_to_ask = '{}'::jsonb), name limit 1`,
-    [orgId],
-  );
-  if (unit) {
+  // Prefer the invite's team; otherwise put them on the first real team so loadViewer works.
+  let unitId = opts.unitId ?? null;
+  if (unitId) {
+    const unit = await db.one(`select id from unit where id = $1 and org_id = $2`, [unitId, orgId]);
+    if (!unit) unitId = null;
+  }
+  if (!unitId) {
+    const unit = await db.one(
+      `select id from unit where org_id = $1 order by (how_to_ask = '{}'::jsonb), name limit 1`,
+      [orgId],
+    );
+    unitId = unit?.id ?? null;
+  }
+  if (unitId) {
     await db.query(`insert into member (id, org_id, unit_id, user_id, role) values ($1, $2, $3, $4, 'member')`, [
-      `m_${userId}_${unit.id}`,
+      `m_${userId}_${unitId}`,
       orgId,
-      unit.id,
+      unitId,
       userId,
     ]);
   }

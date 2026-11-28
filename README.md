@@ -13,7 +13,7 @@ Set **`EARLY_ACCESS_WEBHOOK_URL`** in Vercel before you send people to the site.
 
 ## Editing the launch site
 
-- **Built by band:** the sliding strip under the hero, in [`src/components/site/BuiltByBand.tsx`](src/components/site/BuiltByBand.tsx). The Toast logo is the official file from Toast's website, saved as [`public/logos/toast.svg`](public/logos/toast.svg). To add another company, add its logo there and its id to `COMPANIES`.
+- **Built by band:** the label-and-logos strip under the hero, in [`src/components/site/BuiltByBand.tsx`](src/components/site/BuiltByBand.tsx). "Built by people previously at" sits above a logos-only carousel. The Toast logo is the official file from Toast's website, saved as [`public/logos/toast.svg`](public/logos/toast.svg). To add another company, add its logo there and its id to `COMPANIES`.
 - **Logos:** tool marks come from Simple Icons ([`src/components/site/marks.ts`](src/components/site/marks.ts)). Slack and Microsoft Teams aren't in that set, so they're set as plain type. To use an official logo, save it as `public/logos/<id>.svg` (`slack`, `teams`) and it replaces the typeset version.
 - **Integration status:** [`src/components/site/Integrations.tsx`](src/components/site/Integrations.tsx). Only GitHub, Claude Code and Slack channel notifications are marked Available; move a tool to `live` when it really works.
 

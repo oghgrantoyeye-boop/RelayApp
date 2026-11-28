@@ -99,7 +99,7 @@ reviews Claude's. The base branch is the default branch, `claude/dazzling-archim
 | `GITHUB_WEBHOOK_SECRET` | Verifies GitHub webhook signatures. | Read today |
 | `SLACK_CLIENT_ID`, `SLACK_CLIENT_SECRET`, `SLACK_SIGNING_SECRET` | The Slack app (T-40 to T-43). | New |
 | `GITHUB_APP_ID`, `GITHUB_APP_PRIVATE_KEY`, `GITHUB_APP_WEBHOOK_SECRET` | The GitHub App (T-44). | New |
-| `AUTH_SECRET`, `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `MICROSOFT_CLIENT_ID`, `MICROSOFT_CLIENT_SECRET`, `EMAIL_SERVER` | Sign-in (T-31). | New |
+| `AUTH_SECRET`, `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `MICROSOFT_CLIENT_ID`, `MICROSOFT_CLIENT_SECRET`, `EMAIL_SERVER` | Sign-in (T-31). For Microsoft, also add optional ID-token claims `email` and `xms_edov` on the Entra app (Token configuration) so verified emails work after T-36. | New |
 | `BEACON_ADMIN_EMAILS` | Comma-separated emails that can sign in without approval and approve early-access leads (T-36). | New |
 | `ENCRYPTION_KEY` | Encrypts stored Slack and GitHub tokens (T-40, T-44). | New |
 
@@ -159,7 +159,7 @@ The model adapter supports Claude only. An OpenAI key would need a second provid
   `answerCluster` (the answerer's reply) and from team members' messages in `chat_message`.
   Acceptance: answering a routed question in the demo creates a learned or pending entry on the
   team page. Depends: T-11. S.
-- [~] **T-13 Learn from updates, meetings, PRs and Claude Code sessions.** (Claude) Mock: M2. Call
+- [x] **T-13 Learn from updates, meetings, PRs and Claude Code sessions.** (Claude) Mock: M2. Call
   `learnFrom` from `publishDraft`, `summarizeMeeting`, `ingestPullRequest` and
   `ingestCodingSession`. Acceptance: a merged PR touching a new repository adds a "Runs" entry
   tagged Seen in GitHub. Depends: T-11. M.
@@ -185,7 +185,7 @@ The model adapter supports Claude only. An OpenAI key would need a second provid
   stale sources; offline writer produces the same shape; render each claim with its tag, date and
   source link, and a "What I couldn't find" box, on the team page and in the agent panel.
   Acceptance: matches M3's first answer. Depends: T-18. M.
-- [ ] **T-20 Clarifying questions.** Mock: M3. Answer output can ask one follow-up with
+- [~] **T-20 Clarifying questions.** (Claude) Mock: M3. Answer output can ask one follow-up with
   suggested replies; `question.outcome` gains `clarify`; the reply continues the question. The
   general Beacon agent asks which team when two match. Acceptance: the M3 exchange works end to
   end in the demo. Depends: T-19. M.
@@ -194,14 +194,14 @@ The model adapter supports Claude only. An OpenAI key would need a second provid
 
 ## M4 and M5: routing, the team queue and request status
 
-- [ ] **T-22 Route to the team queue.** Mock: M3, M4. `chooseRoute()` sends a confident ownership
+- [~] **T-22 Route to the team queue.** (Claude) Mock: M3, M4. `chooseRoute()` sends a confident ownership
   match to the owner (and shows it in the team queue), anything else to the team queue, and says
   why (`request.destination`, `request.route_reason`). Acceptance: "merchant sign-on" goes to
   Platform's queue with the reason shown. M.
-- [ ] **T-23 Team queue page.** Mock: M4. For you and Team queue tabs, I'll take it
+- [~] **T-23 Team queue page.** (Claude) Mock: M4. For you and Team queue tabs, I'll take it
   (`request.claimed_by`), Pass to a teammate, answer once for everyone who asked, Ask them for more
   detail. Acceptance: matches M4; any Platform member can answer. Depends: T-22. M.
-- [ ] **T-24 Answers feed learning.** Mock: M4. Remove the Publish checkbox; after an answer,
+- [~] **T-24 Answers feed learning.** (Claude) Mock: M4. Remove the Publish checkbox; after an answer,
   show what Beacon learned and whether it needs confirming, as in M4. Depends: T-12, T-23. S.
 - [ ] **T-25 Request lifecycle.** Mock: M5. Statuses awaiting team, needs your input, answered,
   resolved, declined, unresolved; unresolved after 3 business days with Send to the lead or Ask
@@ -220,7 +220,7 @@ The model adapter supports Claude only. An OpenAI key would need a second provid
 - [x] **T-31 Sign-in.** Mock: M1. Google, Microsoft and email magic links (env vars above), a
   `session` table, membership in several workspaces, and the workspace chooser. The persona
   switcher stays only inside sample workspaces. Depends: T-30. M. (Cursor)
-- [~] **T-36 Gate account creation behind early access.** Do this next, before T-32 continues. (Cursor)
+- [x] **T-36 Gate account creation behind early access.** Do this next, before T-32 continues. (Cursor)
   Today `upsertAccount` (`src/lib/auth/accounts.ts`) creates an account for any email that signs in
   with Google, Microsoft or a magic link. Change it so a new account is created only when the email
   is approved: a `lead` row with `status = 'approved'` (add `status` pending/approved/declined,

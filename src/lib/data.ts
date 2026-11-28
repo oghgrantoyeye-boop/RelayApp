@@ -150,7 +150,8 @@ export const COMMITMENT_SELECT = `
   left join app_user oau on oau.id = om.user_id`;
 
 export interface AuditInput {
-  orgId: string;
+  /** Null for platform-level actions that aren't inside a workspace (e.g. early-access approval). */
+  orgId: string | null;
   actorId: string | null;
   onBehalfOfId?: string | null;
   action: string;
