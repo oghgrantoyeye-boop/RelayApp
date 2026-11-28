@@ -78,7 +78,7 @@ export async function conversation(db: Db, viewer: Viewer, target: ChatTarget, l
 
 /** The people's agents list for the chat view: yours first, then your teams' agents, then the rest. */
 export async function chatContacts(db: Db, viewer: Viewer) {
-  const agents = await listAgents(db);
+  const agents = await listAgents(db, viewer.orgId);
   const last = await db.query(`select target, max(created_at) as at from chat_message where user_id = $1 group by target`, [viewer.user.id]);
   const lastAt = new Map(last.map((r) => [r.target, new Date(r.at).toISOString()]));
   const mine = agents.filter((a) => viewer.reader.unitIds.includes(a.team.id));
@@ -96,11 +96,11 @@ async function save(db: Db, viewer: Viewer, m: Omit<ChatMsg, "id" | "at">) {
 }
 
 /** "@Legal prep what's flagged?" talks to that agent. Matches the start of an agent's name. */
-export async function resolveMention(db: Db, text: string): Promise<{ agent: AgentRow; rest: string } | null> {
+export async function resolveMention(db: Db, orgId: string, text: string): Promise<{ agent: AgentRow; rest: string } | null> {
   const m = text.match(/^@(.+)$/s);
   if (!m) return null;
   const body = m[1].toLowerCase();
-  const agents = await listAgents(db);
+  const agents = await listAgents(db, orgId);
   let best: { agent: AgentRow; len: number } | null = null;
   for (const a of agents) {
     for (const name of [a.name.toLowerCase(), a.name.toLowerCase().replace(/ agent$/, ""), a.team.name.toLowerCase()]) {
@@ -123,12 +123,12 @@ export async function sendChat(db: Db, viewer: Viewer, input: { target: ChatTarg
   let text = input.text.trim().slice(0, 2000);
   if (!text) throw new Error("Type a message first.");
   let target = input.target || "me";
-  const mention = await resolveMention(db, text);
+  const mention = await resolveMention(db, viewer.orgId, text);
   if (mention) {
     target = mention.agent.id;
     text = mention.rest || text;
   }
-  const agent = target === "me" ? null : await getAgent(db, target);
+  const agent = target === "me" ? null : await getAgent(db, target, viewer.orgId);
   if (target !== "me" && !agent) throw new Error("That agent doesn't exist.");
   const userMsgId = await save(db, viewer, { role: "user", target, agentLabel: null, text: input.text.trim().slice(0, 2000), refs: [], actions: [] });
   // A teammate talking to their own team's agent is the team describing itself. Someone from another

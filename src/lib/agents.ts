@@ -106,15 +106,15 @@ const AGENT_SELECT = `
   where a.kind = 'agent'`;
 
 /** Every agent in the organization. Names and jobs are public, like the directory. */
-export async function listAgents(db: Db): Promise<AgentRow[]> {
-  const rows = await db.query(`${AGENT_SELECT} order by u.name, (a.id = 'agent_' || m.unit_id) desc, p.created_at`);
+export async function listAgents(db: Db, orgId: string): Promise<AgentRow[]> {
+  const rows = await db.query(`${AGENT_SELECT} and u.org_id = $1 order by u.name, (a.id = 'agent_' || m.unit_id) desc, p.created_at`, [orgId]);
   const agents = rows.map(toAgent);
   // With work-performing agents off, worker teammates a team made earlier are hidden, not deleted.
   return workersEnabled() ? agents : agents.filter((a) => a.tier === "qa");
 }
 
-export async function getAgent(db: Db, id: string): Promise<AgentRow | null> {
-  const r = await db.one(`${AGENT_SELECT} and a.id = $1`, [id]);
+export async function getAgent(db: Db, id: string, orgId: string): Promise<AgentRow | null> {
+  const r = await db.one(`${AGENT_SELECT} and a.id = $1 and u.org_id = $2`, [id, orgId]);
   return r ? toAgent(r) : null;
 }
 

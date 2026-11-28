@@ -1,3 +1,4 @@
+import { DEFAULT_DEMO } from "@/lib/demos";
 // T-21: the asker rates the agent's answer. A thumbs down lowers confidence in the learned context
 // it used; changing a vote moves it back; only the asker can rate; every vote is audited.
 import { beforeEach, describe, expect, it } from "vitest";
@@ -63,7 +64,7 @@ describe("answer feedback", () => {
 
   it("chat answers carry the question so they can be rated, and show your vote", async () => {
     const priya = await v("priya");
-    const team = (await listAgents(db)).find((x) => x.builtIn && x.team.id === sid("platform"))!;
+    const team = (await listAgents(db, DEFAULT_DEMO)).find((x) => x.builtIn && x.team.id === sid("platform"))!;
     await sendChat(db, priya, { target: team.id, text: "How do I load-test a new endpoint?" });
     let msgs = await conversation(db, priya, team.id);
     const ans = msgs.find((m) => m.answer?.questionId);

@@ -49,7 +49,7 @@ for (const pack of DEMOS) {
 
     it("answers with sources when the team has published the answer", async () => {
       const a = await v(c.answer.as);
-      const team = (await listAgents(db)).find((x) => x.builtIn && x.team.id === sid(c.answer.team))!;
+      const team = (await listAgents(db, pack.id)).find((x) => x.builtIn && x.team.id === sid(c.answer.team))!;
       await sendChat(db, a, { target: team.id, text: c.answer.question });
       const [, reply] = await conversation(db, a, team.id);
       // The answer comes claim by claim, each with its tag and source (T-19).
@@ -70,7 +70,7 @@ for (const pack of DEMOS) {
       const t = pack.agentTemplate;
       const conns = pack.connectors.filter((x) => x[1] === t.team).map((x) => sid(x[0]));
       const id = await createAgent(db, owner, { unitId: sid(t.team), name: t.name, purpose: t.purpose, connectorIds: conns.slice(0, 2), actions: t.actions, approval: "outside_team", schedule: "weekly", budget: 40 });
-      const agents = await listAgents(db);
+      const agents = await listAgents(db, pack.id);
       const made = agents.find((a) => a.id === id)!;
       expect(made.team.id).toBe(sid(t.team));
       expect(made.connectorIds).toHaveLength(Math.min(2, conns.length));
@@ -94,7 +94,7 @@ for (const pack of DEMOS) {
       const t = pack.agentTemplate;
       const conns = pack.connectors.filter((x) => x[1] === t.team).map((x) => sid(x[0]));
       const id = await createAgent(db, owner, { unitId: sid(t.team), name: t.name, purpose: t.purpose, connectorIds: conns, actions: t.actions, approval: "outside_team", schedule: "on_request", budget: 50 });
-      expect((await listAgents(db)).find((a) => a.id === id)!.tier).toBe("worker");
+      expect((await listAgents(db, pack.id)).find((a) => a.id === id)!.tier).toBe("worker");
       await sendChat(db, owner, { target: id, text: t.firstJob });
       const [, reply] = await conversation(db, owner, id);
       const job = reply.actions[0];

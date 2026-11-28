@@ -6,7 +6,7 @@ import { Avatar, Pill, Topbar } from "@/components/ui";
 
 export default async function AgentsPage() {
   const { db, viewer } = await currentViewer();
-  const agents = await listAgents(db);
+  const agents = await listAgents(db, viewer.orgId);
   const teams = [...new Map(agents.map((a) => [a.team.id, a.team])).values()];
   const mineFirst = teams.sort((a, b) => Number(viewer.reader.unitIds.includes(b.id)) - Number(viewer.reader.unitIds.includes(a.id)));
 

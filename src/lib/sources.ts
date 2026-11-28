@@ -13,7 +13,7 @@ import { localId } from "./scoped";
 
 async function createDraft(db: Db, viewer: Viewer, source: "coding_agent" | "github", body: string, items: { kind: string; text: string }[], ref: string) {
   const unitId = viewer.team.id;
-  const teams = await teamInfos(db);
+  const teams = await teamInfos(db, viewer.orgId);
   const updateId = newId("up");
   await db.query(
     `insert into team_update (id, unit_id, author_id, period_start, body_md, source, status, created_at) values ($1, $2, $3, $4, $5, $6, 'draft', $7)`,
@@ -84,7 +84,11 @@ export async function ingestPullRequest(
   const pr = event.pull_request;
   if (event.action !== "closed" || !pr?.merged) return { skipped: "not a merged pull request" };
   const login = String(pr.user?.login ?? "");
-  const user = await db.one(`select id from app_user where github_login = $1`, [login]);
+  // With a known team, only match the author inside that team's workspace.
+  const orgOf = opts?.learnUnitId ? (await db.one(`select org_id from unit where id = $1`, [opts.learnUnitId]))?.org_id : null;
+  const user = orgOf
+    ? await db.one(`select id from app_user where github_login = $1 and org_id = $2`, [login, orgOf])
+    : await db.one(`select id from app_user where github_login = $1 order by id limit 1`, [login]);
   if (!user) return { skipped: `no Beacon user for GitHub login ${login}` };
   const viewer = await loadViewer(db, user.id);
   if (!viewer) return { skipped: "user has no team" };

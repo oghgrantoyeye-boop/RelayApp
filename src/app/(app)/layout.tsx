@@ -60,13 +60,13 @@ export default async function RootLayout({ children }: { children: React.ReactNo
             <a href="/" className="brand" title="Beacon home" style={{ color: "var(--ink)" }}>
               <BeaconMark size={22} />
               <span>beacon</span>
-              <span className="muted small" style={{ fontWeight: 400 }}>{demo.org.name} demo</span>
+              <span className="muted small" style={{ fontWeight: 400 }}>{isSample ? `${demo.org.name} demo` : demo.org.name}</span>
             </a>
             <form action="/directory" className="search" role="search">
               <Icon name="search" size={14} />
               <input type="search" name="q" placeholder="Search teams, people, what they own" aria-label="Search the directory" />
             </form>
-            <NavLink href="/guide"><Icon name="spark" />Demo guide</NavLink>
+            {isSample && <NavLink href="/guide"><Icon name="spark" />Demo guide</NavLink>}
             {workersEnabled() && <a href="/agents/new" className="b bp sm nv-new"><Icon name="agent" />New teammate</a>}
             <NavLink href="/messages"><Icon name="chat" />Ask Beacon</NavLink>
             <NavLink href="/questions"><Icon name="chat" />My questions</NavLink>
@@ -129,7 +129,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
                 This Vercel deploy has no <code>DATABASE_URL</code>. Data is in memory and resets when the server restarts. Attach a Neon or other Postgres URL in the Vercel project so preview and production keep their data.
               </div>
             )}
-            {Number.isInteger(guideStep) && <GuideBar demo={demo} step={guideStep} firstName={firstName} fullName={fullName} />}
+            {isSample && Number.isInteger(guideStep) && demo.guide[guideStep] && <GuideBar demo={demo} step={guideStep} firstName={firstName} fullName={fullName} />}
             {children}
           </main>
           <Suspense fallback={null}><Dock db={db} viewer={viewer} demo={demo} /></Suspense>

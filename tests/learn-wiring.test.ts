@@ -1,3 +1,4 @@
+import { DEFAULT_DEMO } from "@/lib/demos";
 // T-12: answering a routed question and a teammate talking to their own team's agent both teach
 // Beacon about the team. Someone from another team talking to that agent does not.
 import { beforeEach, describe, expect, it } from "vitest";
@@ -40,7 +41,7 @@ describe("learning from answers and agent chats", () => {
   });
 
   it("learns from a teammate's message to their own team's agent, not from an outsider's", async () => {
-    const agents = await listAgents(db);
+    const agents = await listAgents(db, DEFAULT_DEMO);
     const aisha = await v("aisha");
     const own = agents.find((a) => aisha.reader.unitIds.includes(a.team.id))!;
     expect(own).toBeTruthy();

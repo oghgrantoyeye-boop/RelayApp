@@ -22,13 +22,13 @@ export default async function AgentPage({ params, searchParams }: { params: Prom
   const { slug } = await params;
   const { msg, agent: agentParam } = await searchParams;
   const { db, viewer, demo } = await currentViewer();
-  const team = await db.one(`select * from unit where slug = $1 and how_to_ask <> '{}'::jsonb`, [slug]);
+  const team = await db.one(`select * from unit where slug = $1 and org_id = $2 and how_to_ask <> '{}'::jsonb`, [slug, viewer.orgId]);
   if (!team) notFound();
   const agent = await db.one(`select a.* from app_user a join member m on m.user_id = a.id where m.unit_id = $1 and a.kind = 'agent' and a.id = 'agent_' || $1`, [team.id]);
   if (!agent) notFound();
   // A teammate the team added, or the team's built-in agent.
-  const teamAgents = (await listAgents(db)).filter((a) => a.team.id === team.id);
-  const profile = (agentParam ? teamAgents.find((a) => a.id === agentParam) : null) ?? (await getAgent(db, agent.id))!;
+  const teamAgents = (await listAgents(db, viewer.orgId)).filter((a) => a.team.id === team.id);
+  const profile = (agentParam ? teamAgents.find((a) => a.id === agentParam) : null) ?? (await getAgent(db, agent.id, viewer.orgId))!;
   const custom = !profile.builtIn;
   const shown = custom ? (await db.one(`select * from app_user where id = $1`, [profile.id]))! : agent;
   const can = (a: string) => profile.actions.includes(a);

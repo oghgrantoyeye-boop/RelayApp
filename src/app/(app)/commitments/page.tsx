@@ -40,7 +40,7 @@ function Table({ rows, canClose, empty }: { rows: CommitmentView[]; canClose: bo
 export default async function CommitmentsPage({ searchParams }: { searchParams: Promise<{ msg?: string; team?: string }> }) {
   const { msg, team: teamSlug } = await searchParams;
   const { db, viewer } = await currentViewer();
-  const team = (teamSlug && (await db.one(`select * from unit where slug = $1`, [teamSlug]))) || viewer.team;
+  const team = (teamSlug && (await db.one(`select * from unit where slug = $1 and org_id = $2`, [teamSlug, viewer.orgId]))) || viewer.team;
   const { owedBy, owedTo } = await teamCommitments(db, viewer, team.id);
   const mine = viewer.reader.unitIds.includes(team.id);
   const drafts = (await commitmentViews(db, viewer.reader, (r) => r.status === "draft")).filter((c) => c.row.owner_user_id === viewer.user.id);

@@ -23,7 +23,8 @@ export async function listMeetings(db: Db, viewer: Viewer) {
   const policy = await loadPolicy(db, viewer.orgId);
   const rows = await db.query(
     `select m.*, u.name as unit_name, u.slug as unit_slug, u.color as unit_color, c.kind as source_kind
-     from meeting m join unit u on u.id = m.unit_id left join connector c on c.id = m.connector_id order by m.starts_at desc`,
+     from meeting m join unit u on u.id = m.unit_id left join connector c on c.id = m.connector_id where u.org_id = $1 order by m.starts_at desc`,
+    [viewer.orgId],
   );
   return rows.filter((m) => visibleLevel(policy, viewer.reader, refMeeting(m)).level === "full");
 }
@@ -151,7 +152,7 @@ export async function routeMeeting(db: Db, viewer: Viewer, id: string): Promise<
     const u = await db.one(`select status from team_update where id = $1`, [meeting.update_id]);
     if (u && u.status !== "discarded") return meeting.update_id;
   }
-  const teams = await teamInfos(db);
+  const teams = await teamInfos(db, viewer.orgId);
   const named = teams.filter((t) => t.id !== meeting.unit_id && overlap(tokens(meeting.transcript), tokens(t.name)) >= Math.min(2, tokens(t.name).length)).map((t) => t.id);
   const attendeeTeams = (await db.query(`select distinct m.unit_id from member m join unit u on u.id = m.unit_id where m.user_id = any($1) and u.how_to_ask <> '{}'::jsonb`, [meeting.attendee_ids]))
     .map((r) => r.unit_id)
