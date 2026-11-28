@@ -235,8 +235,8 @@ The model adapter supports Claude only. An OpenAI key would need a second provid
   existing account still signs in, a non-admin gets a 404 on the admin page. Depends: T-31. S. (Cursor)
 - [x] **T-32 Sample workspaces side by side.** Mock: M1. Each demo pack seeds its own workspace;
   Reset resets only that one; no more truncating every table. Depends: T-30. M. (Cursor)
-- [~] **T-33 Create a workspace and invite people.** Mock: M1, M6. Create, invite by email, create
-  teams and leads. Depends: T-31. M.
+- [x] **T-33 Create a workspace and invite people.** Mock: M1, M6. Create, invite by email, create
+  teams and leads. Depends: T-31. M. (Cursor)
 - [ ] **T-35 AI spend cap per workspace.** Mock: M6. Record each model call's tokens in an `ai_usage` table with `org_id`, show this month's spend in workspace settings, and fall back to the offline writer with a clear note when a workspace's monthly cap (`org.settings.ai_monthly_usd`) is reached. Depends: T-30, T-03. S. (Claude)
 - [ ] **T-34 Workspace settings.** Mock: M6. Sources, Slack channels Beacon learns from (with
   exclusion), what needs a teammate's OK (the trust rules, stored in `org.settings`), people.

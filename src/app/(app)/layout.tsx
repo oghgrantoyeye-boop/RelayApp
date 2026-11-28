@@ -77,6 +77,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
             </NavLink>
             <NavLink href="/audit"><Icon name="audit" />Audit log</NavLink>
             <NavLink href="/connect"><Icon name="connect" />Integrations</NavLink>
+            {!isSample && <NavLink href="/workspace/people"><Icon name="directory" />People</NavLink>}
             {workersEnabled() && (
               <>
                 <div className="section">Deferred</div>
