@@ -660,4 +660,14 @@ alter table request add column destination text not null default 'owner' check (
 alter table request add column route_reason text;
 `,
   },
+  {
+    id: "013_T-23_team_queue",
+    sql: `
+-- The team queue (T-23): a teammate picks a question up, passes it on, or asks the askers for more.
+alter table request add column claimed_by text references app_user(id);
+alter table request add column claimed_at timestamptz;
+alter table request add column detail_question text;
+alter table request add column detail_asked_at timestamptz;
+`,
+  },
 ];

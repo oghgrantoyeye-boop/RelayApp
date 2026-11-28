@@ -62,12 +62,12 @@ describe("routing to the owner or the team queue", () => {
     expect(req.route_reason).toMatch(/^No one on Platform clearly owns this/);
 
     for (const who of ["ken", "zoe", "marcus"]) {
-      const asks = await getAsks(db, await v(who));
+      const asks = await getAsks(db, await v(who), "team");
       const c = asks.clusters.find((x) => x.requests.some((r) => r.id === req.id));
       expect(c?.destination).toBe("team_queue");
       expect(c?.reason).toBe(req.route_reason);
     }
-    const outside = await getAsks(db, await v("grace"));
+    const outside = await getAsks(db, await v("grace"), "team");
     expect(outside.clusters.some((x) => x.requests.some((r) => r.id === req.id))).toBe(false);
 
     // Anyone on the team can answer it once for everyone.
