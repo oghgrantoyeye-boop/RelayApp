@@ -8,13 +8,15 @@ import { FakeLLM, setLLM } from "@/lib/ai/llm";
 import { loadViewer, type Viewer } from "@/lib/data";
 import { PermissionError } from "@/lib/permissions";
 import { learnFrom } from "@/lib/context-learn";
+import { sid } from "./helpers";
 import { confirmEntry, editEntry, restoreEntry, retireEntry, teamContext } from "@/lib/context";
 
 describe("what Beacon knows about a team", () => {
   let db: Db;
-  const v = async (id: string): Promise<Viewer> => (await loadViewer(db, id))!;
-  const entry = async (kind: string) => (await db.one(`select * from context_entry where unit_id = 'platform' and kind = $1`, [kind]))!;
-  const pr = { unitId: "platform", kind: "pr" as const, ref: "platform/deploy#120", label: "PR #120 in platform/deploy", repo: "platform/deploy", text: "Cache build layers." };
+  const v = async (id: string): Promise<Viewer> => (await loadViewer(db, sid(id), "software"))!;
+  const PLATFORM = sid("platform");
+  const entry = async (kind: string) => (await db.one(`select * from context_entry where unit_id = $2 and kind = $1`, [kind, PLATFORM]))!;
+  const pr = { unitId: PLATFORM, kind: "pr" as const, ref: "platform/deploy#120", label: "PR #120 in platform/deploy", repo: "platform/deploy", text: "Cache build layers." };
 
   beforeEach(async () => {
     setNow("2026-12-06T09:00:00Z");
@@ -23,11 +25,11 @@ describe("what Beacon knows about a team", () => {
     await migrate(db);
     await seed(db, "software");
     await learnFrom(db, pr);
-    await learnFrom(db, { unitId: "platform", kind: "answer", ref: "rq_1", label: "Lena's answer", question: "How do I load-test a new endpoint?", text: "Use the k6 harness. We own the staging cluster." });
+    await learnFrom(db, { unitId: PLATFORM, kind: "answer", ref: "rq_1", label: "Lena's answer", question: "How do I load-test a new endpoint?", text: "Use the k6 harness. We own the staging cluster." });
   });
 
   it("members see every active entry with its sources; others see the claim without sources, and nothing pending", async () => {
-    const mine = await teamContext(db, await v("aisha"), "platform");
+    const mine = await teamContext(db, await v("aisha"), PLATFORM);
     expect(mine.isMember).toBe(true);
     const runs = mine.active.find((e) => e.kind === "system")!;
     expect(runs.tag).toBe("seen");
@@ -35,7 +37,7 @@ describe("what Beacon knows about a team", () => {
     expect(runs.sources).toHaveLength(1);
     expect(mine.active.some((e) => e.kind === "responsibility")).toBe(false); // pending: a question, not an entry
 
-    const theirs = await teamContext(db, await v("priya"), "platform");
+    const theirs = await teamContext(db, await v("priya"), PLATFORM);
     expect(theirs.isMember).toBe(false);
     const seen = theirs.active.find((e) => e.kind === "system")!;
     expect(seen.sources).toBeUndefined();
@@ -64,7 +66,7 @@ describe("what Beacon knows about a team", () => {
     const after = await entry("system");
     expect(after.provenance).toBe("team_edited");
     expect(after.body).toBe("The deploy pipeline for every service.");
-    const view = (await teamContext(db, aisha, "platform")).active.find((e) => e.id === sys.id)!;
+    const view = (await teamContext(db, aisha, PLATFORM)).active.find((e) => e.id === sys.id)!;
     expect(view.tag).toBe("confirmed");
     expect(view.origin).toMatch(/^Fixed by Aisha/);
 
@@ -76,8 +78,8 @@ describe("what Beacon knows about a team", () => {
     const aisha = await v("aisha");
     const sys = await entry("system");
     await retireEntry(db, aisha, sys.id);
-    expect((await teamContext(db, await v("priya"), "platform")).active.some((e) => e.id === sys.id)).toBe(false);
-    const mine = await teamContext(db, aisha, "platform");
+    expect((await teamContext(db, await v("priya"), PLATFORM)).active.some((e) => e.id === sys.id)).toBe(false);
+    const mine = await teamContext(db, aisha, PLATFORM);
     expect(mine.active.some((e) => e.id === sys.id)).toBe(false);
     expect(mine.removed.map((e) => e.id)).toEqual([sys.id]);
 
@@ -85,6 +87,6 @@ describe("what Beacon knows about a team", () => {
     expect((await entry("system")).status).toBe("retired");
 
     await restoreEntry(db, aisha, sys.id);
-    expect((await teamContext(db, await v("priya"), "platform")).active.some((e) => e.id === sys.id)).toBe(true);
+    expect((await teamContext(db, await v("priya"), PLATFORM)).active.some((e) => e.id === sys.id)).toBe(true);
   });
 });
