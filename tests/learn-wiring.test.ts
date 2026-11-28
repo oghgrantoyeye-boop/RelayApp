@@ -9,10 +9,11 @@ import { loadViewer, type Viewer } from "@/lib/data";
 import { answerCluster } from "@/lib/agent";
 import { sendChat } from "@/lib/assistant";
 import { listAgents } from "@/lib/agents";
+import { sid } from "./helpers";
 
 describe("learning from answers and agent chats", () => {
   let db: Db;
-  const v = async (id: string): Promise<Viewer> => (await loadViewer(db, id))!;
+  const v = async (id: string): Promise<Viewer> => (await loadViewer(db, sid(id), "software"))!;
 
   beforeEach(async () => {
     setNow("2026-12-06T09:00:00Z");
@@ -24,7 +25,9 @@ describe("learning from answers and agent chats", () => {
 
   it("an answer to a routed question becomes context for the answering team, with the answer as its source", async () => {
     const req = (await db.one(`select * from request where cluster_key = 'ck_limits_date' limit 1`))!;
-    await answerCluster(db, await v("aisha"), "ck_limits_date", { answer: "We own the rate limiter. The leak fix merged and we'll land the change by Dec 9." });
+    await answerCluster(db, await v("aisha"), "ck_limits_date", {
+      answer: "We own the rate limiter. The leak fix merged and we'll land the change by Dec 9.",
+    });
     const rows = await db.query(`select * from context_entry where unit_id = $1`, [req.to_unit_id]);
     const knows = rows.find((e) => e.kind === "knows");
     expect(knows?.status).toBe("active");
@@ -43,9 +46,14 @@ describe("learning from answers and agent chats", () => {
 
     const outsider = (await db.one(
       `select u.id from app_user u join member m on m.user_id = u.id where u.kind = 'human' and m.unit_id <> $1
-       and not exists (select 1 from member m2 where m2.user_id = u.id and m2.unit_id = $1) limit 1`, [own.team.id]))!;
+       and not exists (select 1 from member m2 where m2.user_id = u.id and m2.unit_id = $1) limit 1`,
+      [own.team.id],
+    ))!;
     const before = mine.length;
-    await sendChat(db, await v(outsider.id), { target: own.id, text: "Book a review in #random-place." });
+    await sendChat(db, (await loadViewer(db, outsider.id, "software"))!, {
+      target: own.id,
+      text: "Book a review in #random-place.",
+    });
     const after = await db.query(`select * from context_signal where unit_id = $1 and source_kind = 'agent_chat'`, [own.team.id]);
     expect(after).toHaveLength(before);
   });
