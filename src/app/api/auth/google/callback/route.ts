@@ -13,6 +13,8 @@ export async function GET(req: Request) {
     const profile = await exchangeGoogleCode(code);
     const db = await getDb();
     const account = await upsertAccount(db, { email: profile.email, name: profile.name, googleSub: profile.sub });
+    const { acceptPendingInvites } = await import("@/lib/auth/workspace-setup");
+    await acceptPendingInvites(db, account);
     const { token, expiresAt } = await createSession(db, account.id);
     const jar = await cookies();
     jar.set(SESSION_COOKIE, token, { path: "/", httpOnly: true, sameSite: "lax", expires: expiresAt });
