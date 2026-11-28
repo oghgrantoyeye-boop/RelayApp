@@ -22,6 +22,40 @@ The why behind each task is in [`roadmap.md`](roadmap.md), and the product spec 
   append-only.
 - When a task is done, tick it here in the same pull request.
 
+## Two lanes: Claude and Cursor
+
+Two agents build at the same time. Each lane owns a set of files, so their pull requests rarely
+touch the same lines.
+
+| Lane | Tasks | Mainly touches |
+| --- | --- | --- |
+| **Claude** | T-01, T-02, T-03, T-10 to T-27, T-50 to T-53 | `src/lib/agent.ts`, `src/lib/assistant.ts`, `src/lib/ai/*`, `src/lib/context-*.ts`, `src/lib/feed.ts`, `src/lib/commitments.ts`, `src/lib/demos/*`, team, asks, feed and guide pages, the marketing site |
+| **Cursor** | T-04, T-30 to T-34, T-40 to T-47 | `src/lib/session.ts`, `src/lib/data.ts` (viewer and `org_id`), `src/lib/db.ts`, `src/lib/seed.ts`, new `src/lib/auth/*`, `src/lib/slack/*`, `src/lib/github/*`, `src/app/api/slack/*`, `src/app/api/github/*`, sign-in and settings pages |
+
+Shared files and how to handle them:
+
+- **`src/lib/migrations.ts`:** append one entry per pull request, id `NNN_task-id_short_name`
+  (for example `007_T-40_slack_install`). If a rebase shows both lanes added one, keep both and put
+  yours last, renumbering yours.
+- **`src/app/actions.ts` and `src/app/(app)/layout.tsx`:** add, don't reorganize. New server
+  actions for a lane go in a new file (`src/app/actions/slack.ts`, `src/app/actions/context.ts`).
+- **New tables** in either lane include `org_id` from the start, so T-30 doesn't have to backfill
+  them.
+- **Cross-lane dependencies:** T-41 needs T-11, T-42 needs T-23, T-43 needs T-19. Until those
+  land, build against the function names in this file (`learnFrom`, `chooseRoute`) behind a stub,
+  or pick another task.
+
+## Claiming a task
+
+1. Set the task's line below to `[~]` with your lane and branch, for example
+   `- [~] **T-40 ...** (Cursor, cursor/T-40-slack-install)`, and push that change first, alone,
+   to the base branch (or in your pull request if you open it right away).
+2. One task, one branch, one pull request. Branch names: `claude/T-NN-short-name` or
+   `cursor/T-NN-short-name`. Base branch: `claude/dazzling-archimedes-x7233q` (the repo default).
+3. Before merging, rebase on the latest base and run `npm run typecheck`, `npm test` and `npm run build`. Merge only
+   when checks are green.
+4. When it merges, change `[~]` to `[x]` in the same pull request.
+
 ## The goal screens
 
 | Mock | Screen | What it shows |
@@ -54,7 +88,7 @@ The model adapter supports Claude only. An OpenAI key would need a second provid
 
 ## Foundation
 
-- [ ] **T-01 Feature flag for deferred features.** Mock: all. Add `BEACON_WORKERS` (default off)
+- [~] **T-01 Feature flag for deferred features.** (Claude, claude/T-01-feature-flag) Mock: all. Add `BEACON_WORKERS` (default off)
   in `src/lib/flags.ts`. Off hides New teammate, the agent gallery, worker tiers, the task
   workspace, the digest and the map, and returns 404 from their routes; the agent panel says it
   can't do work yet and offers to ask the team instead. Acceptance: with the flag off, no page or
