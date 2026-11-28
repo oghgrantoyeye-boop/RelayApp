@@ -51,8 +51,17 @@ export async function createWorkspace(
       JSON.stringify({ default_level: "headline" }),
     ]);
     await t.query(
-      `insert into unit (id, org_id, slug, name, description, color) values ($1, $2, $3, $4, $5, $6)`,
-      [unitId, orgId, slugify(teamName) || "general", teamName, "Your first team", "#0f766e"],
+      `insert into unit (id, org_id, slug, name, description, color, how_to_ask) values ($1, $2, $3, $4, $5, $6, $7)`,
+      [
+        unitId,
+        orgId,
+        slugify(teamName) || "general",
+        teamName,
+        "Your first team",
+        "#0f766e",
+        // Non-empty how_to_ask marks a real team (not an org-chart group) so agents and asks work.
+        JSON.stringify({ turnaround: "2 business days" }),
+      ],
     );
     await t.query(
       `insert into app_user (id, org_id, kind, name, title, email) values ($1, $2, 'human', $3, 'Owner', $4)`,
@@ -163,21 +172,8 @@ async function acceptInviteForAccount(db: Db, account: Row, inviteId: string) {
     name: account.name,
     email: account.email,
     role: inv.role,
+    unitId: inv.unit_id,
   });
-  if (inv.unit_id) {
-    const already = await db.one(
-      `select id from member where user_id = $1 and unit_id = $2`,
-      [membership.user_id, inv.unit_id],
-    );
-    if (!already) {
-      await db.query(`insert into member (id, org_id, unit_id, user_id, role) values ($1, $2, $3, $4, 'member')`, [
-        `m_${membership.user_id}_${inv.unit_id}`,
-        inv.org_id,
-        inv.unit_id,
-        membership.user_id,
-      ]);
-    }
-  }
   await db.query(`update workspace_invite set status = 'accepted', accepted_at = $2 where id = $1`, [
     inviteId,
     now().toISOString(),
@@ -214,8 +210,16 @@ export async function createTeam(
   const unitId = newId("u");
   const agentId = `agent_${unitId}`;
   await db.query(
-    `insert into unit (id, org_id, slug, name, description, color) values ($1, $2, $3, $4, $5, $6)`,
-    [unitId, orgId, slug, name, (input.description ?? "").slice(0, 400), input.color || "#71717a"],
+    `insert into unit (id, org_id, slug, name, description, color, how_to_ask) values ($1, $2, $3, $4, $5, $6, $7)`,
+    [
+      unitId,
+      orgId,
+      slug,
+      name,
+      (input.description ?? "").slice(0, 400),
+      input.color || "#71717a",
+      JSON.stringify({ turnaround: "2 business days" }),
+    ],
   );
   await db.query(
     `insert into app_user (id, org_id, kind, name, title, ask_cadence) values ($1, $2, 'agent', $3, $4, 'immediate')`,

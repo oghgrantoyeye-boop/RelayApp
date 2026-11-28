@@ -7,7 +7,11 @@ import { upsertAccount, createSession, accountFromSession, ensureMembership, mem
 import { requestMagicLink, consumeMagicLink } from "@/lib/auth/magic";
 import { listWorkspaceChoices } from "@/lib/auth/workspaces";
 import { makeOAuthState, readOAuthState } from "@/lib/auth/oauth";
-import { loadViewer } from "@/lib/data";
+import { loadViewer, newId } from "@/lib/data";
+
+async function approve(db: Db, email: string) {
+  await db.query(`insert into lead (id, email, status, source) values ($1, $2, 'approved', 'test')`, [newId("ld"), email]);
+}
 
 describe("sign-in", () => {
   let db: Db;
@@ -18,12 +22,14 @@ describe("sign-in", () => {
     delete process.env.EMAIL_SERVER;
     delete process.env.GOOGLE_CLIENT_ID;
     delete process.env.GOOGLE_CLIENT_SECRET;
+    delete process.env.BEACON_ADMIN_EMAILS;
     db = await openDb({});
     await migrate(db);
     await seed(db, "software");
   });
 
   it("creates an account and session from a magic link", async () => {
+    await approve(db, "ava@example.com");
     const { devLink } = await requestMagicLink(db, "ava@example.com");
     expect(devLink).toContain("/api/auth/magic/verify?token=");
     const token = new URL(devLink!).searchParams.get("token")!;
@@ -35,6 +41,7 @@ describe("sign-in", () => {
   });
 
   it("lets one account join several workspaces without mixing people", async () => {
+    await approve(db, "lead@example.com");
     const account = await upsertAccount(db, { email: "lead@example.com", name: "Lead" });
     // Second workspace with its own Platform team id.
     await db.query(`insert into org (id, name, settings) values ('acme', 'Acme', '{}')`);
@@ -62,6 +69,7 @@ describe("sign-in", () => {
     expect(anonymous.mine).toEqual([]);
     expect(anonymous.samples.some((s) => s.id === "software")).toBe(true);
 
+    await approve(db, "owner@acme.test");
     const account = await upsertAccount(db, { email: "owner@acme.test", name: "Owner" });
     await db.query(`insert into org (id, name, settings) values ('acme', 'Acme Corp', '{}')`);
     await ensureMembership(db, account.id, "acme", { name: "Owner", email: "owner@acme.test", role: "owner" });
@@ -77,6 +85,7 @@ describe("sign-in", () => {
   });
 
   it("reuses an account when the same Google sub signs in again", async () => {
+    await approve(db, "a@x.com");
     const a = await upsertAccount(db, { email: "a@x.com", name: "A", googleSub: "g-1" });
     const { token } = await createSession(db, a.id);
     expect((await accountFromSession(db, token))?.id).toBe(a.id);

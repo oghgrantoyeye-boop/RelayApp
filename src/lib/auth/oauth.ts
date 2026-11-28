@@ -38,7 +38,16 @@ export function googleAuthUrl(state: string): string {
   return u.toString();
 }
 
-export async function exchangeGoogleCode(code: string): Promise<{ email: string; name: string; sub: string }> {
+export type OAuthProfile = { email: string; name: string; sub: string; emailVerified: boolean };
+
+/** Decode a JWT payload without verifying the signature (token just came from the IdP token endpoint). */
+export function decodeJwtPayload(jwt: string): Record<string, unknown> {
+  const parts = jwt.split(".");
+  if (parts.length < 2) throw new Error("Invalid JWT");
+  return JSON.parse(Buffer.from(parts[1], "base64url").toString("utf8")) as Record<string, unknown>;
+}
+
+export async function exchangeGoogleCode(code: string): Promise<OAuthProfile> {
   const body = new URLSearchParams({
     code,
     client_id: process.env.GOOGLE_CLIENT_ID!,
@@ -54,7 +63,8 @@ export async function exchangeGoogleCode(code: string): Promise<{ email: string;
   if (!meRes.ok) throw new Error("Google profile fetch failed");
   const me = (await meRes.json()) as { email?: string; name?: string; sub?: string; email_verified?: boolean };
   if (!me.email || !me.sub) throw new Error("Google profile incomplete");
-  return { email: me.email, name: me.name || me.email, sub: me.sub };
+  // Only treat the address as verified when Google says so — otherwise it must not unlock admin or account linking.
+  return { email: me.email, name: me.name || me.email, sub: me.sub, emailVerified: me.email_verified === true };
 }
 
 export function microsoftAuthUrl(state: string): string {
@@ -69,7 +79,7 @@ export function microsoftAuthUrl(state: string): string {
   return u.toString();
 }
 
-export async function exchangeMicrosoftCode(code: string): Promise<{ email: string; name: string; sub: string }> {
+export async function exchangeMicrosoftCode(code: string): Promise<OAuthProfile> {
   const body = new URLSearchParams({
     code,
     client_id: process.env.MICROSOFT_CLIENT_ID!,
@@ -88,7 +98,17 @@ export async function exchangeMicrosoftCode(code: string): Promise<{ email: stri
   const meRes = await fetch("https://graph.microsoft.com/v1.0/me", { headers: { authorization: `Bearer ${token.access_token}` } });
   if (!meRes.ok) throw new Error("Microsoft profile fetch failed");
   const me = (await meRes.json()) as { id?: string; displayName?: string; mail?: string; userPrincipalName?: string };
-  const email = (me.mail || me.userPrincipalName || "").toLowerCase();
+  // Prefer the ID-token email when present; Graph `mail` can be set to any address by a tenant admin.
+  let email = (me.mail || me.userPrincipalName || "").toLowerCase();
+  let emailVerified = false;
+  if (token.id_token) {
+    const claims = decodeJwtPayload(token.id_token);
+    const claimEmail = typeof claims.email === "string" ? claims.email.toLowerCase() : "";
+    if (claimEmail) email = claimEmail;
+    // xms_edov is Microsoft's "email domain owner verified" claim (boolean or "1"/"true").
+    const edov = claims.xms_edov;
+    emailVerified = edov === true || edov === "1" || edov === "true";
+  }
   if (!email || !me.id) throw new Error("Microsoft profile incomplete");
-  return { email, name: me.displayName || email, sub: me.id };
+  return { email, name: me.displayName || email, sub: me.id, emailVerified };
 }
