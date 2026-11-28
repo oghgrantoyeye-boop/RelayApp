@@ -14,6 +14,7 @@ import { askAgent, sendRequest, toggleFollow } from "@/app/actions";
 import { teamConnectors, CONNECTOR_LABEL } from "@/lib/integrations";
 import { teamContext } from "@/lib/context";
 import { TeamContext } from "@/components/TeamContext";
+import { AnswerClaims } from "@/components/AnswerClaims";
 
 export default async function TeamPage({ params, searchParams }: { params: Promise<{ slug: string }>; searchParams: Promise<{ msg?: string; q?: string; ask?: string }> }) {
   const { slug } = await params;
@@ -94,7 +95,14 @@ export default async function TeamPage({ params, searchParams }: { params: Promi
                   <div style={{ marginTop: 12, padding: "10px 12px", background: "var(--soft)", borderRadius: 8 }}>
                     <div className="small muted">You asked</div>
                     <div style={{ fontWeight: 500 }}>{asked.question.text}</div>
-                    <div className="ai-body" style={{ marginTop: 8 }}>{asked.question.answer_text}</div>
+                    {asked.question.outcome === "answered" && asked.claims.length > 0 ? (
+                      <AnswerClaims claims={asked.claims} gaps={asked.gaps} />
+                    ) : (
+                      <>
+                        <div className="ai-body" style={{ marginTop: 8 }}>{asked.question.answer_text}</div>
+                        {asked.gaps.length > 0 && <AnswerClaims claims={[]} gaps={asked.gaps} />}
+                      </>
+                    )}
                     <div className="row small muted" style={{ marginTop: 8 }}>
                       {asked.question.outcome === "answered" ? <Pill tone="green">Answered by the agent</Pill> : <Pill tone="violet">Routed to a person</Pill>}
                       {asked.sources.length > 0 && <span>Sources:</span>}

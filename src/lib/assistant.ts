@@ -6,7 +6,7 @@
 import type { Db, Row } from "./db";
 import { fmt, now } from "./clock";
 import { audit, newId, type Viewer } from "./data";
-import { askTeam, getQuestion } from "./agent";
+import { askTeam, getQuestion, type ClaimView } from "./agent";
 import { search } from "./directory";
 import { getFeed } from "./feed";
 import { commitmentViews } from "./commitments";
@@ -37,13 +37,15 @@ export interface ChatMsg {
   text: string;
   refs: ChatRef[];
   actions: ChatAction[];
+  /** A team agent's answer, claim by claim (T-19). */
+  answer?: { claims: ClaimView[]; gaps: string[] };
   at: string;
 }
 
 const MY_AGENT = "Your Beacon agent";
 
 function toMsg(r: Row): ChatMsg {
-  return { id: r.id, role: r.role, target: r.target, agentLabel: r.agent_label, text: r.text, refs: r.refs ?? [], actions: r.actions ?? [], at: new Date(r.created_at).toISOString() };
+  return { id: r.id, role: r.role, target: r.target, agentLabel: r.agent_label, text: r.text, refs: r.refs ?? [], actions: r.actions ?? [], answer: r.answer ?? undefined, at: new Date(r.created_at).toISOString() };
 }
 
 export async function conversation(db: Db, viewer: Viewer, target: ChatTarget, limit = 40): Promise<ChatMsg[]> {
@@ -64,8 +66,8 @@ export async function chatContacts(db: Db, viewer: Viewer) {
 async function save(db: Db, viewer: Viewer, m: Omit<ChatMsg, "id" | "at">) {
   const id = newId("ch");
   await db.query(
-    `insert into chat_message (id, org_id, user_id, role, target, agent_label, text, refs, actions, created_at) values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
-    [id, viewer.orgId, viewer.user.id, m.role, m.target, m.agentLabel, m.text, JSON.stringify(m.refs), JSON.stringify(m.actions), new Date(now().getTime() + (m.role === "agent" ? 1 : 0))],
+    `insert into chat_message (id, org_id, user_id, role, target, agent_label, text, refs, actions, answer, created_at) values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`,
+    [id, viewer.orgId, viewer.user.id, m.role, m.target, m.agentLabel, m.text, JSON.stringify(m.refs), JSON.stringify(m.actions), m.answer ? JSON.stringify(m.answer) : null, new Date(now().getTime() + (m.role === "agent" ? 1 : 0))],
   );
   return id;
 }
@@ -114,7 +116,7 @@ export async function sendChat(db: Db, viewer: Viewer, input: { target: ChatTarg
   return save(db, viewer, { role: "agent", target, agentLabel: agent ? agent.name : MY_AGENT, ...reply });
 }
 
-type Reply = { text: string; refs: ChatRef[]; actions: ChatAction[] };
+type Reply = { text: string; refs: ChatRef[]; actions: ChatAction[]; answer?: ChatMsg["answer"] };
 const action = (kind: ChatAction["kind"], label: string, detail: string, args: Record<string, string>): ChatAction => ({ id: newId("act"), kind, label, detail, args, status: "proposed" });
 
 async function replyTo(db: Db, viewer: Viewer, agent: AgentRow | null, text: string): Promise<Reply> {
@@ -201,7 +203,10 @@ async function replyTo(db: Db, viewer: Viewer, agent: AgentRow | null, text: str
   const unit = (await db.one(`select name, slug from unit where id = $1`, [teamId]))!;
   if (!q) return { text: `${via}The answer draws on something you aren't cleared to see, so I can't share it.`, refs: [], actions: [] };
   const refs: ChatRef[] = q.sources.map((s) => ({ label: `${unit.name}: ${s.label}`, href: `/teams/${unit.slug}`, detail: s.text }));
-  if (q.question.outcome === "answered") return { text: `${via}${q.question.answer_text}`, refs, actions: [] };
+  if (q.question.outcome === "answered") {
+    if (q.claims.length > 0) return { text: `${via}Here's what ${unit.name} has shared that answers this.`, refs, actions: [], answer: { claims: q.claims, gaps: q.gaps } };
+    return { text: `${via}${q.question.answer_text}`, refs, actions: [] };
+  }
   const req = await db.one(
     `select r.id, r.urgency, a.name as assignee from request r join member m on m.id = r.assignee_member_id join app_user a on a.id = m.user_id where r.id = $1`,
     [q.question.request_id],
@@ -209,7 +214,7 @@ async function replyTo(db: Db, viewer: Viewer, agent: AgentRow | null, text: str
   const actions = req && req.urgency !== "blocking"
     ? [action("nudge", `Ask ${String(req.assignee).split(" ")[0]} to look sooner`, `Marks your question blocking and notifies ${req.assignee} now instead of in their next batch.`, { requestId: req.id })]
     : [];
-  return { text: `${via}${q.question.answer_text}`, refs: [...refs, { label: "Your asks", href: "/asks" }], actions };
+  return { text: `${via}${q.question.answer_text}`, refs: [...refs, { label: "Your asks", href: "/asks" }], actions, answer: q.gaps.length ? { claims: [], gaps: q.gaps } : undefined };
 }
 
 async function attention(db: Db, viewer: Viewer): Promise<Reply> {
