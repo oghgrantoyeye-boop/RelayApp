@@ -18,12 +18,13 @@ function OpenAs({ as, href, label, primary, step }: { as: string; href: string; 
 
 export default async function GuidePage({ searchParams }: { searchParams: Promise<{ msg?: string }> }) {
   const { msg } = await searchParams;
-  const { db, viewer, demo } = await currentViewer();
+  const { db, viewer, demo, orgId } = await currentViewer();
+  const { scoped } = await import("@/lib/scoped");
   const people = new Map<string, { name: string; first: string; title: string; team: string }>();
   const ids = [...demo.intro.cast.map((c) => c.as), ...demo.guide.flatMap((s) => [s.as, s.compare ?? s.as]), ...demo.explore.map((s) => s.as)];
   for (const id of ids) {
     if (people.has(id)) continue;
-    const v = await loadViewer(db, id);
+    const v = (await loadViewer(db, id, orgId)) || (await loadViewer(db, scoped(orgId, id), orgId));
     if (v) people.set(id, { name: v.user.name, first: v.user.name.split(" ")[0], title: v.user.title, team: v.team.name });
   }
   const first = (id: string) => people.get(id)?.first ?? id;
