@@ -114,7 +114,7 @@ export async function sendRequest(form: FormData) {
       blocking: form.get("blocking") === "on",
     });
     const when = r.immediate ? "They've been notified now." : "It's in their next batch of asks.";
-    return withMsg(`/teams/${slug}`, `Sent to ${r.assignee}${r.ownership ? ` (owns ${r.ownership})` : ""}. ${when}`);
+    return withMsg(`/teams/${slug}`, r.destination === "team_queue" ? r.reason : `Sent to ${r.assignee}${r.ownership ? ` (owns ${r.ownership})` : ""}. ${when}`);
   });
 }
 

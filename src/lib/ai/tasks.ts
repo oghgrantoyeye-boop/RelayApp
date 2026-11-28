@@ -305,15 +305,32 @@ export interface OwnershipInfo {
   keywords: string[];
 }
 
+/** How well a question matches each ownership item, best first. Keywords count double. */
+export function scoreOwnership(question: string, ownership: OwnershipInfo[]): { id: string; score: number }[] {
+  const q = off.tokens(question);
+  const text = question.toLowerCase();
+  // A keyword counts only as a whole word or phrase: "sign-in" mustn't match "sign-on".
+  const has = (k: string) => new RegExp(`(^|[^a-z0-9])${k.toLowerCase().replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}s?([^a-z0-9]|$)`).test(text);
+  return ownership
+    .map((o) => ({ id: o.id, score: 2 * o.keywords.filter(has).length + off.overlap(q, off.tokens(`${o.title} ${o.description}`)) }))
+    .filter((x) => x.score > 0)
+    .sort((a, b) => b.score - a.score);
+}
+
 /** Which ownership item a question is about, so it reaches the right person. */
 export function routeQuestion(question: string, ownership: OwnershipInfo[]): string | null {
-  const q = off.tokens(question);
-  let best: { id: string; score: number } | null = null;
-  for (const o of ownership) {
-    const score = 2 * off.overlap(q, o.keywords.flatMap(off.tokens)) + off.overlap(q, off.tokens(`${o.title} ${o.description}`));
-    if (score > 0 && (!best || score > best.score)) best = { id: o.id, score };
-  }
-  return best?.id ?? null;
+  return scoreOwnership(question, ownership)[0]?.id ?? null;
+}
+
+/**
+ * A match is confident when at least one of the owner's keywords appears and no other area matches
+ * as well. A stray word from a description isn't enough to put a question on one person's plate.
+ */
+export function confidentOwnership(question: string, ownership: OwnershipInfo[]): string | null {
+  const [best, second] = scoreOwnership(question, ownership);
+  if (!best || best.score < 2) return null;
+  if (second && best.score - second.score < 1) return null;
+  return best.id;
 }
 
 const LEVELS_SCHEMA = {

@@ -587,4 +587,13 @@ alter table question add column clarify jsonb;
 alter table question add column parent_id text references question(id);
 `,
   },
+  {
+    id: "012_T-22_route_destination",
+    sql: `
+-- Where a routed question went and why (T-22). A confident ownership match goes to its owner (and
+-- shows in the team queue); anything else goes to the team queue with no assignee.
+alter table request add column destination text not null default 'owner' check (destination in ('owner', 'team_queue'));
+alter table request add column route_reason text;
+`,
+  },
 ];

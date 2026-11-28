@@ -29,7 +29,7 @@ export default async function FeedPage({ searchParams }: { searchParams: Promise
   const { msg } = await searchParams;
   const { db, viewer } = await currentViewer();
   const feed = await getFeed(db, viewer);
-  const asks = await db.one(`select count(*)::int as n from request r join member m on m.id = r.assignee_member_id where m.user_id = $1 and r.status = 'open'`, [viewer.user.id]);
+  const asks = await db.one(`select count(*)::int as n from request r left join member m on m.id = r.assignee_member_id where r.status = 'open' and (m.user_id = $1 or (r.destination = 'team_queue' and r.to_unit_id = any($2)))`, [viewer.user.id, viewer.reader.unitIds]);
   const first = viewer.user.name.split(" ")[0];
   const mineCount = feed.asksForYou.length + feed.decisions.length + feed.risks.length + feed.progress.length;
 
